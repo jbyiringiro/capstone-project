@@ -18,3 +18,17 @@ header { display: flex; gap: 8px; padding: 8px; border-bottom: 2px solid var(--l
 .cell img { width: 64px; height: 64px; object-fit: contain; }
 .glyph { font-size: 40px; color: #94a3b8; }
 footer { display: flex; justify-content: space-between; padding: 6px 12px; border-top: 1px solid var(--line); font-size: 14px; }
+
+/* dashboard */
+.dash { padding: 16px; max-width: 900px; margin: 0 auto; }
+.dash section { margin: 16px 0; padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row.wrap { flex-wrap: wrap; }
+.form { display: flex; flex-direction: column; gap: 8px; max-width: 320px; }
+.dash input { min-height: 44px; font-size: 16px; padding: 0 10px; border: 2px solid var(--line); border-radius: 8px; }
+.symgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.symgrid label { padding: 6px; border: 1px solid var(--line); border-radius: 6px; }
+.symgrid label.on { background: #eef2f7; }
+.err { color: var(--speak); }
+.link { background: none; border: none; color: var(--accent); text-decoration: underline; font-size: 14px; }
+table { border-collapse: collapse; } td, th { border: 1px solid var(--line); padding: 4px 8px; text-align: left; }

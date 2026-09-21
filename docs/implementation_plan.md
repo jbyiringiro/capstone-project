@@ -1,5 +1,13 @@
 # Implementation plan (from the accepted proposal timeline)
 
+**Status 21 Sept 2026 (W4, accelerated).** Every software component planned for W4-W7 now exists and
+is under automated test: data pipeline with morphology-based lexicon generation, unigram / KN / GRU /
+transformer models with ONNX export, API, PWA with dashboard and sync, study analysis, device firmware
+skeleton, keyguard. First validation numbers are in `results_log.md`. What remains is not code:
+the reviewed vocabulary and recordings (collaborators), the partner confirmation and REC approval,
+the tablet purchase, the physical talker parts, and the study itself. See `testing_plan.md` for the
+week-by-week test targets that replace the original build targets.
+
 Course weeks: W1 = 31 Aug 2026. Proposal submitted W3. This plan starts at W4 (21 Sept 2026).
 Grading anchors: implementation review 15%, report draft 26%, defense W12 20%, final report W13.
 

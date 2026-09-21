@@ -1,0 +1,214 @@
+lemma,pos,stem,symbols,forms,note
+gushaka,verb,,WANT,,DRAFT for native-speaker review
+gukunda,verb,,LIKE,,
+gukenera,verb,,NEED,,
+kugira,verb,,HAVE,mfite=I|ufite=YOU|afite=HE_SHE|dufite=WE|mufite=YOU_PL|bafite=THEY|simfite=I+NOT|ntufite=YOU+NOT|ntafite=HE_SHE+NOT|ntidufite=WE+NOT|ntibafite=THEY+NOT,stative 'have' forms added by hand
+kurya,verb,,EAT,,
+kunywa,verb,,DRINK,,
+gukina,verb,,PLAY,,
+kuryama,verb,,SLEEP,,
+kubyuka,verb,,WAKE_UP,,
+kugenda,verb,,GO,,
+kujya,verb,,GO,,irregular in past; regular present forms kept
+kuza,verb,,COME,,
+gutaha,verb,,GO_HOME,,
+gufasha,verb,,HELP,,
+kubona,verb,,SEE,,
+kureba,verb,,LOOK,,
+kumva,verb,umva,HEAR,,also FEEL in "ndumva nabi"; collaborators decide
+kuvuga,verb,,SAY,,
+gukora,verb,,DO,,
+kwiga,verb,,LEARN,,
+gusoma,verb,,READ,,
+kwandika,verb,,WRITE,,
+gushushanya,verb,,DRAW,,
+kubara,verb,,COUNT,,
+gutegereza,verb,,WAIT,,
+guhagarara,verb,,STAND,,
+kwicara,verb,icara,SIT,,
+kwambara,verb,ambara,DRESS,,
+gukaraba,verb,,WASH_HANDS,,
+kwiyuhagira,verb,iyuhagira,BATHE,,
+gusukura,verb,,CLEAN,,
+gusohoka,verb,,GO_OUT,,
+kwinjira,verb,injira,ENTER,,
+gufungura,verb,,OPEN,,
+gufunga,verb,,CLOSE,,
+guha,verb,,GIVE,,irregular stem; check 1sg 'mpa'
+gufata,verb,,TAKE,,
+gushyira,verb,,PUT,,
+kuzana,verb,,BRING,,
+gutwara,verb,,CARRY,,
+kwishima,verb,ishima,HAPPY,,
+kurira,verb,,CRY,,
+guseka,verb,,LAUGH,,
+kurwara,verb,,SICK,,
+kubabara,verb,,HURT,,
+gushonja,verb,,HUNGRY,nshonje=I|ushonje=YOU|ashonje=HE_SHE|dushonje=WE|mushonje=YOU_PL|bashonje=THEY,perfective forms added by hand
+gukonja,verb,,COLD,,
+gushyuha,verb,,HOT,,
+kunanirwa,verb,,TIRED,nananiwe=I|unaniwe=YOU|ananiwe=HE_SHE|tunaniwe=WE|munaniwe=YOU_PL|bananiwe=THEY,perfective forms added by hand
+gutinya,verb,,AFRAID,,
+kurakara,verb,,ANGRY,,
+kwanga,verb,anga,REFUSE,,
+gusaba,verb,,ASK_FOR,,
+kubaza,verb,,ASK,,
+gusubiramo,verb,,REPEAT,,
+gutangira,verb,,START,,
+kurangiza,verb,,FINISH,,
+guhagarika,verb,,STOP,,
+kubyina,verb,,DANCE,,
+kuririmba,verb,,SING,,
+gutembera,verb,,WALK,,
+kwiruka,verb,iruka,RUN,,
+gusimbuka,verb,,JUMP,,
+kumenya,verb,,KNOW,nzi=I|uzi=YOU|azi=HE_SHE|tuzi=WE|muzi=YOU_PL|bazi=THEY|sinzi=I+NOT|ntuzi=YOU+NOT|ntazi=HE_SHE+NOT|ntituzi=WE+NOT|ntibazi=THEY+NOT,stative present added by hand
+kwibuka,verb,ibuka,REMEMBER,,
+kwibagirwa,verb,ibagirwa,FORGET,,
+gutekereza,verb,,THINK,,
+kugura,verb,,BUY,,
+guhamagara,verb,,CALL,,
+kwihuta,verb,ihuta,HURRY,,
+gukunda,verb,,LIKE,,
+njye,word,,I,njyewe|nanjye,
+wowe,word,,YOU,,
+we,word,,HE_SHE,,
+twe,word,,WE,natwe,
+mwe,word,,YOU_PL,namwe,
+bo,word,,THEY,nabo,
+mama,noun,,MUM,,
+papa,noun,,DAD,,
+mwarimu,noun,,TEACHER,umwarimu|abarimu,
+umwana,noun,,CHILD,abana|n'abana,
+inshuti,noun,,FRIEND,,
+umukobwa,noun,,GIRL,abakobwa,
+umuhungu,noun,,BOY,abahungu,
+umuganga,noun,,DOCTOR,abaganga,
+amazi,noun,,WATER,,
+amata,noun,,MILK,,
+ibiryo,noun,,FOOD,,
+umugati,noun,,BREAD,imigati,
+imbuto,noun,,FRUIT,,
+umuneke,noun,,BANANA,imineke,
+icyayi,noun,,TEA,,
+umuceri,noun,,RICE,,
+ibishyimbo,noun,,BEANS,,
+ibirayi,noun,,POTATOES,,
+inyama,noun,,MEAT,,
+isukari,noun,,SUGAR,,
+umupira,noun,,BALL,imipira,
+igitabo,noun,,BOOK,ibitabo,
+ikaramu,noun,,PEN,amakaramu,
+ishuri,noun,,SCHOOL,amashuri|kw'ishuri,
+urugo,noun,,HOME,mu rugo,
+inzu,noun,,HOUSE,amazu|mu nzu,
+umusarani,noun,,TOILET,ubwiherero,
+igitanda,noun,,BED,ibitanda,
+intebe,noun,,CHAIR,,
+ameza,noun,,TABLE,,
+imodoka,noun,,CAR,,
+igare,noun,,BICYCLE,amagare,
+imbwa,noun,,DOG,,
+injangwe,noun,,CAT,,
+inka,noun,,COW,,
+inkoko,noun,,CHICKEN,,
+inyoni,noun,,BIRD,,
+telefoni,noun,,PHONE,terefone|telephone,
+televiziyo,noun,,TV,,
+umuziki,noun,,MUSIC,,
+indirimbo,noun,,SONG,,
+ikibuga,noun,,PLAYGROUND,,
+umuhanda,noun,,ROAD,,
+imvura,noun,,RAIN,,
+izuba,noun,,SUN,,
+umutwe,noun,,HEAD,,
+ukuboko,noun,,HAND,amaboko,
+ukuguru,noun,,LEG,amaguru,
+ijisho,noun,,EYE,amaso,
+ugutwi,noun,,EAR,amatwi,
+inda,noun,,STOMACH,,
+iryinyo,noun,,TOOTH,amenyo,
+umunwa,noun,,MOUTH,,
+izuru,noun,,NOSE,,
+umusatsi,noun,,HAIR,,
+ishati,noun,,SHIRT,amashati,
+inkweto,noun,,SHOES,,
+ipantaro,noun,,TROUSERS,,
+umwenda,noun,,CLOTHES,imyenda,
+ijoro,noun,,NIGHT,,
+igitondo,noun,,MORNING,mu gitondo,
+nimugoroba,noun,,EVENING,,
+yego,word,,YES,,
+oya,word,,NO,,
+murakoze,word,,THANK_YOU,urakoze,
+muraho,word,,HELLO,,
+mwaramutse,word,,GOOD_MORNING,,
+mwiriwe,word,,GOOD_AFTERNOON,,
+mwirirwe,word,,GOODBYE,,
+neza,word,,GOOD,byiza|mwiza|cyiza|bwiza|nziza|meza|keza|rwiza|ryiza,adjective agreement forms
+nabi,word,,BAD,bibi|mubi|kibi|bubi|mbi|mabi|rubi|ribi,adjective agreement forms
+cyane,word,,VERY,,
+buhoro,word,,SLOWLY,,
+vuba,word,,QUICKLY,,
+byinshi,word,,MANY,,
+bike,word,,FEW,,
+kinini,word,,BIG,,
+gito,word,,SMALL,,
+gishya,word,,NEW,,
+hano,word,,HERE,,
+hariya,word,,THERE,,
+hehe,word,,WHERE,he,
+iki,word,,THIS,ibi|iyi|uyu|aba|iri|uru|aka|izi,demonstratives; ambiguous with WHAT; collaborators decide
+n'iki,word,,WHAT,,
+nde,word,,WHO,,
+ryari,word,,WHEN,,
+kuki,word,,WHY,,
+gute,word,,HOW,,
+none,word,,NOW,ubu,
+ejo,word,,TOMORROW,,also yesterday; context decides
+nanone,word,,AGAIN,,
+kandi,word,,ALSO,,
+ntabwo,word,,NOT,,negation=1
+nta,word,,NOT,,negation=1
+si,word,,NOT,,negation=1
+mu,drop,,DROP,,locative
+ku,drop,,DROP,,locative
+muri,drop,,DROP,,locative
+kuri,drop,,DROP,,locative
+ko,drop,,DROP,,complementiser
+ni,drop,,DROP,,copula
+na,drop,,DROP,,and/with
+no,drop,,DROP,,and
+n,drop,,DROP,,elided na
+y,drop,,DROP,,elided ya
+ya,drop,,DROP,,of
+wa,drop,,DROP,,of
+bya,drop,,DROP,,of
+cya,drop,,DROP,,of
+rya,drop,,DROP,,of
+za,drop,,DROP,,of
+ka,drop,,DROP,,of
+yo,drop,,DROP,,of/it
+ngo,drop,,DROP,,quotative
+ati,drop,,DROP,,quotative
+ari,drop,,DROP,,being
+ariko,drop,,DROP,,but
+cyangwa,drop,,DROP,,or
+iyo,drop,,DROP,,when/that
+uko,drop,,DROP,,how/that
+ibyo,drop,,DROP,,those things
+icyo,drop,,DROP,,that thing
+kuba,verb,,BE,ndi=I|uri=YOU|turi=WE|bari=THEY|nari=I|wari=YOU|yari=HE_SHE|twari=WE|mwari=YOU_PL|sindi=I+NOT|nturi=YOU+NOT|ntituri=WE+NOT|ntibari=THEY+NOT,irregular; ari/muri omitted as ambiguous with DROP rows; past forms map to BE (no tense symbol)
+umuntu,noun,,PERSON,abantu,
+igihe,noun,,TIME,gihe|ibihe,
+ikibazo,noun,,PROBLEM,kibazo|ibibazo,
+byose,word,,ALL,bose|cyose|wese|yose|zose|twese|mwese|byose,agreement forms
+gusa,word,,ONLY,,
+mbere,word,,BEFORE,,
+nyuma,word,,AFTER,,
+gushobora,verb,,CAN,nshobora=I|ushobora=YOU|ashobora=HE_SHE|dushobora=WE|mushobora=YOU_PL|bashobora=THEY|sinshobora=I+NOT|ntushobora=YOU+NOT|ntashobora=HE_SHE+NOT|ntidushobora=WE+NOT|ntibashobora=THEY+NOT,draft v3 from near misses
+kugomba,verb,,MUST,ngomba=I|ugomba=YOU|agomba=HE_SHE|tugomba=WE|mugomba=YOU_PL|bagomba=THEY,draft v3 from near misses
+ikintu,noun,,THING,ibintu|kintu|bintu,draft v3
+umunsi,noun,,DAY,munsi|iminsi,draft v3
+buri,word,,EVERY,,draft v3
+benshi,word,,MANY,,agreement form of byinshi; draft v3

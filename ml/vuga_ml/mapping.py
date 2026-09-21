@@ -67,8 +67,17 @@ def map_sentence(text: str, lexicon: Lexicon) -> MappingResult:
     return MappingResult(sentence, tokens, tuple(symbols), "mapped")
 
 
-def map_corpus(lines: Iterable[str], lexicon: Lexicon) -> tuple[list[MappingResult], Counter]:
-    """Map every line; return retained results and a Counter of all statuses (incl. 'mapped')."""
+NEAR_MISS_RATIO = 0.6
+
+
+def map_corpus(lines: Iterable[str], lexicon: Lexicon,
+               near_misses: Counter | None = None) -> tuple[list[MappingResult], Counter]:
+    """Map every line; return retained results and a Counter of all statuses (incl. 'mapped').
+
+    If `near_misses` is given, unknown tokens from sentences that were excluded only because of
+    unknown tokens, and that already had at least NEAR_MISS_RATIO of tokens resolved, are counted
+    into it. Those tokens are the cheapest additions to the lexicon.
+    """
     kept: list[MappingResult] = []
     counts: Counter = Counter()
     for line in lines:
@@ -79,4 +88,8 @@ def map_corpus(lines: Iterable[str], lexicon: Lexicon) -> tuple[list[MappingResu
         counts[res.status] += 1
         if res.ok:
             kept.append(res)
+        elif near_misses is not None and res.status in ("unmapped_token", "low_core_ratio"):
+            unknown = [t for t in res.tokens if not lexicon.lookup(t)]
+            if unknown and 1 - len(unknown) / len(res.tokens) >= NEAR_MISS_RATIO:
+                near_misses.update(unknown)
     return kept, counts

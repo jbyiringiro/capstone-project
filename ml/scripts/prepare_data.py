@@ -5,14 +5,17 @@ Usage: python ml/scripts/prepare_data.py --lexicon vocab/lexicon.csv [--seed 202
 Outputs in ml/data/processed/:
   train.jsonl, validation.jsonl, test.jsonl   {"sentence": ..., "symbols": [...]}
   exclusions.json                             counts per exclusion reason (reported in Ch. 4)
+  near_misses.csv                             unknown tokens blocking otherwise-mappable sentences
   split_manifest.json                         seed, counts, lexicon hash, corpus provenance
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import hashlib
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,7 +48,8 @@ def main() -> None:
     args = ap.parse_args()
 
     lex = Lexicon.from_csv(args.lexicon)
-    kept, counts = map_corpus(iter_lines(args.limit), lex)
+    near: Counter = Counter()
+    kept, counts = map_corpus(iter_lines(args.limit), lex, near_misses=near)
     result = split(kept, seed=args.seed)
 
     OUT.mkdir(parents=True, exist_ok=True)
@@ -55,6 +59,9 @@ def main() -> None:
                 fh.write(json.dumps({"sentence": r.sentence, "symbols": list(r.symbols)},
                                     ensure_ascii=False) + "\n")
     (OUT / "exclusions.json").write_text(json.dumps(dict(counts), indent=2), encoding="utf-8")
+    with open(OUT / "near_misses.csv", "w", encoding="utf-8", newline="") as fh:
+        w = csv.writer(fh); w.writerow(["surface", "sentences_blocked"])
+        w.writerows(near.most_common(5000))
 
     prov_path = RAW / "PROVENANCE.json"
     manifest = {
@@ -71,6 +78,7 @@ def main() -> None:
     (OUT / "split_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(json.dumps(manifest, indent=2))
     print("exclusions:", dict(counts))
+    print("top near-miss tokens:", ", ".join(f"{s} ({n})" for s, n in near.most_common(25)))
 
 
 if __name__ == "__main__":
