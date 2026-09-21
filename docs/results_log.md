@@ -55,7 +55,7 @@ logged here.
 | 2026-09-21 | v2 | Unigram frequency | 0.109 | 0.230 | 0.330 | 39.0 | 3 kB | 808 prediction events |
 | 2026-09-21 | v2 | Kneser-Ney trigram (d=0.75) | 0.257 | 0.480 | 0.589 | 17.0 | 71 kB | top-3 vs unigram +0.250, paired bootstrap 95% CI [0.219, 0.281] |
 | 2026-09-21 | v2 | GRU 128 (3 seeds) | 0.260 ± 0.004 | 0.466 ± 0.010 | 0.591 ± 0.007 | 15.61 ± 0.20 | 443 kB (ONNX) | epochs 26/21/25; 12.4/7.0/8.1 s per seed |
-| 2026-09-21 | v2 | AfriBERTa-small (3 seeds, 8 epochs max) | see below | | | | | |
+| 2026-09-21 | v2 | AfriBERTa-small fine-tune (3 seeds, max 8 epochs) | 0.261 ± 0.008 | 0.480 ± 0.006 | 0.600 ± 0.006 | 15.78 ± 0.12 | 338 MB | epochs 7/6/8; 142/102/133 s per seed on RTX 5070; input = lexical forms + [MASK] |
 
 These numbers exist to prove the pipeline and are far below the proposal targets because split v1 has
 541 training sentences. They are not reported as findings.
