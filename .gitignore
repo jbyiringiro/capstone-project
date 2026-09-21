@@ -43,3 +43,6 @@ app/public/audio/*
 !app/public/audio/README.md
 # app/tests/fixtures/kn_fixture.json is committed: a small snapshot used by the JS parity test
 device/bundle/*.json
+
+# ARASAAC pictograms are fetched by ml/scripts/fetch_pictograms.py (CC BY-NC-SA), not committed
+app/public/symbols/*.png

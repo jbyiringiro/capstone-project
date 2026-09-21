@@ -131,6 +131,17 @@ ntibagira,kugira,THEY+NOT+HAVE,1,generated:neg_pres:3pl,136
 ntibazagira,kugira,THEY+NOT+HAVE,1,generated:neg_fut:3pl,7
 gira,kugira,HAVE,0,generated:imp:2sg,360
 mugire,kugira,HAVE,0,generated:imp:2pl,173
+mfite,kugira,I+HAVE,0,explicit form,5156
+ufite,kugira,YOU+HAVE,0,explicit form,7302
+afite,kugira,HE_SHE+HAVE,0,explicit form,9428
+dufite,kugira,WE+HAVE,0,explicit form,2051
+mufite,kugira,YOU_PL+HAVE,0,explicit form,298
+bafite,kugira,THEY+HAVE,0,explicit form,4367
+simfite,kugira,I+NOT+HAVE,1,explicit form,35
+ntufite,kugira,YOU+NOT+HAVE,1,explicit form,0
+ntafite,kugira,HE_SHE+NOT+HAVE,1,explicit form,70
+ntidufite,kugira,WE+NOT+HAVE,1,explicit form,0
+ntibafite,kugira,THEY+NOT+HAVE,1,explicit form,39
 kurya,kurya,EAT,0,infinitive,3755
 ndarya,kurya,I+EAT,0,generated:pres_ra:1sg,24
 ndya,kurya,I+EAT,0,generated:pres:1sg,137
@@ -2585,6 +2596,15 @@ ndi,kuba,I+BE,0,explicit form,6059
 uri,kuba,YOU+BE,0,explicit form,5543
 turi,kuba,WE+BE,0,explicit form,2035
 bari,kuba,THEY+BE,0,explicit form,9118
+nari,kuba,I+BE,0,explicit form,4280
+wari,kuba,YOU+BE,0,explicit form,4432
+yari,kuba,HE_SHE+BE,0,explicit form,16547
+twari,kuba,WE+BE,0,explicit form,1332
+mwari,kuba,YOU_PL+BE,0,explicit form,222
+sindi,kuba,I+NOT+BE,1,explicit form,131
+nturi,kuba,YOU+NOT+BE,1,explicit form,78
+ntituri,kuba,WE+NOT+BE,1,explicit form,20
+ntibari,kuba,THEY+NOT+BE,1,explicit form,226
 umuntu,umuntu,PERSON,0,lemma,15211
 abantu,umuntu,PERSON,0,explicit form,18303
 igihe,igihe,TIME,0,lemma,18601
@@ -2605,3 +2625,78 @@ byose,byose,ALL,0,explicit form,13608
 gusa,gusa,ONLY,0,lemma,10743
 mbere,mbere,BEFORE,0,lemma,14439
 nyuma,nyuma,AFTER,0,lemma,8099
+gushobora,gushobora,CAN,0,infinitive,137
+ndashobora,gushobora,I+CAN,0,generated:pres_ra:1sg,430
+nzashobora,gushobora,I+CAN,0,generated:fut:1sg,110
+sinzashobora,gushobora,I+NOT+CAN,1,generated:neg_fut:1sg,11
+urashobora,gushobora,YOU+CAN,0,generated:pres_ra:2sg,2468
+uzashobora,gushobora,YOU+CAN,0,generated:fut:2sg,87
+ntuzashobora,gushobora,YOU+NOT+CAN,1,generated:neg_fut:2sg,26
+arashobora,gushobora,HE_SHE+CAN,0,generated:pres_ra:3sg,448
+azashobora,gushobora,HE_SHE+CAN,0,generated:fut:3sg,76
+ntazashobora,gushobora,HE_SHE+NOT+CAN,1,generated:neg_fut:3sg,63
+turashobora,gushobora,WE+CAN,0,generated:pres_ra:1pl,444
+tuzashobora,gushobora,WE+CAN,0,generated:fut:1pl,62
+ntituzashobora,gushobora,WE+NOT+CAN,1,generated:neg_fut:1pl,9
+murashobora,gushobora,YOU_PL+CAN,0,generated:pres_ra:2pl,8
+muzashobora,gushobora,YOU_PL+CAN,0,generated:fut:2pl,0
+ntimushobora,gushobora,YOU_PL+NOT+CAN,1,generated:neg_pres:2pl,12
+ntimuzashobora,gushobora,YOU_PL+NOT+CAN,1,generated:neg_fut:2pl,0
+barashobora,gushobora,THEY+CAN,0,generated:pres_ra:3pl,111
+bazashobora,gushobora,THEY+CAN,0,generated:fut:3pl,20
+ntibazashobora,gushobora,THEY+NOT+CAN,1,generated:neg_fut:3pl,11
+shobora,gushobora,CAN,0,generated:imp:2sg,14
+mushobore,gushobora,CAN,0,generated:imp:2pl,0
+nshobora,gushobora,I+CAN,0,explicit form,3746
+ushobora,gushobora,YOU+CAN,0,explicit form,3412
+ashobora,gushobora,HE_SHE+CAN,0,explicit form,3397
+dushobora,gushobora,WE+CAN,0,explicit form,982
+mushobora,gushobora,YOU_PL+CAN,0,explicit form,367
+bashobora,gushobora,THEY+CAN,0,explicit form,1339
+sinshobora,gushobora,I+NOT+CAN,1,explicit form,2663
+ntushobora,gushobora,YOU+NOT+CAN,1,explicit form,1642
+ntashobora,gushobora,HE_SHE+NOT+CAN,1,explicit form,2167
+ntidushobora,gushobora,WE+NOT+CAN,1,explicit form,619
+ntibashobora,gushobora,THEY+NOT+CAN,1,explicit form,313
+kugomba,kugomba,MUST,0,infinitive,26
+ndagomba,kugomba,I+MUST,0,generated:pres_ra:1sg,0
+nzagomba,kugomba,I+MUST,0,generated:fut:1sg,33
+singomba,kugomba,I+NOT+MUST,1,generated:neg_pres:1sg,7
+sinzagomba,kugomba,I+NOT+MUST,1,generated:neg_fut:1sg,0
+uragomba,kugomba,YOU+MUST,0,generated:pres_ra:2sg,0
+uzagomba,kugomba,YOU+MUST,0,generated:fut:2sg,110
+ntugomba,kugomba,YOU+NOT+MUST,1,generated:neg_pres:2sg,751
+ntuzagomba,kugomba,YOU+NOT+MUST,1,generated:neg_fut:2sg,0
+aragomba,kugomba,HE_SHE+MUST,0,generated:pres_ra:3sg,0
+azagomba,kugomba,HE_SHE+MUST,0,generated:fut:3sg,8
+ntagomba,kugomba,HE_SHE+NOT+MUST,1,generated:neg_pres:3sg,306
+ntazagomba,kugomba,HE_SHE+NOT+MUST,1,generated:neg_fut:3sg,0
+turagomba,kugomba,WE+MUST,0,generated:pres_ra:1pl,0
+tuzagomba,kugomba,WE+MUST,0,generated:fut:1pl,0
+ntitugomba,kugomba,WE+NOT+MUST,1,generated:neg_pres:1pl,63
+ntituzagomba,kugomba,WE+NOT+MUST,1,generated:neg_fut:1pl,0
+muragomba,kugomba,YOU_PL+MUST,0,generated:pres_ra:2pl,0
+muzagomba,kugomba,YOU_PL+MUST,0,generated:fut:2pl,0
+ntimugomba,kugomba,YOU_PL+NOT+MUST,1,generated:neg_pres:2pl,11
+ntimuzagomba,kugomba,YOU_PL+NOT+MUST,1,generated:neg_fut:2pl,0
+baragomba,kugomba,THEY+MUST,0,generated:pres_ra:3pl,0
+bazagomba,kugomba,THEY+MUST,0,generated:fut:3pl,0
+ntibagomba,kugomba,THEY+NOT+MUST,1,generated:neg_pres:3pl,76
+ntibazagomba,kugomba,THEY+NOT+MUST,1,generated:neg_fut:3pl,0
+gomba,kugomba,MUST,0,generated:imp:2sg,0
+mugombe,kugomba,MUST,0,generated:imp:2pl,0
+ngomba,kugomba,I+MUST,0,explicit form,1900
+ugomba,kugomba,YOU+MUST,0,explicit form,3868
+agomba,kugomba,HE_SHE+MUST,0,explicit form,3374
+tugomba,kugomba,WE+MUST,0,explicit form,2551
+mugomba,kugomba,YOU_PL+MUST,0,explicit form,197
+bagomba,kugomba,THEY+MUST,0,explicit form,1797
+ikintu,ikintu,THING,0,lemma,7207
+ibintu,ikintu,THING,0,explicit form,8580
+kintu,ikintu,THING,0,explicit form,2325
+bintu,ikintu,THING,0,explicit form,1624
+umunsi,umunsi,DAY,0,lemma,4613
+munsi,umunsi,DAY,0,explicit form,10198
+iminsi,umunsi,DAY,0,explicit form,3654
+buri,buri,EVERY,0,lemma,10825
+benshi,benshi,MANY,0,lemma,7145

@@ -13,6 +13,10 @@ written once.
 
 | 2026-09-21 | 2ff83be5 | 7c543941 (draft v2: 176 symbols, 2,603 rows; infinitives, irregular know/be, agreement forms) | 1,698,086 | 2,768 | 2,084 | 1,674 / 204 / 206 | see exclusions.json; near misses now: tom 812, rwose 551, hari 493, nshobora 415, ikintu 409, mfite/ufite/afite, nari/yari, munsi, buri |
 
+| 2026-09-21 | 2ff83be5 | 182778eb (draft v3: 181 symbols; have/can/must statives, be-past, thing, day, every) | 1,698,086 | 4,416 | 3,267 | 2,621 / 319 / 327 | low_core_ratio 1,193,950; too_long 481,418; unmapped_token 12,058; ambiguous 29 |
+
+**Split v3** = lexicon 182778eb, produced by `run_pipeline.py` (iteration_2026-09-21_182778eb.json).
+
 **Split v2** = lexicon 7c543941, seed 20260921, 1,933 groups. Draft v3 lemmas (have/can/must statives, be-past, thing, day, every) are queued in lemmas.csv for the next `run_pipeline.py` iteration.
 
 **Split v1** = lexicon d18c4d4a, seed 20260921, 623 symbol-sequence groups. All validation numbers
@@ -56,6 +60,19 @@ logged here.
 | 2026-09-21 | v2 | Kneser-Ney trigram (d=0.75) | 0.257 | 0.480 | 0.589 | 17.0 | 71 kB | top-3 vs unigram +0.250, paired bootstrap 95% CI [0.219, 0.281] |
 | 2026-09-21 | v2 | GRU 128 (3 seeds) | 0.260 ± 0.004 | 0.466 ± 0.010 | 0.591 ± 0.007 | 15.61 ± 0.20 | 443 kB (ONNX) | epochs 26/21/25; 12.4/7.0/8.1 s per seed |
 | 2026-09-21 | v2 | AfriBERTa-small fine-tune (3 seeds, max 8 epochs) | 0.261 ± 0.008 | 0.480 ± 0.006 | 0.600 ± 0.006 | 15.78 ± 0.12 | 338 MB | epochs 7/6/8; 142/102/133 s per seed on RTX 5070; input = lexical forms + [MASK] |
+
+| 2026-09-21 | v3 | Unigram frequency | 0.090 | 0.220 | 0.305 | 43.4 | 3 kB | 1,20x events |
+| 2026-09-21 | v3 | Kneser-Ney trigram | 0.220 | 0.458 | 0.592 | 17.4 | 103 kB | vs unigram +0.238, 95% CI [0.212, 0.263] |
+| 2026-09-21 | v3 | GRU 128 (3 seeds) | 0.240 ± 0.001 | 0.466 ± 0.004 | 0.592 ± 0.005 | 15.31 ± 0.13 | 442 kB ONNX | transformer not yet rerun on v3 |
+
+Local latency on v3 artefacts: KN 1.1 ms median / 1.8 ms p95; GRU ONNX 0.09 / 0.28 ms; the v2
+AfriBERTa artefact on laptop CPU (4 threads) 29.6 / 44.0 ms, 83 M parameters, 338 MB, far above
+the 30 MB target, so distillation or a smaller encoder is needed before any on-device use.
+
+Top-3 did not rise from v2 to v3 although the data grew 57%: the new sentences bring more
+distinct symbols (181) and longer, more varied sequences, which makes the task harder at the same
+time as it adds evidence. This is why the lexicon must be settled with the collaborators before
+any number is treated as a result.
 
 These numbers exist to prove the pipeline and are far below the proposal targets because split v1 has
 541 training sentences. They are not reported as findings.

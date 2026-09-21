@@ -118,12 +118,20 @@ def main() -> None:
     with open(VOCAB / "lexicon_draft.csv", "w", encoding="utf-8", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=["surface", "lemma", "symbols", "negation", "note", "corpus_count"])
         w.writeheader(); w.writerows(rows)
+    # keep pictogram ids already chosen (fetch_pictograms.py or the collaborators)
+    keep: dict[str, tuple[str, str]] = {}
+    for name in ("symbols.csv", "symbols_draft.csv"):
+        if (VOCAB / name).exists():
+            for x in csv.DictReader(open(VOCAB / name, encoding="utf-8", newline="")):
+                if x.get("arasaac_id"):
+                    keep.setdefault(x["symbol_id"], (x["arasaac_id"], x["image_path"]))
     with open(VOCAB / "symbols_draft.csv", "w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["symbol_id", "label_rw", "label_en", "category", "arasaac_id", "image_path"])
         for sym in sorted(symbols):
             rw, en, cat = symbols[sym]
-            w.writerow([sym, rw, en, CATEGORY_OVERRIDE.get(sym, cat), "", ""])
+            aid, img = keep.get(sym, ("", ""))
+            w.writerow([sym, rw, en, CATEGORY_OVERRIDE.get(sym, cat), aid, img])
 
     single = [r for r in rows if r["corpus_count"] != ""]
     total = sum(counts.values()) or 1
