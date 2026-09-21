@@ -1,0 +1,20 @@
+/* Touch targets >= 2 cm (NFR3): cells are min 96px on a typical 160 dpi Android tablet. */
+:root { --ink: #1f2937; --line: #cbd5e1; --accent: #1f4e79; --speak: #c8102e; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; color: var(--ink); background: #fff; }
+.app { display: grid; grid-template-rows: auto auto auto 1fr auto; height: 100dvh; }
+header { display: flex; gap: 8px; padding: 8px; border-bottom: 2px solid var(--line); align-items: center; }
+.strip { flex: 1; min-height: 64px; display: flex; gap: 6px; flex-wrap: wrap; padding: 6px; border: 2px dashed var(--line); border-radius: 8px; }
+.chip { padding: 8px 12px; background: #eef2f7; border-radius: 8px; font-size: 20px; }
+.btn { min-width: 96px; min-height: 64px; font-size: 22px; border-radius: 10px; border: 2px solid var(--line); background: #fff; }
+.btn.speak { background: var(--speak); color: #fff; border-color: var(--speak); }
+.suggestions { display: flex; gap: 8px; padding: 8px; min-height: 112px; background: #f8fafc; border-bottom: 2px solid var(--line); }
+.categories { display: flex; gap: 6px; padding: 6px 8px; overflow-x: auto; }
+.tab { min-height: 48px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--line); background: #fff; font-size: 16px; white-space: nowrap; }
+.tab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; padding: 8px; overflow-y: auto; }
+.cell { min-height: 112px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 2px solid var(--line); border-radius: 12px; background: #fff; font-size: 18px; }
+.cell.suggest { flex: 1; border-color: var(--accent); }
+.cell img { width: 64px; height: 64px; object-fit: contain; }
+.glyph { font-size: 40px; color: #94a3b8; }
+footer { display: flex; justify-content: space-between; padding: 6px 12px; border-top: 1px solid var(--line); font-size: 14px; }

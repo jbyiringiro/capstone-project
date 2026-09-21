@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vuga-ml"
+version = "0.1.0"
+description = "Next-symbol prediction for a Kinyarwanda-first picture-to-speech AAC board"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+neural = [
+    "torch>=2.2",
+    "transformers>=4.40",
+    "onnx>=1.16",
+    "onnxruntime>=1.18",
+]
+dev = [
+    "pytest>=8",
+    "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["vuga_ml*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

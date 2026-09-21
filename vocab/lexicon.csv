@@ -1,0 +1,28 @@
+surface,lemma,symbols,negation,note
+ndashaka,gushaka,I+WANT,0,seed entry; replace with reviewed list
+sinshaka,gushaka,I+NOT+WANT,1,seed entry
+arashaka,gushaka,HE_SHE+WANT,0,seed entry
+urashaka,gushaka,YOU+WANT,0,seed entry
+amazi,amazi,WATER,0,seed entry
+kurya,kurya,EAT,0,seed entry
+kunywa,kunywa,DRINK,0,seed entry
+gukina,gukina,PLAY,0,seed entry
+kuryama,kuryama,SLEEP,0,seed entry
+mama,mama,MUM,0,seed entry
+papa,papa,DAD,0,seed entry
+mwarimu,mwarimu,TEACHER,0,seed entry
+ndumva,kumva,I+FEEL,0,seed entry
+nabi,nabi,BAD,0,seed entry
+neza,neza,GOOD,0,seed entry
+yego,yego,YES,0,seed entry
+oya,oya,NO,0,seed entry
+ndabyishimiye,kwishima,I+HAPPY,0,seed entry
+ndarwaye,kurwara,I+SICK,0,seed entry
+nshonje,gushonja,I+HUNGRY,0,seed entry
+mfite,kugira,I+HAVE,0,seed entry
+na,na,DROP,0,conjunction; omitted on the board
+n'iki,iki,WHAT,0,seed entry
+iki,iki,THIS,0,seed entry
+ngwino,kuza,COME,0,seed entry
+mfasha,gufasha,HELP_ME,0,seed entry
+murakoze,gukora,THANK_YOU,0,seed entry

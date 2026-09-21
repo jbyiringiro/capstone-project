@@ -1,0 +1,24 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e ./ml[dev] -e ./api[dev]
+      - run: pytest ml/tests
+      - run: pytest api/tests
+        working-directory: .
+        env: { PYTHONPATH: api }
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+        working-directory: app
+      - run: npm run build
+        working-directory: app

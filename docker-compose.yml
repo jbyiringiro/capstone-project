@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vuga
+      POSTGRES_PASSWORD: vuga
+      POSTGRES_DB: vuga
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      VUGA_DATABASE_URL: postgresql+psycopg://vuga:vuga@db:5432/vuga
+      VUGA_JWT_SECRET: ${VUGA_JWT_SECRET:-dev-only-secret}
+      VUGA_CORS_ORIGINS: '["http://localhost:5173","http://localhost:4173"]'
+    volumes:
+      - ./ml/artifacts:/srv/ml/artifacts:ro
+      - media:/srv/media
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
+  media:
