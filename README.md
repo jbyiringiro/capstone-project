@@ -1,6 +1,6 @@
 # Vuga AAC
 
-**An offline Kinyarwanda picture-to-speech communication board for children with complex communication needs, with machine-learning next-symbol suggestions.**
+**An offline Kinyarwanda picture-to-speech communication app for disabled children who cannot speak or are hard to understand, with machine-learning next-word suggestions.**
 
 | | |
 |---|---|
@@ -11,14 +11,48 @@
 
 ## Description
 
-**Problem.** Some children cannot rely on speech to ask for help, make a choice, refuse something or join in a conversation. Rwanda's child census identifies children with communication difficulties ([NISR children report](https://beta.statistics.gov.rw/file/14175/download?token=zQsSYuB4)). Augmentative and alternative communication (AAC) tools can help ([ASHA AAC overview](https://www.asha.org/Practice-Portal/Professional-Issues/Augmentative-and-Alternative-Communication/)). Most AAC apps, however, are English-first, paid, or need a constant internet connection.
+**Who it is for.** Many disabled children cannot use speech to ask for help, make a choice, say "no" or join a conversation. Others speak, but people outside the family cannot understand them. This includes children with:
+- autism
+- cerebral palsy
+- Down syndrome
+- intellectual disability
+- speech motor disorders such as childhood apraxia of speech
 
-**Solution.** Vuga ("speak" in Kinyarwanda) is a progressive web app that runs on an ordinary Android tablet or phone and works fully offline after the first load.
+Rwanda's child census identifies children with communication difficulties ([NISR children report](https://beta.statistics.gov.rw/file/14175/download?token=zQsSYuB4)).
 
-- A child taps picture cards to build a message, then shows it on screen with **Erekana** ("show") or speaks it aloud in Kinyarwanda with **Vuga**.
-- There are 181 everyday words, each with a licensed picture and a bundled Kinyarwanda speech clip.
-- Caregivers open **Umurezi** ("caregiver") behind a parent PIN. There they manage child profiles, vocabulary, picture style, speech (including their own recordings), an activity summary, and explicit export or sync.
+**Problem.** Augmentative and alternative communication (AAC) lets these children communicate with pictures and a device that speaks for them ([ASHA AAC overview](https://www.asha.org/Practice-Portal/Professional-Issues/Augmentative-and-Alternative-Communication/)). In Rwanda, though, most families and schools cannot use AAC apps:
+- they are mostly in English, not Kinyarwanda
+- they are expensive
+- they often need dedicated devices or a constant internet connection
+
+Without a way to communicate, a child's needs and choices are easily missed. Frustration can show up as behaviour, and the child is left out of class and family life.
+
+**Solution.** Vuga ("speak" in Kinyarwanda) is a free communication app in Kinyarwanda. It runs on an ordinary Android tablet or phone and works fully offline after the first load.
+
+- The child taps picture cards to build a message. **Vuga** speaks it aloud in Kinyarwanda, and **Erekana** ("show") displays it full screen.
+- There are 181 everyday words, such as "want", "help", "no", "water", "toilet", "hurt" and "play". Each word has a picture and a Kinyarwanda voice clip.
+- A parent, teacher or therapist sets up the app for each child in the caregiver area, **Umurezi**, which is protected by a PIN.
 - All data stays on the device unless a caregiver chooses to sync it.
+
+**How it adapts to each child's disability.** Each child has their own profile, and the caregiver adjusts the board to fit that child:
+
+| Feature | Who it helps |
+|---|---|
+| The main board layout never moves; word suggestions appear in a separate row | Autistic children and children with motor-planning difficulties, who learn where words are and rely on them staying there |
+| Large-tile setting per child | Children with limited hand control (for example, cerebral palsy) or low vision |
+| Real photographs or simple pictograms, chosen per child | Children with intellectual disability who recognise photos more easily than symbols, or who need a simpler image |
+| Reduced-motion setting, and the device's reduce-motion preference is respected | Children who are distracted or upset by animation |
+| **Erekana** shows the message as large text and pictures | When speech audio fails, in a noisy place, or when the listener has hearing loss |
+| Caregivers can record words in their own voice | Children who respond better to a familiar voice |
+| The caregiver area opens only with a long press and a PIN | Prevents the child from accidentally changing their settings |
+| Word suggestions can be turned off | Children for whom suggestions are confusing rather than helpful |
+| A 3D-printable keyguard design in `hardware/` (not yet produced) | Children who accidentally press neighbouring tiles |
+
+**Not yet supported.** These are planned or open problems:
+- **Switch scanning** for children who cannot tap a screen, for example some children with severe cerebral palsy.
+- **Protection against accidental taps** for children with tremor.
+- **Reading a tile's word aloud before it is selected**, for blind or low-vision children.
+- **Testing with disabled children, families and therapists.** This has not happened yet. Partner organisations working with disabled children in Rwanda are the next step.
 
 **Machine learning.** A next-symbol predictor suggests likely next words in a separate row, so the main board's layout never moves. The [model notebook](ml/notebooks/vuga_model.ipynb) ([HTML version](ml/notebooks/vuga_model.html)) covers data engineering, visualisations, model architecture and metrics. It compares three models trained on Kinyarwanda sentences mapped to the board vocabulary:
 
