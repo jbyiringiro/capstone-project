@@ -1,0 +1,238 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-06T10:28:32.077Z",
+  "passed_checks": 12,
+  "browser": "Headless msedge",
+  "base_url": "http://127.0.0.1:4175/",
+  "data": "Isolated synthetic P-90 profile and generated tone fixture; no participant data or microphone access.",
+  "observation": "Original HTMLMediaElement.play executes unchanged. Native playing/ended/pause/error events are observed; bundled audio is also decoded and checked for nonzero samples. Installed system voices are hidden to exercise file-based paths.",
+  "checks": [
+    {
+      "name": "Fresh installation defaults to the bundled English demo without a system voice",
+      "status": "passed",
+      "evidence": {
+        "profile": "P-90",
+        "installedVoices": 0,
+        "initialMode": "english-demo"
+      }
+    },
+    {
+      "name": "Bundled I, WANT and WATER files decode to non-silent audio samples",
+      "status": "passed",
+      "evidence": [
+        {
+          "key": "I",
+          "duration": 1.1644375,
+          "sampleRate": 48000,
+          "samples": 55893,
+          "peak": 0.43441104888916016,
+          "rms": 0.03910776404282105
+        },
+        {
+          "key": "WANT",
+          "duration": 1.4843958333333334,
+          "sampleRate": 48000,
+          "samples": 71251,
+          "peak": 0.5255959630012512,
+          "rms": 0.05484569652200451
+        },
+        {
+          "key": "WATER",
+          "duration": 1.4293333333333333,
+          "sampleRate": 48000,
+          "samples": 68608,
+          "peak": 0.5354062914848328,
+          "rms": 0.056209104581038796
+        }
+      ]
+    },
+    {
+      "name": "English demo plays three real media parts, retains the message and records no successful Speak",
+      "status": "passed",
+      "evidence": {
+        "actualMediaEnds": 3,
+        "retainedSymbols": 3,
+        "successfulSpeakEvents": 0,
+        "events": [
+          {
+            "id": 1,
+            "type": "playing",
+            "time": 0,
+            "duration": 1.164444,
+            "paused": false,
+            "error": null
+          },
+          {
+            "id": 1,
+            "type": "pause",
+            "time": 1.164444,
+            "duration": 1.164444,
+            "paused": true,
+            "error": null
+          },
+          {
+            "id": 1,
+            "type": "ended",
+            "time": 1.164444,
+            "duration": 1.164444,
+            "paused": true,
+            "error": null
+          },
+          {
+            "id": 2,
+            "type": "playing",
+            "time": 0,
+            "duration": 1.484399,
+            "paused": false,
+            "error": null
+          },
+          {
+            "id": 2,
+            "type": "pause",
+            "time": 1.484399,
+            "duration": 1.484399,
+            "paused": true,
+            "error": null
+          },
+          {
+            "id": 2,
+            "type": "ended",
+            "time": 1.484399,
+            "duration": 1.484399,
+            "paused": true,
+            "error": null
+          },
+          {
+            "id": 3,
+            "type": "playing",
+            "time": 0,
+            "duration": 1.429342,
+            "paused": false,
+            "error": null
+          },
+          {
+            "id": 3,
+            "type": "pause",
+            "time": 1.429342,
+            "duration": 1.429342,
+            "paused": true,
+            "error": null
+          },
+          {
+            "id": 3,
+            "type": "ended",
+            "time": 1.429342,
+            "duration": 1.429342,
+            "paused": true,
+            "error": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "Stop cancels native playback while retaining the message and zero successful Speak events",
+      "status": "passed",
+      "evidence": {
+        "stoppedMedia": {
+          "id": 4,
+          "type": "pause",
+          "time": 0.069927,
+          "duration": 1.164444,
+          "paused": true,
+          "error": null
+        },
+        "retainedSymbols": 3,
+        "successfulSpeakEvents": 0
+      }
+    },
+    {
+      "name": "Caregiver can test the bundled sound and choose persistent Kinyarwanda mode",
+      "status": "passed",
+      "evidence": {
+        "mode": "kinyarwanda",
+        "testSoundNativeEnds": 1,
+        "successfulSpeakEvents": 0
+      }
+    },
+    {
+      "name": "Silent and corrupt uploads are rejected before they can replace a word recording",
+      "status": "passed",
+      "evidence": {
+        "rejected": [
+          "silent PCM WAV",
+          "corrupt WAV"
+        ],
+        "savedRecordings": 0
+      }
+    },
+    {
+      "name": "Uploading and previewing a synthetic WAV fixture saves it locally without message completion",
+      "status": "passed",
+      "evidence": {
+        "key": "I",
+        "fixture": "Generated 0.65 s 440 Hz PCM tone; not Kinyarwanda speech.",
+        "bytes": 20844,
+        "savedPreviewNativeEnds": 1
+      }
+    },
+    {
+      "name": "Kinyarwanda mode plays the saved fixture and finalizes exactly one message after native media completion",
+      "status": "passed",
+      "evidence": {
+        "nativeMediaEnds": 1,
+        "completedDeviceMessages": 1,
+        "clinicalValidation": false
+      }
+    },
+    {
+      "name": "Offline reload preserves Kinyarwanda mode and saved recording playback",
+      "status": "passed",
+      "evidence": {
+        "online": false,
+        "savedFixtureBytes": 20844,
+        "nativeMediaEndsAfterReload": 1,
+        "totalCompletedDeviceMessages": 2
+      }
+    },
+    {
+      "name": "Unrecorded Kinyarwanda symbol stays visible without completion or English substitution",
+      "status": "passed",
+      "evidence": {
+        "retainedSymbols": 1,
+        "unexpectedMediaStarts": 0,
+        "totalCompletedDeviceMessages": 2
+      }
+    },
+    {
+      "name": "Bundled English speech also plays after offline reload without recording a Kinyarwanda completion",
+      "status": "passed",
+      "evidence": {
+        "online": false,
+        "nativeMediaEndsAfterReload": 1,
+        "retainedSymbols": 1,
+        "totalCompletedDeviceMessages": 2
+      }
+    },
+    {
+      "name": "The audio workflow has no uncaught JavaScript or native media errors",
+      "status": "passed",
+      "evidence": {
+        "pageErrors": [],
+        "screenshots": 5
+      }
+    }
+  ],
+  "screenshots": [
+    "english-demo-played.png",
+    "audio-and-voice.png",
+    "saved-recording.png",
+    "kinyarwanda-recording-needed.png",
+    "english-demo-offline.png"
+  ],
+  "page_errors": [],
+  "limitations": [
+    "Automated browser checks do not prove that physical speakers were audible.",
+    "No English pronunciation listening review or Kinyarwanda pronunciation validation performed.",
+    "The upload fixture is a synthetic tone, not a caregiver recording or clinically meaningful communication outcome."
+  ]
+}

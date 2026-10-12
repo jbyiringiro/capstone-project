@@ -1,0 +1,8 @@
+.dash .voice-settings { margin-bottom: 32px; }
+.dash .voice-settings h2 { display: flex; align-items: center; gap: 10px; }
+.dash .voice-settings .voice-availability { border-radius: 12px; padding: 12px 15px; background: var(--mint); color: var(--ink); }
+.dash .voice-test-options { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.dash .voice-test-options > div { flex: 1 1 220px; min-width: 0; }
+.dash .voice-test-options button { min-height: 48px; max-width: 100%; text-align: left; }
+.dash .voice-test-help { display: block; margin-top: 9px; }
+.dash .voice-test-status { padding: 12px 15px; border: 1px solid var(--line); border-radius: 12px; }

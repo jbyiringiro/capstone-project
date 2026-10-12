@@ -1,0 +1,18 @@
+{
+  "kn_trigram": {
+    "size_bytes": 102634,
+    "median_ms": 1.119,
+    "p95_ms": 1.761
+  },
+  "gru_onnx": {
+    "size_bytes": 441919,
+    "median_ms": 0.094,
+    "p95_ms": 0.284
+  },
+  "transformer_seed0_cpu": {
+    "size_bytes": 337958273,
+    "parameters": 83241395,
+    "median_ms": 29.6,
+    "p95_ms": 44.039
+  }
+}

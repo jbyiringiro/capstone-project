@@ -1,0 +1,122 @@
+﻿{
+  "checkedAt": "2026-10-05T22:02:17.292Z",
+  "artifact": "Vuga local interactive design preview",
+  "sourceFiles": [
+    "preview.html",
+    "preview.css",
+    "preview.js",
+    "icons.js"
+  ],
+  "status": "passed",
+  "method": "Node syntax validation and independent automated plus visual Microsoft Edge checks using local file:// pages",
+  "performedBy": "frontend and school_inputs_review agents",
+  "screensChecked": [
+    "board",
+    "compose",
+    "food",
+    "feelings",
+    "show",
+    "audio",
+    "empty-board",
+    "profiles",
+    "new-profile",
+    "vocabulary",
+    "preferences",
+    "summary"
+  ],
+  "screenMatrix": {
+    "widths": [
+      1440,
+      390
+    ],
+    "results": {
+      "pageErrors": 0,
+      "unnamedButtons": 0,
+      "horizontalBodyOverflow": false
+    }
+  },
+  "boardResponsiveChecks": [
+    {
+      "width": 320,
+      "columns": 2,
+      "labelPixels": 18,
+      "horizontalBodyOverflow": false,
+      "childButtonsBelow44Pixels": 0
+    },
+    {
+      "width": 390,
+      "columns": 2,
+      "labelPixels": 18,
+      "horizontalBodyOverflow": false,
+      "childButtonsBelow44Pixels": 0
+    },
+    {
+      "width": 768,
+      "columns": 4,
+      "labelPixels": 18,
+      "horizontalBodyOverflow": false,
+      "childButtonsBelow44Pixels": 0
+    },
+    {
+      "width": 1440,
+      "columns": 4,
+      "labelPixels": 20,
+      "horizontalBodyOverflow": false,
+      "childButtonsBelow44Pixels": 0
+    }
+  ],
+  "interactionChecks": {
+    "localFileOpening": "passed",
+    "showModalFocusTrap": "passed",
+    "escapeClosesModalAndRestoresFocus": "passed",
+    "directAudioPresetFocusInsideDialog": "passed",
+    "deleteRetainsKeyboardFocus": "passed",
+    "clearMovesFocusToFirstSymbol": {
+      "passed": true,
+      "action": "select",
+      "symbol": "I"
+    },
+    "vocabularySearchAmazi": {
+      "passed": true,
+      "results": 1
+    },
+    "profileVocabularyIsolation": {
+      "passed": true,
+      "profile1Water": false,
+      "profile2Water": true
+    },
+    "longMessagePhoneModal": {
+      "passed": true,
+      "symbolCount": 10,
+      "messageClientWidth": 296,
+      "messageScrollWidth": 296,
+      "dialogClientWidth": 336,
+      "dialogScrollWidth": 336
+    },
+    "systemReducedMotion": {
+      "passed": true,
+      "chipAnimation": "none"
+    },
+    "preferenceReducedMotionPseudoElements": {
+      "passed": true,
+      "switchThumbTransitionDuration": "0s",
+      "switchThumbAnimationName": "none"
+    }
+  },
+  "visualReview": {
+    "tablet": "passed",
+    "mobile": "passed",
+    "findings": "Legible symbol labels, deliberate two-column phone layout, no clipping in reviewed screens."
+  },
+  "limits": [
+    "This is a design demonstration, not a deployment or an update to the production app.",
+    "Profiles, edits and preferences are session-only and reset when the preview reloads.",
+    "Suggestions are authored examples, not model inference.",
+    "No speech audio plays; Speak preserves the message and opens an unavailable-audio state.",
+    "No real usage records or analytics are supplied.",
+    "Labels, illustrations and target-device access requirements still require local review.",
+    "Browser checks do not establish screen-reader, physical-device or clinical validation.",
+    "Figma imports are static editable artwork; preview interactions are demonstrated in HTML."
+  ]
+}
+

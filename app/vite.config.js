@@ -9,25 +9,25 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['symbols/**/*', 'audio/**/*', 'models/**/*'],
+      includeAssets: ['icon.svg', 'design/icons/*.svg', 'photos/**/*.webp', 'symbols/**/*', 'audio/**/*', 'models/**/*.json'],
       manifest: {
-        name: 'Vuga AAC',
+        name: 'Vuga — Amagambo yanjye',
         short_name: 'Vuga',
-        description: 'Kinyarwanda-first predictive picture-to-speech board',
+        description: 'Hitamo amashusho uvuge ubutumwa bwawe mu Kinyarwanda.',
         lang: 'rw',
-        display: 'fullscreen',
-        orientation: 'landscape',
-        background_color: '#ffffff',
-        theme_color: '#1f4e79',
-        icons: [{ src: 'icon-512.png', sizes: '512x512', type: 'image/png' }]
+        display: 'standalone',
+        start_url: '/',
+        background_color: '#F7F5EC',
+        theme_color: '#176B62',
+        icons: [{ src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,wav,mp3,json}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,wav,mp3,json}'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => /\/(symbols|audio|models)\//.test(url.pathname),
+            urlPattern: ({ url }) => /\/(photos|symbols|audio|models)\//.test(url.pathname),
             handler: 'CacheFirst',
-            options: { cacheName: 'vuga-media', expiration: { maxEntries: 2000 } }
+            options: { cacheName: 'vuga-licensed-media-v1', expiration: { maxEntries: 2000 } }
           }
         ]
       }

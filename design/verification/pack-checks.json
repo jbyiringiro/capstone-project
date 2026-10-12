@@ -1,0 +1,19 @@
+{
+    "generatedAtUtc":  "2026-10-05T22:02:51.4405056Z",
+    "screenCount":  16,
+    "tabletStates":  12,
+    "mobileViews":  3,
+    "foundationSheets":  1,
+    "svgImportsIncludingOverview":  17,
+    "originalIcons":  25,
+    "svgXmlValid":  true,
+    "svgRasterImageNodes":  0,
+    "svgForeignObjectNodes":  0,
+    "browserVisualReview":  "Tablet, phone, caregiver, modal and foundations outputs reviewed; SVG render comparisons completed.",
+    "figmaAccountImportTested":  false,
+    "limitations":  [
+                        "SVG import needs Figma components, auto-layout and prototype links set up separately.",
+                        "Concept vocabulary and illustrations require local review.",
+                        "No speech or research data in the local preview."
+                    ]
+}

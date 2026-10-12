@@ -1,0 +1,31 @@
+{
+  "captured_utc": "2026-09-27T22:06:08.801380+00:00",
+  "corpus_repository": "https://github.com/Digital-Umuganda/common_voice_dataset_rw",
+  "corpus_commit": "2ff83be588a4b08204d2b15fbb2b0ba0a9bb1f36",
+  "corpus_licence_as_recorded": "MPL-2.0",
+  "corpus_accessed": "2026-09-21",
+  "transformations": [
+    "Existing draft-v3 preprocessing and frozen group split; no repartitioning",
+    "Copy all train/validation symbol sequences in their existing order",
+    "Remove natural-language sentence fields; no examples generated"
+  ],
+  "test_data": "Not opened or included; count in split_manifest is historical metadata only",
+  "optional_local_model_sha256": {
+    "ml/artifacts/gru.onnx": "196c8a4cf79854ff14c71c8322239fb93e5cda7f2d53d06c261b9e70ed18acb7",
+    "ml/artifacts/gru.vocab.json": "d9755ddd902e2568e0fad77e35bffcc8a60b9fba9c1007e33bb01ea15d01f179"
+  },
+  "source_sha256": {
+    "ml/data/processed/train.jsonl": "0766d24061fb66d5e4ff3ca33db7692ea481f67534f803df5af92582a982ceb6",
+    "ml/data/processed/validation.jsonl": "d119d9433307db9e2cb0595c8c7a4bf733f610bddf1ffe1042597941e42eb82d"
+  },
+  "files_sha256": {
+    "train.jsonl": "1322e177b75af806af6cc5fdf220686a0bc182d02bc5f412c548eb0bdd2aeefd",
+    "validation.jsonl": "4a444e0f29fe84f5985cfd92a566b060636f56015a1a9b851576a6d69abfbaf8",
+    "split_manifest.json": "4ce745148fc9f05a168aef8b8b64ce84c160712d7f5cce2f113a7bbdefeba9c1",
+    "exclusions.json": "8cfb021890ce94033f91a89df349087965a484581b81a01ddc4486924e0ecf8c",
+    "baselines_validation.json": "623b0a112c2f1ef560b935c59e1be13da44733c330911b1b19b85fde25fb4a89",
+    "gru_validation.json": "498797188f72fbfc9eb7a2e41c7aae3fabf00448c45e8c393376d738a4539290",
+    "gru_seed0.json": "e76e4d935ec067a02832304ed1d8d9fab445a9a135b0f894bb3c32589f5c3000",
+    "LICENSE.corpus": "2684de17300e0a434686f1ec7f8af6045207a4b457a3fe04b2b9ce655e7c5d50"
+  }
+}

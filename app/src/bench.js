@@ -1,7 +1,7 @@
 // In-browser latency benchmark: run on the actual study tablet (NFR2, proposal 3.3.4).
 // Reports median and 95th percentile of predictor.topK over realistic prefixes after warm-up.
 export async function benchPredictor(predictor, prefixes, n = 300) {
-  if (!predictor) return { error: 'no predictor loaded' }
+  if (!predictor) return { error: 'Ubufasha bwo guhitamo amagambo ntiburaboneka.' }
   for (let i = 0; i < 20; i++) predictor.topK(prefixes[i % prefixes.length], 3)
   const times = []
   for (let i = 0; i < n; i++) {

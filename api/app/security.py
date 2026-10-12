@@ -18,7 +18,10 @@ def hash_password(p: str) -> str:
 
 
 def verify_password(p: str, h: str) -> bool:
-    return bcrypt.checkpw(p.encode(), h.encode())
+    try:
+        return bcrypt.checkpw(p.encode(), h.encode())
+    except ValueError:
+        return False
 
 
 def create_token(user: User) -> str:
@@ -30,7 +33,8 @@ def create_token(user: User) -> str:
 def current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)) -> User:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        user = db.get(User, payload.get("sub"))
+        subject = payload.get("sub")
+        user = db.get(User, subject) if isinstance(subject, str) and subject else None
     except JWTError:
         user = None
     if user is None:

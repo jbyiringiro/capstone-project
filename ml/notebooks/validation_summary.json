@@ -1,0 +1,66 @@
+{
+  "executed_utc": "2026-09-27T22:06:25.154692+00:00",
+  "status": "Existing Vuga prototype evidence; final project direction provisional",
+  "split": "validation",
+  "n_train": 2621,
+  "n_validation": 319,
+  "n_symbol_events": 1398,
+  "test_partition_opened": false,
+  "lexicon_sha256": "182778eb23dbf7f55bc7de2769ffdbbc5bc56d4f19c5e8ba46c1a689a16af2db",
+  "snapshot_sha256": {
+    "train.jsonl": "1322e177b75af806af6cc5fdf220686a0bc182d02bc5f412c548eb0bdd2aeefd",
+    "validation.jsonl": "4a444e0f29fe84f5985cfd92a566b060636f56015a1a9b851576a6d69abfbaf8",
+    "split_manifest.json": "4ce745148fc9f05a168aef8b8b64ce84c160712d7f5cce2f113a7bbdefeba9c1",
+    "exclusions.json": "8cfb021890ce94033f91a89df349087965a484581b81a01ddc4486924e0ecf8c",
+    "baselines_validation.json": "623b0a112c2f1ef560b935c59e1be13da44733c330911b1b19b85fde25fb4a89",
+    "gru_validation.json": "498797188f72fbfc9eb7a2e41c7aae3fabf00448c45e8c393376d738a4539290",
+    "gru_seed0.json": "e76e4d935ec067a02832304ed1d8d9fab445a9a135b0f894bb3c32589f5c3000",
+    "LICENSE.corpus": "2684de17300e0a434686f1ec7f8af6045207a4b457a3fe04b2b9ce655e7c5d50"
+  },
+  "packages": {
+    "numpy": "2.4.6",
+    "matplotlib": "3.11.2",
+    "nbformat": "5.11.1",
+    "nbclient": "0.11.0",
+    "onnxruntime": "1.30.0"
+  },
+  "fresh_statistical_metrics": {
+    "unigram": {
+      "top1": 0.09012875536480687,
+      "top3": 0.21959942775393418,
+      "top5": 0.30472103004291845,
+      "perplexity": 43.441183848922634,
+      "n_events": 1398
+    },
+    "kn_trigram": {
+      "top1": 0.22031473533619456,
+      "top3": 0.45779685264663805,
+      "top5": 0.5915593705293276,
+      "perplexity": 17.37381043056236,
+      "n_events": 1398
+    }
+  },
+  "trigram_vs_unigram_paired_bootstrap": {
+    "k": 3,
+    "diff": 0.23819742489270387,
+    "ci95": [
+      0.21162444113263784,
+      0.2627177700348432
+    ],
+    "iters": 2000
+  },
+  "recorded_gru_three_seed_summary": {
+    "top1_mean": 0.24034334763948498,
+    "top3_mean": 0.4656652360515022,
+    "top5_mean": 0.5917978063900811,
+    "perplexity_mean": 15.30662926419351,
+    "top3_sd": 0.0044670944194552175
+  },
+  "fresh_optional_gru_onnx_seed0": {
+    "top1": 0.24034334763948498,
+    "top3": 0.46924177396280403,
+    "top5": 0.5915593705293276,
+    "perplexity": 15.37376733710339,
+    "n_events": 1398
+  }
+}

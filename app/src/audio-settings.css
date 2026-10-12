@@ -1,0 +1,73 @@
+.audio-settings { color: var(--ink); }
+.audio-settings .dash-heading > .icon { width: 48px; height: 48px; flex: none; }
+.audio-coverage { display: flex; align-items: flex-start; gap: 14px; background: #E6EEE0; border: 1px solid #CEDCC4; border-radius: 18px; padding: 20px; margin-bottom: 24px; }
+.audio-coverage > .icon { margin-top: 2px; }
+.audio-coverage strong { font-size: 16px; }
+.audio-coverage p { margin: 7px 0 0; color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 650px; }
+.audio-layout { display: grid; grid-template-columns: minmax(200px, .8fr) minmax(0, 1.6fr); gap: 22px; align-items: start; }
+.audio-picker, .audio-editor { background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 22px; min-width: 0; }
+.audio-picker label { display: block; font-size: 15px; font-weight: 650; margin-bottom: 10px; }
+.audio-picker input { width: 100%; min-width: 0; min-height: 48px; padding: 10px 12px; border: 1px solid #C9D0C4; background: #FBFAF4; font-size: 13px; }
+.audio-picker-help { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 12px 0; }
+.audio-word-list { max-height: 440px; overflow-y: auto; padding: 4px; margin: 0 -4px; display: flex; flex-direction: column; gap: 7px; }
+.audio-word-list button { display: flex; align-items: center; text-align: left; gap: 10px; min-height: 65px; width: 100%; padding: 10px; border: 1px solid transparent; background: #F5F5EC; border-radius: 12px; }
+.audio-word-list button.selected { border-color: var(--teal); background: #E6F0E5; box-shadow: inset 0 0 0 1px var(--teal); }
+.audio-word-list button > .symbol-artwork { width: 32px; height: 32px; flex: none; }
+.audio-word-list button > span:not(.symbol-artwork):not(.audio-word-status) { flex: 1; min-width: 0; }
+.audio-word-list b, .audio-word-list small { display: block; overflow-wrap: anywhere; }
+.audio-word-list b { font-size: 14px; font-weight: 650; }
+.audio-word-list small { margin-top: 3px; font-size: 11px; }
+.audio-word-status { font-size: 10px; color: var(--muted); padding: 4px 6px; border-radius: 6px; }
+.audio-word-status.saved { background: #D5E8D8; color: #23533E; }
+.audio-selected { display: flex; align-items: center; gap: 20px; margin: 4px 0 22px; }
+.audio-selected > .symbol-artwork { width: 95px; height: 95px; flex: none; padding: 17px; background: #EAF1E2; border-radius: 23px; }
+.audio-word-list button > .symbol-artwork--photo { width: 44px; height: 44px; border-radius: 9px; }
+.audio-selected > .symbol-artwork--photo { padding: 0; background: #fff; }
+.audio-selected h2 { font-size: 29px; letter-spacing: -.6px; margin: 5px 0 4px; overflow-wrap: anywhere; }
+.audio-selected p:not(.dash-eyebrow) { margin: 0; color: var(--muted); font-size: 14px; }
+.audio-selected .dash-eyebrow { margin: 0; font-size: 10px; }
+.audio-instruction { color: var(--muted); font-size: 14px; line-height: 1.8; margin: 0 0 20px; }
+.audio-capture-actions, .audio-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.audio-capture-actions button, .audio-actions button { min-height: 48px; font-size: 13px; }
+.audio-record-dot { width: 12px; height: 12px; border: 2px solid currentColor; border-radius: 50%; display: inline-block; }
+.audio-stop { background: #914139; border-color: #914139; }
+.audio-file-note { font-size: 11px; line-height: 1.7; color: var(--muted); margin: 10px 0 0; }
+.audio-inline-status { padding: 13px 15px; background: #F8EBC5; border-radius: 12px; font-size: 13px; line-height: 1.6; }
+.audio-error { margin-top: 18px; border: 1px solid #DEB9AD; background: #FAECE5; padding: 13px 15px; border-radius: 12px; color: #843E32; font-size: 13px; line-height: 1.7; }
+.audio-status { color: var(--teal); font-size: 13px; line-height: 1.7; }
+.audio-status:empty { margin: 0; }
+.audio-preview, .audio-saved { border-top: 1px solid var(--line); padding-top: 21px; margin-top: 23px; }
+.audio-preview h3, .audio-saved h3 { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 0 0 13px; }
+.audio-preview h3 small { margin-left: auto; font-size: 12px; }
+.audio-clip-player { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.audio-clip-player button { min-height: 48px; }
+.audio-clip-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.audio-clip-player .audio-error { width: 100%; margin-top: 0; }
+.audio-preview p, .audio-delete-confirm p, .audio-empty-note { color: var(--muted); font-size: 12px; line-height: 1.8; }
+.audio-delete-link { display: block; min-height: 48px; padding: 10px 0; font-size: 12px; color: #843E32; text-decoration: underline; text-underline-offset: 3px; background: transparent; margin-top: 7px; }
+.audio-actions .audio-delete { border-color: #DEB9AD; color: #843E32; background: #FAECE5; }
+.audio-empty-note { padding: 15px; background: #F4F3E9; border-radius: 12px; margin-bottom: 0; }
+.audio-storage-note { font-size: 12px; color: var(--muted); line-height: 1.8; margin: 22px 3px 0; }
+@media(max-width: 1000px) {
+  .audio-layout { grid-template-columns: minmax(180px, .85fr) minmax(0, 1.3fr); gap: 15px; }
+  .audio-picker, .audio-editor { padding: 17px; }
+  .audio-word-list button { padding: 8px; gap: 7px; }
+  .audio-word-list button > .symbol-artwork { width: 26px; height: 26px; }
+  .audio-word-status { padding: 3px 4px; font-size: 9px; }
+  .audio-selected { gap: 13px; }
+  .audio-selected > .symbol-artwork { width: 70px; height: 70px; padding: 12px; border-radius: 18px; }
+  .audio-word-list button > .symbol-artwork--photo { width: 38px; height: 38px; }
+  .audio-selected > .symbol-artwork--photo { padding: 0; }
+  .audio-selected h2 { font-size: 25px; }
+}
+@media(max-width: 760px) {
+  .audio-layout { grid-template-columns: 1fr; }
+  .audio-word-list { max-height: 220px; }
+  .audio-picker, .audio-editor { padding: 18px; border-radius: 17px; }
+  .audio-word-list button { min-height: 59px; }
+  .audio-coverage { padding: 17px; gap: 10px; }
+  .audio-coverage strong { font-size: 14px; }
+  .audio-coverage p, .audio-instruction { font-size: 12px; }
+  .audio-selected h2 { font-size: 26px; }
+  .audio-capture-actions button, .audio-actions button { flex: 1; font-size: 12px; padding-left: 12px; padding-right: 12px; }
+}

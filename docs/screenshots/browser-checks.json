@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "checked_at": "2026-09-28T07:45:51.763Z",
+  "browser": "Headless Microsoft Edge",
+  "data": "isolated synthetic P-01 profile, no participant data",
+  "checks": [
+    "Local profile and intentionally empty vocabulary survive reload",
+    "Predictive mode shows three vocabulary-constrained suggestions",
+    "Rapid taps retain all symbols; missing speech preserves the message",
+    "Production service worker reloads board, predictor and caregiver settings offline",
+    "390px mobile layout has no page-level horizontal overflow"
+  ],
+  "page_errors": []
+}

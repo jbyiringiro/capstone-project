@@ -1,0 +1,13 @@
+{
+  "seed": 20260921,
+  "lines_read": 1698086,
+  "mapped": 4416,
+  "unique_sentences": 3267,
+  "symbol_sequence_groups": 3075,
+  "train": 2621,
+  "validation": 319,
+  "test": 327,
+  "lexicon_sha256": "182778eb23dbf7f55bc7de2769ffdbbc5bc56d4f19c5e8ba46c1a689a16af2db",
+  "corpus_commit": "2ff83be588a4b08204d2b15fbb2b0ba0a9bb1f36",
+  "symbols_in_lexicon": 181
+}

@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-06T11:42:49.594Z",
+  "decoded_photos": 18,
+  "available_photos": 18,
+  "required_photos": 181,
+  "all_available_photos_480_square": true,
+  "desktop_and_phone_layout": true,
+  "photograph_preference_persists": true,
+  "deliberate_missing_photo_falls_back_to_pictogram": true,
+  "message_composition_survives_photo_failure": true,
+  "page_errors": [],
+  "limitation": "Preview checks only; full offline and speech workflow checks are separate."
+}

@@ -1,0 +1,242 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-06T10:27:35.366Z",
+  "passed_checks": 16,
+  "browser": "Headless msedge",
+  "base_url": "http://127.0.0.1:4175/",
+  "data": "Isolated synthetic P-01 and P-02 profiles; no participant or existing user data.",
+  "deterministic_setup": "speechSynthesis.getVoices returns [] so an installed system voice cannot mask the missing recording pack. No audio success, model, database or service-worker responses are mocked.",
+  "checks": [
+    {
+      "name": "Production board starts without an account and loads local artwork",
+      "status": "passed",
+      "evidence": {
+        "categories": 14,
+        "initialBoardPictures": 29,
+        "viewport": "1280×900"
+      }
+    },
+    {
+      "name": "A local profile can be created through the keyboard-accessible native dialog",
+      "status": "passed",
+      "evidence": {
+        "profile": "P-01",
+        "vocabularySize": 181
+      }
+    },
+    {
+      "name": "Intentionally empty vocabulary and selected profile survive reload",
+      "status": "passed"
+    },
+    {
+      "name": "All 181 vocabulary choices can be restored after an empty selection",
+      "status": "passed",
+      "evidence": {
+        "checkedPictures": 181
+      }
+    },
+    {
+      "name": "Motion, tile size and illustration preferences change the real board and survive reload",
+      "status": "passed",
+      "evidence": {
+        "motion": false,
+        "largeTiles": true,
+        "illustratedSymbols": false
+      }
+    },
+    {
+      "name": "Appearance preferences are isolated per local profile",
+      "status": "passed"
+    },
+    {
+      "name": "Actual prediction provides three allowed suggestions without moving the main board",
+      "status": "passed",
+      "evidence": {
+        "actualSuggestions": [
+          "I",
+          "YOU",
+          "NOT"
+        ]
+      }
+    },
+    {
+      "name": "Five rapid taps create five ordered events in one draft; Clear adds one physical action",
+      "status": "passed"
+    },
+    {
+      "name": "Literal message composition keeps the stable symbol grid and survives a caregiver visit",
+      "status": "passed"
+    },
+    {
+      "name": "Unavailable audio preserves the draft, offers Show and never records a successful Speak",
+      "status": "passed",
+      "evidence": {
+        "successfulSpeechEvents": 0,
+        "completedSpokenMessages": 0,
+        "fallback": "visual message"
+      }
+    },
+    {
+      "name": "Native Show dialog excludes background controls from keyboard traversal and restores its trigger",
+      "status": "passed",
+      "evidence": {
+        "tabSteps": 6,
+        "browserChromeVisits": 2,
+        "backgroundControlsFocused": 0
+      }
+    },
+    {
+      "name": "Local summary reports no completed speech and the downloaded JSON contains the real device drafts",
+      "status": "passed",
+      "evidence": {
+        "completedSpokenMessages": 0,
+        "exportedDrafts": 2,
+        "exportedEvents": 10,
+        "profileCodes": [
+          "P-01",
+          "P-02"
+        ],
+        "credentialsOrRecordings": false
+      }
+    },
+    {
+      "name": "Backward keyboard navigation keeps tiles visible below the sticky controls on tablet and phone",
+      "status": "passed",
+      "evidence": [
+        {
+          "width": 1280,
+          "height": 900,
+          "backwardSteps": 18,
+          "obscuredTiles": 0
+        },
+        {
+          "width": 390,
+          "height": 844,
+          "backwardSteps": 18,
+          "obscuredTiles": 0
+        }
+      ]
+    },
+    {
+      "name": "Phone layout has two readable columns, full touch controls and a wrapping long-message dialog",
+      "status": "passed",
+      "evidence": {
+        "viewport": "390×844",
+        "columns": 2,
+        "longMessageSymbols": 12,
+        "controls": [
+          {
+            "label": "Caregiver settings",
+            "height": 54
+          },
+          {
+            "label": "Siba imwe · Delete last symbol",
+            "height": 48
+          },
+          {
+            "label": "Siba byose · Clear message",
+            "height": 48
+          },
+          {
+            "label": "Vuga · Speak message",
+            "height": 57
+          },
+          {
+            "label": "Erekana · Show message",
+            "height": 48
+          }
+        ]
+      }
+    },
+    {
+      "name": "Offline reload retains profile, real predictor and the SVG artwork through the production service worker",
+      "status": "passed",
+      "evidence": {
+        "online": false,
+        "svg": true,
+        "model": true
+      }
+    },
+    {
+      "name": "No uncaught browser errors occurred during the complete workflow",
+      "status": "passed",
+      "evidence": {
+        "pageErrors": [],
+        "screenshots": 8,
+        "syntheticProfiles": 2
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "board-desktop.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "board-composed.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-profiles.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-vocabulary.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-preferences.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "audio-unavailable.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "message-display.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "board-mobile-offline.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": "viewport"
+    }
+  ],
+  "page_errors": [],
+  "limitations": [
+    "No reviewed speech recordings or successful speech playback tested.",
+    "No target-tablet, screen-reader or participant usability validation.",
+    "Screenshots are captured from the running React app, not the design preview."
+  ]
+}

@@ -1,0 +1,182 @@
+{
+  "format": "vuga-figma-svg-pack-v1",
+  "screens": [
+    {
+      "name": "tablet-board",
+      "state": "board",
+      "device": "tablet",
+      "width": 1280,
+      "height": 1040,
+      "svg": "figma-import/tablet-board.svg",
+      "preview": "previews/tablet-board.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-compose",
+      "state": "compose",
+      "device": "tablet",
+      "width": 1280,
+      "height": 1040,
+      "svg": "figma-import/tablet-compose.svg",
+      "preview": "previews/tablet-compose.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-food",
+      "state": "food",
+      "device": "tablet",
+      "width": 1280,
+      "height": 873,
+      "svg": "figma-import/tablet-food.svg",
+      "preview": "previews/tablet-food.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-feelings",
+      "state": "feelings",
+      "device": "tablet",
+      "width": 1280,
+      "height": 873,
+      "svg": "figma-import/tablet-feelings.svg",
+      "preview": "previews/tablet-feelings.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-show",
+      "state": "show",
+      "device": "tablet",
+      "width": 1280,
+      "height": 1040,
+      "svg": "figma-import/tablet-show.svg",
+      "preview": "previews/tablet-show.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-audio",
+      "state": "audio",
+      "device": "tablet",
+      "width": 1280,
+      "height": 1040,
+      "svg": "figma-import/tablet-audio.svg",
+      "preview": "previews/tablet-audio.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-profiles",
+      "state": "profiles",
+      "device": "tablet",
+      "width": 1280,
+      "height": 871.97,
+      "svg": "figma-import/tablet-profiles.svg",
+      "preview": "previews/tablet-profiles.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-new-profile",
+      "state": "new-profile",
+      "device": "tablet",
+      "width": 1280,
+      "height": 871.97,
+      "svg": "figma-import/tablet-new-profile.svg",
+      "preview": "previews/tablet-new-profile.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-vocabulary",
+      "state": "vocabulary",
+      "device": "tablet",
+      "width": 1280,
+      "height": 1289.39,
+      "svg": "figma-import/tablet-vocabulary.svg",
+      "preview": "previews/tablet-vocabulary.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-preferences",
+      "state": "preferences",
+      "device": "tablet",
+      "width": 1280,
+      "height": 928.31,
+      "svg": "figma-import/tablet-preferences.svg",
+      "preview": "previews/tablet-preferences.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-summary",
+      "state": "summary",
+      "device": "tablet",
+      "width": 1280,
+      "height": 867,
+      "svg": "figma-import/tablet-summary.svg",
+      "preview": "previews/tablet-summary.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "tablet-empty-board",
+      "state": "empty-board",
+      "device": "tablet",
+      "width": 1280,
+      "height": 881,
+      "svg": "figma-import/tablet-empty-board.svg",
+      "preview": "previews/tablet-empty-board.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "mobile-board",
+      "state": "board",
+      "device": "mobile",
+      "width": 390,
+      "height": 1503,
+      "svg": "figma-import/mobile-board.svg",
+      "preview": "previews/mobile-board.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "mobile-compose",
+      "state": "compose",
+      "device": "mobile",
+      "width": 390,
+      "height": 1503,
+      "svg": "figma-import/mobile-compose.svg",
+      "preview": "previews/mobile-compose.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "mobile-profiles",
+      "state": "profiles",
+      "device": "mobile",
+      "width": 390,
+      "height": 1234.5,
+      "svg": "figma-import/mobile-profiles.svg",
+      "preview": "previews/mobile-profiles.png",
+      "editableText": true,
+      "rasterImages": 0
+    },
+    {
+      "name": "foundations-system",
+      "state": "system",
+      "device": "foundations",
+      "width": 1440,
+      "height": 2711.8,
+      "svg": "figma-import/foundations-system.svg",
+      "preview": "previews/foundations-system.png",
+      "editableText": true,
+      "rasterImages": 0
+    }
+  ],
+  "note": "SVG imports retain editable vector paths and live text. Auto layout, components, and prototype connections must be configured after import."
+}

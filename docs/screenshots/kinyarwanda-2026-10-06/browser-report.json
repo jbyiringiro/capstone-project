@@ -1,0 +1,476 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-06T11:09:19.308Z",
+  "passed_checks": 23,
+  "browser": "Headless msedge",
+  "base_url": "http://127.0.0.1:4175/",
+  "data": "Isolated synthetic P-01 and P-02 profiles and generated tone upload; no participant data, microphone permission request or existing user browser data.",
+  "observation": "Original HTMLMediaElement.play executes unchanged; native playing/ended/pause/error events are observed. All 181 bundled WAV files are decoded and checked for nonzero samples. Installed system voices are hidden. One cached WATER file is deliberately deleted offline to exercise missing-file handling.",
+  "checks": [
+    {
+      "name": "Fresh production UI uses rw document language, local artwork and Kinyarwanda controls",
+      "status": "passed",
+      "evidence": {
+        "documentLanguage": "rw",
+        "categories": 14,
+        "installedVoicesAvailableToTest": 0
+      }
+    },
+    {
+      "name": "A saved legacy English demo preference migrates to persistent Kinyarwanda",
+      "status": "passed",
+      "evidence": {
+        "previousMode": "english-demo",
+        "migratedMode": "kinyarwanda"
+      }
+    },
+    {
+      "name": "Profile dialog uses Kinyarwanda validation and creates a local profile with 181 choices",
+      "status": "passed",
+      "evidence": {
+        "localProfile": "P-01",
+        "vocabularyChoices": 181,
+        "nativeValidationLanguage": "rw"
+      }
+    },
+    {
+      "name": "Intentionally empty vocabulary survives reload and all 181 choices can be restored",
+      "status": "passed",
+      "evidence": {
+        "afterEmptyReload": 0,
+        "restoredChoices": 181
+      }
+    },
+    {
+      "name": "Appearance settings affect the real board, persist and remain separate for each profile",
+      "status": "passed",
+      "evidence": {
+        "profiles": [
+          "P-01",
+          "P-02"
+        ],
+        "persistedAndIsolatedSettings": [
+          "motion",
+          "largeTiles",
+          "illustratedSymbols"
+        ]
+      }
+    },
+    {
+      "name": "Real predictions provide three allowed suggestions without moving the main grid",
+      "status": "passed",
+      "evidence": {
+        "actualPredictions": [
+          "I",
+          "YOU",
+          "NOT"
+        ],
+        "gridPositionChanges": 0
+      }
+    },
+    {
+      "name": "Five rapid taps remain ordered in one draft and Clear adds exactly one correction",
+      "status": "passed",
+      "evidence": {
+        "orderedSelectEvents": 5,
+        "clearEvents": 1
+      }
+    },
+    {
+      "name": "Literal Kinyarwanda composition survives caregiver visits and all main tabs use localized copy",
+      "status": "passed",
+      "evidence": {
+        "literalWords": [
+          "njye",
+          "gushaka",
+          "amazi"
+        ],
+        "gridPositionChanges": 0,
+        "retainedDuringCaregiverVisit": 3
+      }
+    },
+    {
+      "name": "Show dialog is localized, keeps background controls inert and restores keyboard focus without completing speech",
+      "status": "passed",
+      "evidence": {
+        "tabSteps": 6,
+        "browserChromeVisits": 2,
+        "backgroundControlsFocused": 0,
+        "successfulSpeechEvents": 0
+      }
+    },
+    {
+      "name": "Every one of the 181 bundled Kinyarwanda clips decodes to non-silent audio",
+      "status": "passed",
+      "evidence": {
+        "decodedClips": 181,
+        "minimumDuration": 0.384,
+        "maximumDuration": 1.488,
+        "minimumRms": 0.10559904424916954,
+        "sampleClips": [
+          {
+            "key": "I",
+            "duration": 0.544,
+            "sampleRate": 48000,
+            "samples": 26112,
+            "peak": 0.8523188233375549,
+            "rms": 0.25623532287386874
+          },
+          {
+            "key": "WANT",
+            "duration": 0.928,
+            "sampleRate": 48000,
+            "samples": 44544,
+            "peak": 0.8500276207923889,
+            "rms": 0.13892539833232068
+          },
+          {
+            "key": "WATER",
+            "duration": 1.072,
+            "sampleRate": 48000,
+            "samples": 51456,
+            "peak": 0.8531749844551086,
+            "rms": 0.13337986222204978
+          }
+        ],
+        "pronunciationReview": false
+      }
+    },
+    {
+      "name": "Three Kinyarwanda clips finish through native media playback before exactly one Speak completion",
+      "status": "passed",
+      "evidence": {
+        "nativeMediaEnds": 3,
+        "totalCompletedMessages": 1,
+        "finalWords": [
+          "njye",
+          "gushaka",
+          "amazi"
+        ]
+      }
+    },
+    {
+      "name": "Stop interrupts native audio, retains all selected symbols and adds no successful Speak event",
+      "status": "passed",
+      "evidence": {
+        "retainedSymbols": 12,
+        "totalCompletedMessages": 1,
+        "cancelledPartPausedBeforeEnd": true
+      }
+    },
+    {
+      "name": "Caregiver tests the Kinyarwanda word and a separate speaker tone without any language selector or completion",
+      "status": "passed",
+      "evidence": {
+        "nativeMediaEnds": 2,
+        "languageSelectors": 0,
+        "totalCompletedMessages": 1
+      }
+    },
+    {
+      "name": "Silent and corrupt uploads receive Kinyarwanda errors without saving a recording",
+      "status": "passed",
+      "evidence": {
+        "rejectedUploads": [
+          "silent WAV",
+          "corrupt WAV"
+        ],
+        "savedRecordings": 0,
+        "errorLanguage": "rw"
+      }
+    },
+    {
+      "name": "Valid synthetic upload previews and saves through custom Kinyarwanda audio controls",
+      "status": "passed",
+      "evidence": {
+        "fixture": "Generated 0.65 s 440 Hz PCM tone, not Kinyarwanda speech.",
+        "storedBytes": 20844,
+        "actualMediaEnds": 2,
+        "nativeEnglishAudioControls": 0
+      }
+    },
+    {
+      "name": "Saved word recording overrides the bundled clip and finalizes one message after playback",
+      "status": "passed",
+      "evidence": {
+        "savedOverrideDuration": 0.65,
+        "bundledIRequestsDuringOverride": 0,
+        "totalCompletedMessages": 2
+      }
+    },
+    {
+      "name": "Summary, export and account validation remain localized and export real local data only",
+      "status": "passed",
+      "evidence": {
+        "exportedProfiles": 2,
+        "exportedMessages": 3,
+        "completedMessages": 2,
+        "recordingOrAuthDataExported": false
+      }
+    },
+    {
+      "name": "Phone board retains two readable columns, large touch controls and a wrapping long-message dialog",
+      "status": "passed",
+      "evidence": {
+        "viewport": "390×844",
+        "columns": 2,
+        "messageSymbols": 12,
+        "controls": [
+          {
+            "label": "Igenamiterere ry'umurezi",
+            "height": 54
+          },
+          {
+            "label": "Siba ishusho ya nyuma",
+            "height": 48
+          },
+          {
+            "label": "Siba ubutumwa bwose",
+            "height": 48
+          },
+          {
+            "label": "Vuga ubutumwa",
+            "height": 57
+          },
+          {
+            "label": "Erekana ubutumwa",
+            "height": 48
+          }
+        ]
+      }
+    },
+    {
+      "name": "Operating-system reduced motion disables chip animation even when gentle motion is enabled",
+      "status": "passed",
+      "evidence": {
+        "name": "none",
+        "duration": "0s"
+      }
+    },
+    {
+      "name": "Offline reload preserves the profile, predictions, illustrations and bundled Kinyarwanda playback",
+      "status": "passed",
+      "evidence": {
+        "online": false,
+        "actualBundledMediaEnds": 2,
+        "totalCompletedMessages": 3
+      }
+    },
+    {
+      "name": "Saved recording still overrides speech offline and deletion restores the bundled Kinyarwanda clip",
+      "status": "passed",
+      "evidence": {
+        "savedOverrideOffline": true,
+        "recordingsAfterDeletion": 0,
+        "bundledPlaybackAfterDeletion": true,
+        "totalCompletedMessages": 5
+      }
+    },
+    {
+      "name": "A missing offline clip produces a Kinyarwanda notice, retains the draft and permits visual communication",
+      "status": "passed",
+      "evidence": {
+        "deliberatelyRemovedCachedEntries": 1,
+        "retainedSymbols": 1,
+        "unexpectedPlaybackStarts": 0,
+        "totalCompletedMessages": 5
+      }
+    },
+    {
+      "name": "No English audio is requested or cached, and the complete workflow has no uncaught or native media errors",
+      "status": "passed",
+      "evidence": {
+        "requestedEnglishAudio": 0,
+        "cachedEnglishAudio": 0,
+        "remainingKinyarwandaCachedClips": 180,
+        "deliberatelyRemovedClips": 1,
+        "pageErrors": [],
+        "nativeMediaErrors": 0,
+        "actualMediaEndsAcrossReloads": 12,
+        "auditedViews": 18
+      }
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "board-desktop.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "profile-dialog.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-profiles.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-vocabulary.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-preferences.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "message-display.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "caregiver-voice.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "saved-recording.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "capture": "region"
+    },
+    {
+      "file": "board-mobile-offline.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": "viewport"
+    },
+    {
+      "file": "missing-audio.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "capture": "viewport"
+    }
+  ],
+  "language_audits": [
+    {
+      "screen": "board",
+      "visibleCharacters": 1672,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "profile dialog",
+      "visibleCharacters": 2050,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "Abana",
+      "visibleCharacters": 1749,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "Amashusho",
+      "visibleCharacters": 7917,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "Ikibaho",
+      "visibleCharacters": 1979,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "Incamake",
+      "visibleCharacters": 1328,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "Ohereza",
+      "visibleCharacters": 1605,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "show dialog",
+      "visibleCharacters": 1822,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "stopped speech notice",
+      "visibleCharacters": 1827,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "voice and recording settings",
+      "visibleCharacters": 6397,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "silent upload error",
+      "visibleCharacters": 2786,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "corrupt upload error",
+      "visibleCharacters": 2791,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "saved recording",
+      "visibleCharacters": 2853,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "completed message summary",
+      "visibleCharacters": 1599,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "account registration",
+      "visibleCharacters": 1628,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "delete recording confirmation",
+      "visibleCharacters": 2444,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "missing audio notice",
+      "visibleCharacters": 1967,
+      "obsoleteEnglishMatches": 0
+    },
+    {
+      "screen": "offline board",
+      "visibleCharacters": 1561,
+      "obsoleteEnglishMatches": 0
+    }
+  ],
+  "page_errors": [],
+  "limitations": [
+    "Automated playback events do not establish physical speaker audibility.",
+    "Bundled synthetic Kinyarwanda pronunciation and translation still require native-speaker and intended-user review.",
+    "Generated upload tone validates recording transport and storage, not speech pronunciation.",
+    "Known prior English UI phrases are audited; this is not a comprehensive linguistic quality assessment.",
+    "No participant, target-tablet, microphone capture or screen-reader usability validation was performed."
+  ]
+}

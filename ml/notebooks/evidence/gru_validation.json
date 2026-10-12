@@ -1,0 +1,51 @@
+{
+  "family": "gru",
+  "n_train": 2621,
+  "n_val": 319,
+  "runs": [
+    {
+      "top1": 0.24034334763948498,
+      "top3": 0.46924177396280403,
+      "top5": 0.5915593705293276,
+      "perplexity": 15.373831955972586,
+      "n_events": 1398,
+      "seed": 0,
+      "train_seconds": 12.8,
+      "size_bytes": 446123,
+      "epochs_run": 19,
+      "artifact": "artifacts\\gru_h128_seed0"
+    },
+    {
+      "top1": 0.2396280400572246,
+      "top3": 0.46065808297567956,
+      "top5": 0.5872675250357654,
+      "perplexity": 15.390094549748966,
+      "n_events": 1398,
+      "seed": 1,
+      "train_seconds": 8.9,
+      "size_bytes": 446126,
+      "epochs_run": 19,
+      "artifact": "artifacts\\gru_h128_seed1"
+    },
+    {
+      "top1": 0.24105865522174535,
+      "top3": 0.4670958512160229,
+      "top5": 0.5965665236051502,
+      "perplexity": 15.15596128685898,
+      "n_events": 1398,
+      "seed": 2,
+      "train_seconds": 9.4,
+      "size_bytes": 446204,
+      "epochs_run": 20,
+      "artifact": "artifacts\\gru_h128_seed2"
+    }
+  ],
+  "top1_mean": 0.24034334763948498,
+  "top1_sd": 0.0007153075822603772,
+  "top3_mean": 0.4656652360515022,
+  "top3_sd": 0.0044670944194552175,
+  "top5_mean": 0.5917978063900811,
+  "top5_sd": 0.00465408233093538,
+  "perplexity_mean": 15.30662926419351,
+  "perplexity_sd": 0.1307354104083616
+}

@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "checked_on": "2026-10-10",
+  "cards": 181,
+  "distinct_source_photographs": 116,
+  "generated_images_remaining": 0,
+  "runtime_bytes": 5472134,
+  "licenses": {
+    "CC BY 2.0": 37,
+    "CC BY-SA 3.0": 17,
+    "CC BY-SA 4.0": 69,
+    "CC0": 28,
+    "CC BY-SA 2.0": 11,
+    "Public domain": 17,
+    "CC BY 3.0": 1,
+    "CC BY 4.0": 1
+  },
+  "checks": [
+    "Complete vocabulary coverage",
+    "Every runtime and downloaded source hash verified",
+    "No runtime image matches an archived generated image",
+    "Title, creator, source and license recorded for every card"
+  ],
+  "limits": [
+    "Developer visual review does not validate learner recognition."
+  ]
+}

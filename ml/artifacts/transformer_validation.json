@@ -1,0 +1,51 @@
+{
+  "family": "transformer",
+  "n_train": 1674,
+  "n_val": 204,
+  "runs": [
+    {
+      "top1": 0.25123762376237624,
+      "top3": 0.4863861386138614,
+      "top5": 0.599009900990099,
+      "perplexity": 15.757290922981195,
+      "n_events": 808,
+      "seed": 0,
+      "train_seconds": 141.9,
+      "size_bytes": 337958273,
+      "epochs_run": 7,
+      "artifact": "artifacts\\transformer_seed0"
+    },
+    {
+      "top1": 0.2636138613861386,
+      "top3": 0.4752475247524752,
+      "top5": 0.594059405940594,
+      "perplexity": 15.912177992680451,
+      "n_events": 808,
+      "seed": 1,
+      "train_seconds": 101.8,
+      "size_bytes": 337958193,
+      "epochs_run": 6,
+      "artifact": "artifacts\\transformer_seed1"
+    },
+    {
+      "top1": 0.26732673267326734,
+      "top3": 0.47896039603960394,
+      "top5": 0.6064356435643564,
+      "perplexity": 15.67910390688347,
+      "n_events": 808,
+      "seed": 2,
+      "train_seconds": 132.8,
+      "size_bytes": 337958352,
+      "epochs_run": 8,
+      "artifact": "artifacts\\transformer_seed2"
+    }
+  ],
+  "top1_mean": 0.2607260726072607,
+  "top1_sd": 0.008424330798953035,
+  "top3_mean": 0.4801980198019802,
+  "top3_sd": 0.005671504572965154,
+  "top5_mean": 0.5998349834983498,
+  "top5_sd": 0.006229236332731647,
+  "perplexity_mean": 15.782857607515039,
+  "perplexity_sd": 0.11862176817964132
+}

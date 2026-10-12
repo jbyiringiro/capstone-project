@@ -15,6 +15,8 @@ ml/data/processed/*
 !ml/data/processed/README.md
 ml/artifacts/*
 !ml/artifacts/README.md
+# small statistical models and validation results are committed; weights (.pt/.onnx) are not
+!ml/artifacts/*.json
 vocab/audio/*
 !vocab/audio/README.md
 *.pt
@@ -39,10 +41,16 @@ Thumbs.db
 # derived app assets
 app/public/models/*
 !app/public/models/README.md
+!app/public/models/kn_trigram.json
 app/public/audio/*
 !app/public/audio/README.md
+!app/public/audio/rw/
+!app/public/audio/speaker-test.wav
 # app/tests/fixtures/kn_fixture.json is committed: a small snapshot used by the JS parity test
 device/bundle/*.json
 
 # ARASAAC pictograms are fetched by ml/scripts/fetch_pictograms.py (CC BY-NC-SA), not committed
 app/public/symbols/*.png
+
+# Linters
+.ruff_cache/

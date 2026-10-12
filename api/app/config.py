@@ -1,3 +1,6 @@
+from secrets import token_urlsafe
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,7 +10,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="VUGA_", env_file=".env", extra="ignore")
 
     database_url: str = "sqlite:///./vuga_dev.db"
-    jwt_secret: str = "change-me-in-production"
+    # Local development works without a known public signing key. Set a persistent
+    # secret in deployment so tokens survive restarts and work across workers.
+    jwt_secret: str = Field(default_factory=lambda: token_urlsafe(48), min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 12
     model_dir: str = "../ml/artifacts"

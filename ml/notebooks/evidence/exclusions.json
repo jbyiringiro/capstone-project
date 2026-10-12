@@ -1,0 +1,10 @@
+{
+  "low_core_ratio": 1193950,
+  "too_long": 481418,
+  "unmapped_token": 12058,
+  "mapped": 4416,
+  "ambiguous_token": 29,
+  "too_short": 6169,
+  "empty_after_drop": 4,
+  "blank": 42
+}

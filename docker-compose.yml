@@ -16,7 +16,7 @@ services:
       dockerfile: api/Dockerfile
     environment:
       VUGA_DATABASE_URL: postgresql+psycopg://vuga:vuga@db:5432/vuga
-      VUGA_JWT_SECRET: ${VUGA_JWT_SECRET:-dev-only-secret}
+      VUGA_JWT_SECRET: ${VUGA_JWT_SECRET:?Set VUGA_JWT_SECRET to a random string of at least 32 characters}
       VUGA_CORS_ORIGINS: '["http://localhost:5173","http://localhost:4173"]'
     volumes:
       - ./ml/artifacts:/srv/ml/artifacts:ro

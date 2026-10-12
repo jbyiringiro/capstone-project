@@ -1,5 +1,6 @@
 // Thin client for the Vuga API. The token lives in IndexedDB settings so the dashboard survives reloads.
 import { db } from './db.js'
+import { localizedError } from './errors-rw.js'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
@@ -12,8 +13,19 @@ async function req(path, { method = 'GET', body, form, auth = true } = {}) {
   let payload
   if (form) { payload = new URLSearchParams(form); headers['Content-Type'] = 'application/x-www-form-urlencoded' }
   else if (body !== undefined) { payload = JSON.stringify(body); headers['Content-Type'] = 'application/json' }
-  const r = await fetch(`${API_BASE}${path}`, { method, headers, body: payload })
-  if (!r.ok) throw new Error(`${method} ${path} -> ${r.status} ${await r.text()}`)
+  let r
+  try { r = await fetch(`${API_BASE}${path}`, { method, headers, body: payload }) }
+  catch { throw localizedError('Ntibyashobotse guhuza na seriveri. Reba niba ufite interineti, wongere ugerageze.') }
+  if (!r.ok) {
+    const messages = {
+      401: 'Ntiwemerewe gukomeza. Reba telefoni n’ijambobanga, wongere winjire.',
+      403: 'Iyi konti ntiyemerewe kubona aya makuru.',
+      404: 'Amakuru wasabye ntabonetse.',
+      409: 'Amakuru winjije asanzweho. Reba kode cyangwa konti wakoresheje.',
+      422: 'Reba ko wujuje neza amakuru yasabwe.'
+    }
+    throw localizedError(messages[r.status] ?? 'Seriveri ntiyabashije kwakira icyifuzo. Ongera ugerageze nyuma.')
+  }
   return r.status === 204 ? null : r.json()
 }
 

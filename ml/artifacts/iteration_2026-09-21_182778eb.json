@@ -1,0 +1,127 @@
+{
+  "date": "2026-09-21",
+  "lexicon": "C:\\Users\\josue\\Music\\CAPSTONE\\vuga-aac\\vocab\\lexicon_draft.csv",
+  "lexicon_sha256": "182778eb23dbf7f55bc7de2769ffdbbc5bc56d4f19c5e8ba46c1a689a16af2db",
+  "split_manifest": {
+    "seed": 20260921,
+    "lines_read": 1698086,
+    "mapped": 4416,
+    "unique_sentences": 3267,
+    "symbol_sequence_groups": 3075,
+    "train": 2621,
+    "validation": 319,
+    "test": 327,
+    "lexicon_sha256": "182778eb23dbf7f55bc7de2769ffdbbc5bc56d4f19c5e8ba46c1a689a16af2db",
+    "corpus_commit": "2ff83be588a4b08204d2b15fbb2b0ba0a9bb1f36",
+    "symbols_in_lexicon": 181
+  },
+  "exclusions": {
+    "low_core_ratio": 1193950,
+    "too_long": 481418,
+    "unmapped_token": 12058,
+    "mapped": 4416,
+    "ambiguous_token": 29,
+    "too_short": 6169,
+    "empty_after_drop": 4,
+    "blank": 42
+  },
+  "baselines": {
+    "split": "validation",
+    "n_train": 2621,
+    "n_eval": 319,
+    "models": {
+      "unigram": {
+        "top1": 0.09012875536480687,
+        "top3": 0.21959942775393418,
+        "top5": 0.30472103004291845,
+        "perplexity": 43.441183848922655,
+        "n_events": 1398
+      },
+      "kn_trigram": {
+        "top1": 0.22031473533619456,
+        "top3": 0.45779685264663805,
+        "top5": 0.5915593705293276,
+        "perplexity": 17.373810430562354,
+        "n_events": 1398
+      }
+    },
+    "kn_trigram_vs_unigram": {
+      "k": 3,
+      "diff": 0.23819742489270387,
+      "ci95": [
+        0.21162444113263784,
+        0.2627177700348432
+      ],
+      "iters": 2000
+    }
+  },
+  "latency_local": {
+    "kn_trigram": {
+      "size_bytes": 102634,
+      "median_ms": 1.119,
+      "p95_ms": 1.761
+    },
+    "gru_onnx": {
+      "size_bytes": 441919,
+      "median_ms": 0.094,
+      "p95_ms": 0.284
+    },
+    "transformer_seed0_cpu": {
+      "size_bytes": 337958273,
+      "parameters": 83241395,
+      "median_ms": 29.6,
+      "p95_ms": 44.039
+    }
+  },
+  "gru": {
+    "family": "gru",
+    "n_train": 2621,
+    "n_val": 319,
+    "runs": [
+      {
+        "top1": 0.24034334763948498,
+        "top3": 0.46924177396280403,
+        "top5": 0.5915593705293276,
+        "perplexity": 15.373831955972586,
+        "n_events": 1398,
+        "seed": 0,
+        "train_seconds": 12.8,
+        "size_bytes": 446123,
+        "epochs_run": 19,
+        "artifact": "artifacts\\gru_h128_seed0"
+      },
+      {
+        "top1": 0.2396280400572246,
+        "top3": 0.46065808297567956,
+        "top5": 0.5872675250357654,
+        "perplexity": 15.390094549748966,
+        "n_events": 1398,
+        "seed": 1,
+        "train_seconds": 8.9,
+        "size_bytes": 446126,
+        "epochs_run": 19,
+        "artifact": "artifacts\\gru_h128_seed1"
+      },
+      {
+        "top1": 0.24105865522174535,
+        "top3": 0.4670958512160229,
+        "top5": 0.5965665236051502,
+        "perplexity": 15.15596128685898,
+        "n_events": 1398,
+        "seed": 2,
+        "train_seconds": 9.4,
+        "size_bytes": 446204,
+        "epochs_run": 20,
+        "artifact": "artifacts\\gru_h128_seed2"
+      }
+    ],
+    "top1_mean": 0.24034334763948498,
+    "top1_sd": 0.0007153075822603772,
+    "top3_mean": 0.4656652360515022,
+    "top3_sd": 0.0044670944194552175,
+    "top5_mean": 0.5917978063900811,
+    "top5_sd": 0.00465408233093538,
+    "perplexity_mean": 15.30662926419351,
+    "perplexity_sd": 0.1307354104083616
+  }
+}

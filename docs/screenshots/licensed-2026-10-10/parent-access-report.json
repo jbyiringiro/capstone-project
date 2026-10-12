@@ -1,0 +1,51 @@
+{
+  "generated_at": "2026-10-10T16:36:31.195Z",
+  "baseURL": "http://127.0.0.1:4175/",
+  "checks": [
+    {
+      "name": "Child can communicate before adult setup; setup can be dismissed without losing the message",
+      "status": "passed"
+    },
+    {
+      "name": "Adult must confirm a PIN; no profiles, settings, audio or export are mounted before success",
+      "status": "passed"
+    },
+    {
+      "name": "Returning to the child board locks parent access and preserves the message draft",
+      "status": "passed"
+    },
+    {
+      "name": "Reload always returns to child access and never persists an authenticated parent session",
+      "status": "passed"
+    },
+    {
+      "name": "Five failed attempts cause a persisted cooldown, including after reload; child board stays available",
+      "status": "passed"
+    },
+    {
+      "name": "Parent-only PIN change requires current PIN and the new credential replaces the old one",
+      "status": "passed"
+    },
+    {
+      "name": "Five minutes without input locks parent access while retaining the child message",
+      "status": "passed"
+    },
+    {
+      "name": "Backgrounding locks the adult area and parent access works without network",
+      "status": "passed"
+    },
+    {
+      "name": "Alternate adult entries require a PIN, mobile gate fits, and damaged storage fails closed",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    "parent-first-setup.png",
+    "parent-unlock.png",
+    "parent-unlock-mobile.png"
+  ],
+  "pageErrors": [],
+  "total": 9,
+  "status": "passed",
+  "note": "Isolated test context; test PINs are disposable. Background event is simulated; idle clock is advanced. This local gate does not authenticate an adult identity or protect against browser-storage access."
+}

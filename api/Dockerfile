@@ -1,10 +1,10 @@
 FROM python:3.11-slim
 WORKDIR /srv
 COPY api/pyproject.toml api/
+COPY api/app api/app
 COPY ml/ ml/
 COPY vocab/ vocab/
 RUN pip install --no-cache-dir ./api ./ml
-COPY api/app api/app
 WORKDIR /srv/api
 ENV VUGA_MODEL_DIR=/srv/ml/artifacts
 EXPOSE 8000
