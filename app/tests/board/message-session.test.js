@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createMessageSession } from '../src/message-session.js'
+import { MessageSession } from '../../src/board/message-session.js'
 
 describe('message persistence', () => {
   it('keeps rapid taps in one draft in physical action order', async () => {
@@ -9,7 +9,7 @@ describe('message persistence', () => {
       logAction: vi.fn(async (id, index, action, extra) => calls.push({ id, index, action, extra })),
       finaliseMessage: vi.fn(async () => {})
     }
-    const session = createMessageSession(storage, 'P-01', 'static')
+    const session = new MessageSession(storage, 'P-01', 'static')
     const actions = [session.record('select', { symbol_key: 'I' }), session.record('select', { symbol_key: 'WANT' }), session.record('correct', { context: 'clear' }), session.record('select', { symbol_key: 'HELP' }), session.record('speak')]
     await Promise.all([...actions, session.finish()])
     expect(storage.startDraft).toHaveBeenCalledTimes(1)
@@ -23,7 +23,7 @@ describe('message persistence', () => {
     let release
     const gate = new Promise(resolve => { release = resolve })
     const storage = { startDraft: vi.fn(async () => { await gate; return 'draft' }), logAction: vi.fn(async () => {}), finaliseMessage: vi.fn(async () => {}) }
-    const session = createMessageSession(storage, 'demo', 'predictive')
+    const session = new MessageSession(storage, 'demo', 'predictive')
     const ts = '2026-09-28T10:00:00.000Z'
     const action = session.record('select', { symbol_key: 'I', ts })
     release()
@@ -39,7 +39,7 @@ describe('message persistence', () => {
 
   it('does not finalise a message after any event failed to save', async () => {
     const storage = { startDraft: vi.fn(async () => 'draft'), logAction: vi.fn(async () => { throw new Error('Storage full') }), finaliseMessage: vi.fn(async () => {}) }
-    const session = createMessageSession(storage, 'demo', 'static')
+    const session = new MessageSession(storage, 'demo', 'static')
     await expect(session.record('select', { symbol_key: 'I' })).rejects.toThrow('Storage full')
     await expect(session.finish()).rejects.toThrow('Storage full')
     expect(storage.finaliseMessage).not.toHaveBeenCalled()
