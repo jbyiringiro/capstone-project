@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { loadVoices, kinyarwandaVoice, playSpeechPart, prepareSpeech } from './speech.js'
-import { getRecording } from './db.js'
-import { localizedError, userError } from './errors-rw.js'
-import { Icon } from './ui.jsx'
+import { loadVoices, kinyarwandaVoice, playSpeechPart, prepareSpeech } from '../speech/index.js'
+import { getRecording } from '../storage/recordings.js'
+import { localizedError, userError } from '../shared/errors-rw.js'
 import './voice-settings.css'
 
 export default function VoiceSettings() {
@@ -63,13 +62,13 @@ export default function VoiceSettings() {
   }
 
   return <section className="dash-card voice-settings" aria-labelledby="voice-settings-title">
-    <h2 id="voice-settings-title"><Icon name="speaker" />Ijwi ry’Ikinyarwanda</h2>
+    <h2 id="voice-settings-title">Ijwi ry’Ikinyarwanda</h2>
     <p>Vuga ivuga amagambo mu Kinyarwanda. Ijwi ryawe wabikiye ijambo rikoreshwa mbere y’ijwi rizananye na Vuga. Igihe ayo majwi adahari, hakoreshwa ijwi ry’Ikinyarwanda riri kuri iki gikoresho, iyo ribonetse.</p>
     <p>Amajwi azananye na Vuga yakozwe na mudasobwa ikoresheje <a href="https://huggingface.co/facebook/mms-tts-kin" target="_blank" rel="noreferrer">Meta MMS</a>. Aracyakeneye gusuzumwa n’umuntu uzi Ikinyarwanda. Ushobora kuyasimbuza amajwi yawe. Aya majwi atangwa ku ruhushya rwa <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noreferrer">CC BY-NC 4.0</a>, mu bikorwa bitagamije ubucuruzi.</p>
     <p className="voice-availability">{hasDeviceVoice === null ? 'Amajwi y’iki gikoresho aragenzurwa…' : hasDeviceVoice ? 'Iki gikoresho gifite ijwi ry’Ikinyarwanda.' : 'Nta jwi ry’Ikinyarwanda ryabonetse mu majwi y’iki gikoresho. Amajwi yabitswe muri Vuga aracyakora.'}</p>
     <div className="voice-test-options">
-      <div><button type="button" className="button-primary" onClick={() => testing === 'word' ? playback.current?.abort() : test('word')} disabled={testing !== null && testing !== 'word'}><Icon name={testing === 'word' ? 'stop' : 'speaker'} />{testing === 'word' ? 'Hagarika ijambo' : 'Umva “amazi”'}</button><small className="voice-test-help">Gerageza uko ijambo rivugwa mu Kinyarwanda.</small></div>
-      <div><button type="button" className="button-outline" onClick={() => testing === 'tone' ? playback.current?.abort() : test('tone')} disabled={testing !== null && testing !== 'tone'}><Icon name={testing === 'tone' ? 'stop' : 'speaker'} />{testing === 'tone' ? 'Hagarika kugerageza' : 'Gerageza indangururamajwi'}</button><small className="voice-test-help">Ijwi rigufi ritagira amagambo rigufasha kugenzura indangururamajwi.</small></div>
+      <div><button type="button" className="button-primary" onClick={() => testing === 'word' ? playback.current?.abort() : test('word')} disabled={testing !== null && testing !== 'word'}>{testing === 'word' ? 'Hagarika ijambo' : 'Umva “amazi”'}</button><small className="voice-test-help">Gerageza uko ijambo rivugwa mu Kinyarwanda.</small></div>
+      <div><button type="button" className="button-outline" onClick={() => testing === 'tone' ? playback.current?.abort() : test('tone')} disabled={testing !== null && testing !== 'tone'}>{testing === 'tone' ? 'Hagarika kugerageza' : 'Gerageza indangururamajwi'}</button><small className="voice-test-help">Ijwi rigufi ritagira amagambo rigufasha kugenzura indangururamajwi.</small></div>
     </div>
     {error && <p className="err" role="alert">{error}</p>}
     {status && <p className="voice-test-status" role="status">{status}</p>}

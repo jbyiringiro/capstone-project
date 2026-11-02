@@ -1,0 +1,138 @@
+import { useEffect, useState } from 'react'
+import { API_BASE, api, getToken } from '../server/api-client.js'
+import { syncPending } from '../server/sync.js'
+import { accountBackupState, connectAccount, replaceAccountCopy, restoreFromAccount, saveToAccount } from '../server/account-backup.js'
+import { countPendingUploads, exportLocalData } from '../storage/messages.js'
+import { saveServerProfiles } from '../storage/profiles.js'
+import { getVocabulary, setVocabulary } from '../storage/vocabulary.js'
+import { userError } from '../shared/errors-rw.js'
+import { Heading, clearValidation, requiredCode } from './components.jsx'
+import LoginForm from './LoginForm.jsx'
+
+// Data leaves the device only when the adult chooses: a JSON download, an upload of completed
+// messages of server profiles owned by the signed-in account (FR7), or, once signed in, the
+// account backup that brings everything set up here to a new phone or tablet.
+const when = iso => new Date(iso).toLocaleString('rw-RW', { dateStyle: 'medium', timeStyle: 'short' })
+
+export default function SyncTab({ online, setError, onDeviceRestored }) {
+  const [authed, setAuthed] = useState(false)
+  const [pending, setPending] = useState(0)
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [serverCode, setServerCode] = useState('')
+  // The account copy: when it was last saved, and whether this device keeps it up to date or must
+  // first choose between the account's set-up and its own.
+  const [backup, setBackup] = useState(null)
+  const [backupMessage, setBackupMessage] = useState('')
+  const count = () => countPendingUploads().then(setPending).catch(e => setError(userError(e)))
+  useEffect(() => {
+    getToken().then(async token => {
+      setAuthed(!!token)
+      const state = token ? await accountBackupState() : null
+      if (state) setBackup({ saved_at: state.saved_at, choose: false })
+      else if (token && navigator.onLine) await withBusy(connect)
+    }).catch(e => setError(userError(e)))
+    count()
+  }, [])
+
+  async function connect() {
+    const result = await connectAccount()
+    if (result.action === 'restored') {
+      await onDeviceRestored?.()
+      setBackupMessage(`Ibyo wabitse kuri konti byagarutse kuri iki gikoresho: igenamiterere ry’ikibaho, imyirondoro ${result.profiles}, amagambo mashya ${result.words}, amajwi ${result.recordings}.`)
+    } else if (result.action === 'saved') setBackupMessage('Ibyo washyizeho kuri iki gikoresho byabitswe kuri konti yawe.')
+    setBackup({ saved_at: result.saved_at, choose: result.action === 'choose' })
+  }
+  const restore = () => withBusy(async () => {
+    const result = await restoreFromAccount()
+    await onDeviceRestored?.()
+    setBackup({ saved_at: result.saved_at, choose: false })
+    setBackupMessage(`Ibyo kuri konti byagaruwe kuri iki gikoresho: igenamiterere ry’ikibaho, imyirondoro ${result.profiles}, amagambo mashya ${result.words}, amajwi ${result.recordings}.`)
+  })
+  const replace = () => {
+    if (!window.confirm('Ibyo wabitse kuri konti bizasimburwa n’ibyo kuri iki gikoresho. Urabyemeza?')) return
+    return withBusy(async () => {
+      const status = await replaceAccountCopy()
+      setBackup({ saved_at: status.saved_at, choose: false })
+      setBackupMessage('Ibyo kuri iki gikoresho ni byo ubu biri kuri konti yawe.')
+    })
+  }
+  const saveNow = () => withBusy(async () => {
+    const status = await saveToAccount()
+    if (!status) { setBackupMessage('Ntibyabitswe. Reba ko ufite interineti kandi winjiye kuri konti.'); return }
+    setBackup({ saved_at: status.saved_at, choose: false })
+    setBackupMessage(status?.unchanged ? 'Nta gishya cyo kubika: konti ifite ibiri kuri iki gikoresho.' : 'Byabitswe kuri konti yawe.')
+  })
+
+  async function importProfiles() {
+    const profiles = await api.profiles()
+    for (const profile of profiles) {
+      if (await getVocabulary(profile.profile_id) === null) {
+        const vocabulary = await api.vocabulary(profile.profile_id)
+        await setVocabulary(profile.profile_id, vocabulary.map(symbol => symbol.key))
+      }
+    }
+    await saveServerProfiles(profiles)
+    setMessage(`Imyirondoro ${profiles.length} ya seriveri iraboneka mu gice cy’Abana. Amashusho yari yaratoranyijwe kuri iki gikoresho yagumishijweho.`)
+  }
+  async function withBusy(task) {
+    setBusy(true); setError('')
+    try { await task() } catch (e) { setError(userError(e)) } finally { setBusy(false) }
+  }
+  const fetchProfiles = () => withBusy(importProfiles)
+  const createServerProfile = event => {
+    event.preventDefault()
+    return withBusy(async () => { await api.createProfile(serverCode.trim().toUpperCase(), null); setServerCode(''); await importProfiles() })
+  }
+  const upload = () => withBusy(async () => {
+    const result = await syncPending(API_BASE, await getToken())
+    setMessage(result.skipped ? 'Nta interineti: nta butumwa bwoherejwe.' : `Ubutumwa bwoherejwe: ${result.accepted_messages ?? 0}; ubwabanje kwakirwa: ${result.duplicates ?? 0}; ubwagumye kuri iki gikoresho: ${result.skipped_local ?? 0}.${result.remaining ? ` Haracyasigaye ubutumwa ${result.remaining} bwo kohereza; ongera ukande Ohereza ubu.` : ''}`)
+    await count()
+  })
+  async function download() {
+    try {
+      const data = await exportLocalData()
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }))
+      const link = document.createElement('a')
+      link.href = url; link.download = `vuga-ubutumwa-${new Date().toISOString().slice(0, 10)}.json`
+      link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
+      setMessage('Ubutumwa bwakuwe kuri iki gikoresho. Bika neza dosiye wabonye.')
+    } catch (e) { setError(userError(e)) }
+  }
+
+  return <><Heading eyebrow="Ohereza" title="Ni wowe uhitamo uko amakuru akoreshwa.">Ubutumwa buguma kuri iki gikoresho kugeza igihe uhisemo kubukuramo cyangwa kohereza ubwa konti yawe kuri seriveri.</Heading>
+    <div className="two">
+      <div className="card">
+        <h2>Amakuru yo kuri iki gikoresho</h2>
+        <p className="big">{pending}<small>ubutumwa bwarangiye butaroherezwa</small></p>
+        <p className="muted">Imyirondoro y’igerageza n’iyakozwe kuri iki gikoresho biguma hano. Iyo ukanze kohereza, hoherezwa gusa ubutumwa bw’imyirondoro yo kuri seriveri iri muri konti winjiyemo. Ubutumwa burimo amagambo mashya wongeyeho buguma kuri iki gikoresho.</p>
+        <button className="primary" onClick={upload} disabled={!online || !authed || busy || !pending}>Ohereza ubu</button>
+        <button className="ghost" onClick={download} disabled={busy}>Kuramo ubutumwa bwo kuri iki gikoresho</button>
+        <p className="muted">Dosiye ikubiyemo kode z’abana n’ibikorwa byo gutegura ubutumwa. Nta magambobanga cyangwa amajwi yafashwe birimo.</p>
+        {message && <p role="status">{message}</p>}
+      </div>
+      {!authed ? <LoginForm setError={setError} onDone={async () => { setAuthed(true); await withBusy(connect); await fetchProfiles() }} /> : <div className="card">
+        <h2>Konti yo kuri seriveri<small>Winjiye kuri iki gikoresho</small></h2>
+        <button className="ghost" disabled={busy || !online} onClick={fetchProfiles}>Zana imyirondoro ya konti yanjye</button>
+        <button className="ghost" disabled={busy} onClick={async () => { try { await api.logout(); setAuthed(false); setBackup(null); setBackupMessage('') } catch (e) { setError(userError(e)) } }}>Sohoka</button>
+        <section className="account-backup" aria-label="Ibibitswe kuri konti">
+          <h3>Ibibitswe kuri konti</h3>
+          <p className="muted">Abana, amashusho yabo, igenamiterere ry’ikibaho, aho umwana ari, amagambo akurikira, uburyo bw’umwana, amagambo mashya n’amafoto yayo, n’amajwi yafashwe bibikwa kuri konti yawe igihe usubiye ku kibaho. Winjiye kuri iyi konti kuri telefoni cyangwa tablet nshya, byose biragaruka. Umubare w’ibanga n’ubutumwa ntibijyamo.</p>
+          {backup?.choose ? <>
+            <p className="account-backup-when">Konti yawe ifite ibyo wabitse ku wa {when(backup.saved_at)}, kandi iki gikoresho na cyo gifite ibyacyo. Hitamo ibyo ugumana.</p>
+            <button className="primary" disabled={busy || !online} onClick={restore}>Garura ibyo kuri konti</button>
+            <button className="ghost" disabled={busy || !online} onClick={replace}>Bika ibyo kuri iki gikoresho kuri konti</button>
+          </> : <>
+            <p className="account-backup-when">{backup?.saved_at ? `Byabitswe bwa nyuma: ${when(backup.saved_at)}` : 'Ntibirabikwa kuri konti.'}</p>
+            <button className="primary" disabled={busy || !online || !backup} onClick={saveNow}>Bika ubu</button>
+            <button className="ghost" disabled={busy || !online || !backup?.saved_at} onClick={restore}>Garura ibyo kuri konti</button>
+          </>}
+          {backupMessage && <p role="status">{backupMessage}</p>}
+        </section>
+        <form onSubmit={createServerProfile}>
+          <label>Kora umwirondoro kuri seriveri<small>Kode y’umwana gusa; iyi kode yoherezwa kuri konti yawe yo kuri seriveri.</small><input value={serverCode} onChange={e => setServerCode(e.target.value)} onInvalid={requiredCode} onInput={clearValidation} placeholder="P-01" maxLength={5} pattern="[A-Za-z]-[0-9]{2,3}" required /></label>
+          <button className="primary" disabled={busy || !online}>Bika umwirondoro kuri seriveri</button>
+        </form>
+      </div>}
+    </div></>
+}

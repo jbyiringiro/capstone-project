@@ -1,0 +1,21 @@
+/* Caregiver word lists: places (where the child is) and the next words after a picture. */
+.dash .word-list-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.dash .word-list-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.dash .word-list-item .symbol-artwork { width: 60px; height: 60px; border-radius: 10px; overflow: hidden; }
+.dash .word-list-item b { font-size: 13px; text-align: center; overflow-wrap: anywhere; }
+.dash .word-list-remove { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--danger-soft); background: var(--danger-soft); color: var(--delete); font-size: 18px; line-height: 1; }
+.dash .word-list-empty { grid-column: 1 / -1; margin: 0; padding: 16px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 13px; }
+.dash .word-list-search { max-width: 420px; }
+.dash .word-list-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 20px; }
+.dash .word-list-results button { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 10px; border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--soft); text-align: left; }
+.dash .word-list-results .symbol-artwork { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 8px; overflow: hidden; }
+.dash .word-list-results span:nth-of-type(2) { flex: 1; font-size: 13px; font-weight: 600; }
+.dash .word-list-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.dash .word-list-choice { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end; gap: 6px; padding: 10px; min-height: 48px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); text-align: left; }
+.dash .word-list-choice.active { border-color: var(--teal); background: var(--mint); box-shadow: inset 0 0 0 1px var(--teal); }
+.dash .word-list-choice .symbol-artwork { width: 52px; height: 52px; border-radius: 10px; overflow: hidden; }
+.dash .word-list-choice b { font-size: 14px; }
+.dash .word-list-choice small { font-size: 11px; color: var(--muted); }
+.dash .word-list-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 24px 0 14px; }
+.dash .word-list-heading h2 { font-size: 18px; font-weight: 650; margin: 0; }
+.dash .word-list-add { margin: 0 0 22px; }

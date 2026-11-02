@@ -1,0 +1,19 @@
+/* Caregiver custom words: a short form and a list of the words made on this device. */
+.dash .custom-word-form { max-width: 760px; }
+.dash .custom-word-picture { display: flex; align-items: center; gap: 18px; margin-top: 16px; }
+.dash .custom-word-picture small { display: block; margin-top: 9px; font-size: 11px; line-height: 1.7; color: var(--muted); }
+.dash .custom-word-preview { flex: 0 0 112px; width: 112px; height: 112px; border-radius: 18px; border: 1px dashed var(--line-strong); background: var(--soft); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.dash .custom-word-preview img { width: 100%; height: 100%; object-fit: cover; }
+.dash .custom-word-saved { margin-top: 6px; padding: 14px 16px; border-radius: 13px; background: var(--mint); font-size: 14px; line-height: 1.7; }
+.dash .custom-word-saved p { margin: 0 0 10px; }
+.dash .custom-word-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.dash .custom-word-item { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 8px 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); }
+.dash .custom-word-item > .symbol-artwork { width: 72px; height: 72px; border-radius: 12px; overflow: hidden; }
+.dash .custom-word-copy b { display: block; font-size: 17px; overflow-wrap: anywhere; }
+.dash .custom-word-copy small { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
+.dash .custom-word-actions, .dash .custom-word-confirm { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.dash .custom-word-confirm p { width: 100%; margin: 0; font-size: 13px; line-height: 1.6; }
+.dash .custom-word-actions .button-outline, .dash .custom-word-confirm button { min-height: 48px; }
+@media (max-width: 640px) {
+  .dash .custom-word-picture { flex-direction: column; align-items: flex-start; }
+}

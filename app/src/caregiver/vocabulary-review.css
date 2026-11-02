@@ -1,0 +1,24 @@
+/* Vocabulary review: the card in Amashusho and the one-word-at-a-time interview screen. */
+.dash .review-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.dash .review-card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; }
+.dash .review-card p { margin: 0; max-width: 62ch; }
+.dash .review-card .button-outline { min-height: 48px; }
+
+.review-dialog { width: min(720px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); touch-action: pan-y pinch-zoom; padding: 20px; border: 0; border-radius: var(--radius); background: var(--paper); color: var(--ink); box-shadow: 0 20px 60px #0003; }
+.review-dialog[open] { display: flex; flex-direction: column; gap: 14px; }
+.review-dialog::backdrop { background: #233C3AB3; }
+.review-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.review-eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.review-set { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 600; }
+.review-set select { min-height: 44px; max-width: 100%; padding: 0 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink); font: inherit; }
+.review-close { width: 44px; height: 44px; flex: 0 0 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); color: var(--ink); font-size: 24px; line-height: 1; }
+.review-word { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 0; padding: 18px; border: 3px solid var(--card-accent, var(--teal)); border-radius: 22px; background: var(--paper); }
+.review-word .symbol-artwork { width: min(44vh, 68vw, 360px); height: min(44vh, 68vw, 360px); }
+.review-word .symbol-artwork .glyph { font-size: 120px; }
+.review-word figcaption { font-size: clamp(28px, 6vw, 44px); font-weight: 800; text-align: center; overflow-wrap: anywhere; }
+.review-progress { margin: 0; text-align: center; font-weight: 700; color: var(--muted); }
+.review-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.review-step { min-height: 56px; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--paper); color: var(--teal); font-weight: 650; }
+.review-step:disabled { opacity: .35; }
+.review-speak { grid-column: 1 / -1; order: -1; min-height: 64px; padding: 0 22px; }
+.review-note { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }

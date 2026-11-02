@@ -1,0 +1,24 @@
+/* Caregiver set-up for child mode: board presets, the chosen pictures, the game and progress. */
+.dash .child-presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 24px; }
+.dash .child-preset { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--paper); text-align: left; min-height: 48px; }
+.dash .child-preset.active { border-color: var(--teal); background: var(--mint); box-shadow: inset 0 0 0 1px var(--teal); }
+.dash .child-preset-pictures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 100%; }
+.dash .child-preset-pictures .symbol-artwork { width: 100%; aspect-ratio: 1; border-radius: 7px; overflow: hidden; }
+.dash .child-preset b { font-size: 14px; }
+.dash .child-preset small { font-size: 11px; color: var(--muted); }
+.dash .child-chosen { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.dash .child-chosen-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); }
+.dash .child-chosen-item .symbol-artwork { width: 64px; height: 64px; border-radius: 10px; overflow: hidden; }
+.dash .child-chosen-item b { font-size: 13px; text-align: center; overflow-wrap: anywhere; }
+.dash .child-chosen-remove { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--danger-soft); background: var(--danger-soft); color: var(--delete); font-size: 18px; line-height: 1; }
+.dash .child-add-search { max-width: 420px; }
+.dash .child-add-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 10px 0 20px; }
+.dash .child-add-results button { display: flex; align-items: center; gap: 8px; min-height: 52px; padding: 6px 10px; border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--soft); text-align: left; }
+.dash .child-add-results .symbol-artwork { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 8px; overflow: hidden; }
+.dash .child-add-results span:nth-of-type(2) { flex: 1; font-size: 13px; font-weight: 600; }
+.dash .child-game-card, .dash .child-progress-card { margin-top: 22px; }
+.dash .child-game-card h2 { display: flex; align-items: center; gap: 8px; }
+.dash .child-game-start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.dash .child-game-start > button:not(.button-primary) { min-width: 52px; min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--paper); font-weight: 700; }
+.dash .child-game-start > button.active { border-color: var(--teal); background: var(--mint); }
+.dash .child-game-start .button-primary { margin-left: auto; min-height: 52px; display: inline-flex; align-items: center; gap: 8px; }
