@@ -41,11 +41,12 @@ export class SpeechPlanner {
 
 // Playback order: a caregiver's recording, an installation's clip, the bundled Kinyarwanda clip,
 // then a Kinyarwanda system voice. English is never a fallback.
-export function defaultSources(getRecording) {
-  return [new RecordingSource(getRecording), new InstalledClipSource('/audio'), new ClipSource('/audio/rw'), new SystemVoiceSource()]
+export function defaultSources(getRecording, installed = new InstalledClipSource('/audio')) {
+  return [new RecordingSource(getRecording), installed, new ClipSource('/audio/rw'), new SystemVoiceSource()]
 }
 
-// `message` is picture keys (one word each) or sentence parts from the sentence builder.
-export function prepareSpeech(message, byKey, getRecording, signal) {
-  return new SpeechPlanner(defaultSources(getRecording), new GeneratedClipSource()).plan(message, byKey, signal)
+// `message` is picture keys (one word each) or sentence parts from the sentence builder. A board
+// passes its own `installed` source, so installed.json is read once rather than on every word.
+export function prepareSpeech(message, byKey, getRecording, signal, { installed } = {}) {
+  return new SpeechPlanner(defaultSources(getRecording, installed), new GeneratedClipSource()).plan(message, byKey, signal)
 }

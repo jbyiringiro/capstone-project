@@ -61,11 +61,12 @@ function defaultContext() {
   return new Context()
 }
 
-function whenIdle(task) {
+// Runs `task` once the page is idle, or after `timeout` ms at the latest; returns a cancel function.
+export function whenIdle(task, timeout = 3000) {
   if (typeof requestIdleCallback === 'function') {
-    const id = requestIdleCallback(task, { timeout: 3000 })
+    const id = requestIdleCallback(task, { timeout })
     return () => cancelIdleCallback(id)
   }
-  const id = setTimeout(task, 500)
+  const id = setTimeout(task, Math.min(timeout, 500))
   return () => clearTimeout(id)
 }

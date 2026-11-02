@@ -2,8 +2,9 @@ import { localizedError } from '../shared/errors-rw.js'
 import { stopped } from './voices.js'
 
 // Plays one prepared part and settles only when it has finished, failed or been stopped, always
-// releasing the media element, the object URL and the abort listener.
-export function playSpeechPart(part, signal) {
+// releasing the media element, the object URL and the abort listener. `onStart` runs once the
+// sound has started.
+export function playSpeechPart(part, signal, onStart) {
   return new Promise((resolve, reject) => {
     let audio, utterance, url, timer, settled = false
     const cleanup = () => {
@@ -28,6 +29,7 @@ export function playSpeechPart(part, signal) {
         audio = new Audio(url)
         audio.onended = complete
         audio.onerror = failed
+        if (onStart) audio.addEventListener('playing', onStart, { once: true })
         audio.play().catch(failed)
       } else {
         utterance = new SpeechSynthesisUtterance(part.text)
@@ -36,6 +38,7 @@ export function playSpeechPart(part, signal) {
         utterance.rate = 0.9
         utterance.onend = complete
         utterance.onerror = failed
+        if (onStart) utterance.onstart = onStart
         globalThis.speechSynthesis.speak(utterance)
       }
     } catch (error) { failed(error) }

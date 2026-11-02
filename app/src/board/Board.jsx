@@ -5,7 +5,7 @@ import { relatedWords } from '../symbols/related-words.js'
 import { DEFAULT_PREFERENCES, GRID_SIZES } from '../storage/board-preferences.js'
 import { finaliseMessage, logAction, startDraft } from '../storage/messages.js'
 import { getRecording } from '../storage/recordings.js'
-import { AudioWarmer, playSpeechPart, prepareSpeech } from '../speech/index.js'
+import { AudioWarmer, InstalledClipSource, playSpeechPart, prepareSpeech, whenIdle } from '../speech/index.js'
 import { sentenceBuilder, wordByWord } from '../grammar/sentence.js'
 import { Chevron, Icon, SymbolArtwork } from '../shared/ui.jsx'
 import { userError } from '../shared/errors-rw.js'
@@ -95,8 +95,14 @@ export default function Board({
     predictor, personal: preferences.personalSuggestions, profileId, mode, message, allowed
   })
 
+  // The message's speech, made ready while the child is still choosing: { id, parts } (see speak).
+  const prepared = useRef(null)
+  const installed = useRef(null)
   if (!session.current) session.current = new MessageSession(storage, profileId, mode)
   if (!warmer.current) warmer.current = new AudioWarmer()
+  if (!installed.current) installed.current = new InstalledClipSource('/audio')
+  const plan = (parts, signal) => prepareSpeech(parts, byKey, getRecording, signal, { installed: installed.current })
+  const speechId = keys => `${sentences}:${keys.join(' ')}`
   useEffect(() => () => { controller.current?.abort(); word.current?.abort(); warmer.current?.close() }, [])
   useEffect(() => { if (visible) warmer.current.prepare() }, [visible])
   useEffect(() => {
@@ -115,6 +121,18 @@ export default function Board({
   useEffect(() => {
     if (audioError && visible && !audioDialog.current?.open) audioDialog.current?.showModal()
   }, [audioError, visible])
+  // Vuga then only has to play: on an emulated low-end phone, finding and reading the clips after
+  // the press took most of the time to the first sound (NFR2: within 300 ms). Showing the board
+  // again (after the caregiver area, where voices may change) prepares it afresh.
+  useEffect(() => {
+    prepared.current = null
+    if (!visible || !message.length) return
+    const keys = [...message], preparing = new AbortController()
+    const cancel = whenIdle(() => {
+      prepared.current = { id: speechId(keys), parts: plan(toSpeech(keys).parts, preparing.signal).catch(() => null) }
+    }, 300)
+    return () => { cancel(); preparing.abort() }
+  }, [message, visible, sentences, byKey])
 
   const categories = useMemo(() => CATEGORY_ORDER.filter(c => c === 'core' || symbols.some(s => s.category === c && allowed.has(s.symbol_id))), [symbols, allowed])
   // Where the child is: that place's pictures lead the board, so a new place opens on its first page.
@@ -144,7 +162,7 @@ export default function Board({
     const playback = new AbortController()
     word.current = playback
     try {
-      for (const part of await prepareSpeech([key], byKey, getRecording, playback.signal)) await playSpeechPart(part, playback.signal)
+      for (const part of await plan([key], playback.signal)) await playSpeechPart(part, playback.signal)
     } catch {
       // The word is still in the message; Vuga reports a missing voice when the message is spoken.
     } finally {
@@ -239,13 +257,19 @@ export default function Board({
     let played = false
     busy.current = true
     word.current?.abort()
-    setSpeaking(true)
-    setNotice('')
-    setAudioError('')
     controller.current = playback
+    // The board redraws as speaking once the sound has started: on a slow tablet, redrawing every
+    // key first held the sound back. Taps in between are ignored (busy).
+    let shown = false
+    const showSpeaking = () => {
+      if (shown) return
+      shown = true
+      setSpeaking(true); setNotice(''); setAudioError('')
+    }
     try {
-      const parts = await prepareSpeech(toSpeech(keys).parts, byKey, getRecording, playback.signal)
-      for (const part of parts) await playSpeechPart(part, playback.signal)
+      const ready = prepared.current?.id === speechId(keys) ? await prepared.current.parts : null
+      const parts = ready ?? await plan(toSpeech(keys).parts, playback.signal)
+      for (const part of parts) await playSpeechPart(part, playback.signal, showSpeaking)
       played = true
       await session.current.record('speak', { ts: tappedAt })
       await session.current.finish()
