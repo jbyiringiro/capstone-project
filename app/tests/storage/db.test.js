@@ -1,6 +1,10 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { db, createLocalProfile, getVocabulary, setVocabulary, startDraft, logAction, finaliseMessage, getLocalSummary, exportLocalData, syncPending } from '../src/db.js'
+import { db } from '../../src/storage/db.js'
+import { createLocalProfile } from '../../src/storage/profiles.js'
+import { getVocabulary, setVocabulary } from '../../src/storage/vocabulary.js'
+import { exportLocalData, finaliseMessage, getLocalSummary, logAction, startDraft } from '../../src/storage/messages.js'
+import { syncPending } from '../../src/server/sync.js'
 
 beforeEach(async () => {
   await Promise.all(db.tables.map(table => table.clear()))
@@ -17,6 +21,17 @@ describe('offline storage', () => {
     await setVocabulary(profile.profile_id, ['I', 'WANT', 'I'])
     expect(await getVocabulary(profile.profile_id)).toEqual(['I', 'WANT'])
     await expect(createLocalProfile('P-01')).rejects.toThrow('Iyi kode isanzwe')
+  })
+
+  it('takes a child name as well as a code, up to 30 characters', async () => {
+    const named = await createLocalProfile('  Uwase   Marie-Ange  ', '4-6')
+    expect(named.code).toBe('Uwase Marie-Ange')
+    expect((await createLocalProfile('Ishimwe’Keza')).code).toBe('Ishimwe’Keza')
+    await expect(createLocalProfile('uwase marie-ange')).rejects.toThrow('Iri zina risanzwe')
+    await expect(createLocalProfile('A'.repeat(31))).rejects.toThrow('Inyuguti ntizirenge 30')
+    await expect(createLocalProfile('<b>')).rejects.toThrow('Andika izina cyangwa kode')
+    await expect(createLocalProfile('   ')).rejects.toThrow('Andika izina cyangwa kode')
+    expect((await createLocalProfile('A'.repeat(30))).code).toHaveLength(30)
   })
 
   it('summarises completed messages using time to Speak, excludes drafts and secrets from export', async () => {
@@ -55,6 +70,7 @@ describe('offline storage', () => {
     expect((await db.messages.get(serverId)).synced).toBe(1)
   })
 
+  // About 3 s of fake-IndexedDB work for 1,001 rows: allow headroom on a slow or cold machine.
   it('caps a large backlog to the API limit and leaves the remainder pending', async () => {
     vi.stubGlobal('navigator', { onLine: true })
     await db.messages.bulkPut(Array.from({ length: 1001 }, (_, i) => ({
@@ -67,5 +83,5 @@ describe('offline storage', () => {
     expect(await syncPending('http://localhost:8000', 'token')).toMatchObject({ remaining: 1 })
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).messages).toHaveLength(1000)
     expect(await db.messages.where('synced').equals(0).count()).toBe(1)
-  })
+  }, 15_000)
 })

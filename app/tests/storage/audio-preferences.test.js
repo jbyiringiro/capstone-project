@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, expect, it } from 'vitest'
-import { db } from '../src/db.js'
-import { getSpeechMode, saveSpeechMode } from '../src/audio-preferences.js'
+import { db } from '../../src/storage/db.js'
+import { getSpeechMode, saveSpeechMode } from '../../src/storage/audio-preferences.js'
 
 beforeEach(async () => { await db.settings.clear() })
 
