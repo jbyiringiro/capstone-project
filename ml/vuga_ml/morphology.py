@@ -115,6 +115,29 @@ def _sp(person: str, stem: str, marker: str = "") -> str:
     return _join_vowel_prefix(prefix, stem)
 
 
+def disjoint_present(person: str, stem: str) -> str:
+    """SP + -ra- + stem: ndashaka, arakina; with a perfective stem, ndananiwe."""
+    return _sp(person, stem, "ra")
+
+
+def conjoint_present(person: str, stem: str) -> str:
+    """SP + stem: nshaka, dukina; for 1sg this is also the 'me' form (mfasha, help me)."""
+    return _sp(person, stem)
+
+
+def negative_present(person: str, stem: str) -> str:
+    """1sg si + n-form; others nti + (prefix + stem): sinshaka, ntushaka, ntiwiga, ntidukina."""
+    if person == "1sg":
+        return "si" + _join_n(stem)
+    prefix, _ = SUBJECT[person]
+    base = _sp(person, stem)
+    # nti + u/a + C-stem -> ntu-/nta- (ntushaka, ntashaka); before a glide the i stays
+    # (ntiwiga, ntiyiga); nti + tu/mu/ba -> ntidu-/ntimu-/ntiba-
+    if prefix in ("u", "a"):
+        return ("nt" if stem[0] not in VOWELS else "nti") + base
+    return "nti" + base
+
+
 def conjugate(infinitive: str, symbol: str, extra_symbols: tuple[str, ...] = (),
               stem: str | None = None) -> list[Form]:
     """Return the regular surface forms of `infinitive` mapped to person symbol + `symbol`."""
@@ -125,20 +148,13 @@ def conjugate(infinitive: str, symbol: str, extra_symbols: tuple[str, ...] = (),
         forms.append(Form(_sp(person, stem, "ra"), "pres_ra", person, (psym,) + tail, False))
         forms.append(Form(_sp(person, stem), "pres", person, (psym,) + tail, False))
         forms.append(Form(_sp(person, stem, "za"), "fut", person, (psym,) + tail, False))
-        # negatives: 1sg si + n-form ; others nti + (prefix + stem)
+        neg_pres = negative_present(person, stem)
         if person == "1sg":
-            neg_pres = "si" + _join_n(stem)
             neg_fut = "sin" + _join_vowel_prefix("za", stem)
+        elif prefix in ("u", "a"):
+            neg_fut = "nt" + _sp(person, stem, "za")   # -za- starts with a consonant: ntuzumva
         else:
-            base = _sp(person, stem)
-            # nti + u/a + C-stem -> ntu-/nta- (ntushaka, ntashaka); before a glide the i stays
-            # (ntiwiga, ntiyiga); nti + tu/mu/ba -> ntidu-/ntimu-/ntiba-
-            if prefix in ("u", "a"):
-                neg_pres = ("nt" if stem[0] not in VOWELS else "nti") + base
-                neg_fut = "nt" + _sp(person, stem, "za")   # -za- starts with a consonant: ntuzumva
-            else:
-                neg_pres = "nti" + base
-                neg_fut = "nti" + _sp(person, stem, "za")
+            neg_fut = "nti" + _sp(person, stem, "za")
         forms.append(Form(neg_pres, "neg_pres", person, (psym, "NOT") + tail, True))
         forms.append(Form(neg_fut, "neg_fut", person, (psym, "NOT") + tail, True))
     # imperatives

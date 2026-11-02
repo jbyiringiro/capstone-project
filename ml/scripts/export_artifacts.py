@@ -2,7 +2,7 @@
 
   ml/artifacts/kn_trigram.json, unigram.json        served by the API (/predict)
   app/public/models/kn_trigram.json                 loaded by the PWA on-device predictor
-  app/tests/fixtures/kn_fixture.json                parity fixture: artefact + expected top-3
+  app/tests/prediction/fixtures/kn_fixture.json     parity fixture: artefact + expected top-3
   device/bundle/suggestions.json                    precomputed top-3 per bigram context for the talker
   [--gru <artifact stem>] app/public/models/gru.onnx + gru.vocab.json (onnxruntime-web)
 
@@ -52,7 +52,7 @@ def main() -> None:
                "cases": [{"prefix": p, "top3": kn.top_k(tuple(p), 3),
                           "top3_masked": kn.top_k(tuple(p), 3, set(allowed))} for p in prefixes],
                "allowed": allowed}
-    fx = REPO / "app" / "tests" / "fixtures"; fx.mkdir(parents=True, exist_ok=True)
+    fx = REPO / "app" / "tests" / "prediction" / "fixtures"; fx.mkdir(parents=True, exist_ok=True)
     (fx / "kn_fixture.json").write_text(json.dumps(fixture, ensure_ascii=False), encoding="utf-8")
 
     # device table: top-3 for every observed bigram context plus unigram fallback

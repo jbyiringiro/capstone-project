@@ -38,17 +38,18 @@ def test_gru_learns_toy_grammar(tmp_path):
     m.save(tmp_path / "gru")
     m2 = GRUPredictor.load(tmp_path / "gru")
     assert m2.top_k(("YOU", "PLAY"), 1) == ["BALL"]
-    m.export_onnx(tmp_path / "gru.onnx")
-    assert (tmp_path / "gru.onnx").exists() and json.loads((tmp_path / "gru.vocab.json").read_text())[1] == "<s>"
 
 
 def test_gru_onnx_matches_torch(tmp_path):
+    # torch.onnx.export needs the onnx package; onnxruntime runs the exported graph.
+    pytest.importorskip("onnx")
     pytest.importorskip("onnxruntime")
     import numpy as np
     import onnxruntime as ort
     m = GRUPredictor(emb=8, hidden=16, epochs=2, batch_size=32, seed=0)
     m.fit(toy_data(100))
     m.export_onnx(tmp_path / "g.onnx")
+    assert json.loads((tmp_path / "g.vocab.json").read_text())[1] == "<s>"
     sess = ort.InferenceSession(str(tmp_path / "g.onnx"), providers=["CPUExecutionProvider"])
     ids = np.array([[1] + m.vocab.encode(("I", "WANT"))], dtype=np.int64)
     logits = sess.run(None, {"ids": ids})[0][0, -1]
