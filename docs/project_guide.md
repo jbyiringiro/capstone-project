@@ -1,10 +1,10 @@
 # Vuga project guide
 
-Updated 2 November 2026. The working app is fully in Kinyarwanda, including its board, caregiver interface, validation/error messages and speech path. Communication cards use licensed online images, and a caregiver PIN, tied to the caregiver's mobile number once they link one, separates child communication from caregiver controls. Research scope, picture recognition, native-speaker review and participant benefit remain provisional. The [testing report](testing_report.md) records the checks run on this version; the [10 October](licensed_images_parent_access_2026-10-10.md) and [6 October](design_implementation_2026-10-06.md) implementation records and the [28 September verification](verification_2026-09-28.md) are historical.
+Updated 2 November 2026. The working app is fully in Kinyarwanda, including its board, caregiver interface, validation/error messages and speech path. Communication cards use licensed online images, and a caregiver PIN, tied to the caregiver's mobile number once they link one, separates child communication from caregiver controls. Research scope, picture recognition, native-speaker review and participant benefit remain provisional. The adult study and vocabulary validation were approved by the ALU Research Ethics Committee on 2 November 2026 (approval code SEPT26-BSE-048, valid for six months) and are planned for 10–20 November. The [testing report](testing_report.md) records the checks run on this version; the [10 October](licensed_images_parent_access_2026-10-10.md) and [6 October](design_implementation_2026-10-06.md) implementation records and the [28 September verification](verification_2026-09-28.md) are historical.
 
 ## Start the app on Windows
 
-From `vuga-aac/app`, with Node.js/npm installed:
+From the repository's `app` folder, with Node.js/npm installed:
 
 ```powershell
 npm.cmd ci
@@ -19,9 +19,9 @@ Choose pictures and use **Siba**, **Siba byose**, **Erekana**, and **Vuga** to c
 
 The child board opens without a PIN. Hold **Umurezi** or activate it with the keyboard to open the separate parent access screen. On first use, the caregiver types their Rwandan mobile number, Vuga texts a six-digit code, and the caregiver chooses and confirms a four-to-six-digit PIN. That PIN opens the caregiver area on this device, offline too, and signs in to the caregiver's account with the number on another device, which then gets the account's backup. A number that already has an account signs in with its PIN instead. Without internet, **Komeza nta nimero** keeps the PIN on this device only; the number can be linked later in **Kwinjira**. **Subira ku kibaho** dismisses setup so communication remains available. Subsequent visits require the PIN before any caregiver controls are mounted. There is no default PIN. **Abana** creates/selects a device profile; **Amashusho** configures its vocabulary. **Ikibaho** holds the board settings: the section tabs and the section the child sees, words on the pictures, **Amagambo afasha** (suggestions) and personal suggestions, page swiping, sentence speech, saying each picture on tap, board size, **Amashusho anyeganyega buhoro**, **Amashusho manini cyane**, and **Amafoto afatika**. The photo preference defaults on; turning it off restores pictograms for that profile. Settings are saved per profile; system reduced-motion takes precedence. Returning to the board preserves its draft. Changing profile or prediction mode resets it; browser-reload draft recovery is not claimed.
 
-**Kwinjira** shows the linked number, or links one, and changes the PIN after checking the current one; on a linked device the account's PIN changes too, so that needs internet. Returning to the child board, reloading, backgrounding the app, or five minutes without input locks the parent session. Five incorrect PINs on the device trigger a 30-second cooldown that survives reload; five wrong PINs when signing in with the number lock that number on the server for 15 minutes, and a texted code lifts the lock. The device stores the PIN only as a salted PBKDF2-derived credential and the server keeps a bcrypt hash; unlocked sessions are never persisted. The device check prevents unintended settings changes but does not protect against someone with browser-storage access. Setting the PIN shows a one-time recovery code (16 letters and digits) to write down; it is stored only as a second PBKDF2-derived credential. **Nibagiwe umubare w’ibanga** on the PIN screen sets a new PIN with that code (wrong codes count towards the same cooldown), or with a code texted to the linked number, which changes the account's PIN too; both keep every child's data and show a new recovery code. **Kwinjira** makes a new recovery code with the current PIN. There is no child-facing reset; without a recovery code or a linked number, clearing browser storage removes the PIN and the local data that is not on the account backup.
+**Kwinjira** shows the linked number, or links one, and changes the PIN after checking the current one; on a linked device the account's PIN changes too, so that needs internet. A new or reset PIN ends the account's sessions on every other device, which then asks for the new PIN in **Ohereza**. Returning to the child board, reloading, backgrounding the app, or five minutes without input locks the parent session. Five incorrect PINs on the device trigger a 30-second cooldown that survives reload; five wrong PINs when signing in with the number lock that number on the server for 15 minutes, and a texted code lifts the lock. The device stores the PIN only as a salted PBKDF2-derived credential and the server keeps a bcrypt hash; unlocked sessions are never persisted. The device check prevents unintended settings changes but does not protect against someone with browser-storage access. Setting the PIN shows a one-time recovery code (16 letters and digits) to write down; it is stored only as a second PBKDF2-derived credential. **Nibagiwe umubare w’ibanga** on the PIN screen sets a new PIN with that code (wrong codes count towards the same cooldown), or with a code texted to the linked number, which changes the account's PIN too; both keep every child's data and show a new recovery code. **Kwinjira** makes a new recovery code with the current PIN. There is no child-facing reset; without a recovery code or a linked number, clearing browser storage removes the PIN and the local data that is not on the account backup.
 
-**Incamake** reports actual completed spoken messages and has an empty state. **Ohereza** provides explicit JSON export, sign-in to the linked account with the PIN, optional server sync of completed messages, and the account backup of the device's set-up. Messages and activity remain on this device unless a supported export or sync is explicitly requested; the backup holds children, words, settings, custom words and recordings, never the PIN or messages.
+**Incamake** reports actual completed spoken messages and has an empty state. **Ohereza** provides explicit JSON export, sign-in to the linked account with the PIN, optional server sync of completed messages, and the account backup of the device's set-up. Messages and activity remain on this device unless a supported export or sync is explicitly requested. The backup holds each child known by a code (such as P-01) with their words and settings; a child the family calls by name, custom words and their photos, recordings, messages and the PIN stay on the device, and the API refuses them. When another device has saved newer changes, **Ohereza** lists what differs, by child, and the caregiver keeps the account's copy or this device's; a device that changed nothing takes the newer copy itself.
 
 ## Assets and Kinyarwanda speech
 
@@ -47,11 +47,11 @@ The speech order is: saved recording, custom installation clip at `/audio/SYMBOL
 
 Successful playback completes a message record; it does not prove correct pronunciation or an understood exchange. Have a fluent Kinyarwanda speaker review the labels and clips with intended partners. No matching system voice is assumed to be installed.
 
-Recordings stay in IndexedDB and are excluded from export/sync and the repository. Clearing browser storage removes them; keep originals separately. Custom installation clips are also excluded from the repository. Only the synthetic bundle and nonverbal test tone are included; file-integrity checks are not human language review. See [audio setup and regeneration](../app/public/audio/README.md).
+Recordings stay in IndexedDB and are excluded from export/sync, the account backup and the repository. Clearing browser storage removes them; keep originals separately. Custom installation clips are also excluded from the repository. Only the synthetic bundle and nonverbal test tone are included; file-integrity checks are not human language review. See [audio setup and regeneration](../app/public/audio/README.md).
 
 ## Python environment and notebook
 
-From `vuga-aac`, using Python 3.11+:
+From the repository root, using Python 3.11+:
 
 ```powershell
 python -m venv .venv
@@ -63,7 +63,7 @@ Open [the executed notebook](../ml/notebooks/vuga_model.ipynb) or [HTML report](
 
 ## Optional backend
 
-From `vuga-aac`, in another terminal:
+From the repository root, in another terminal:
 
 ```powershell
 $env:VUGA_MODEL_DIR = (Resolve-Path ml/artifacts).Path
@@ -88,7 +88,7 @@ Use a private random `VUGA_JWT_SECRET` of at least 32 characters for persistent 
 | Server client | `app/src/server/` | API client, mobile numbers and SMS codes, adult-requested sync and the account backup |
 | Speech | `app/src/speech/` (audio source chain, SpeechPlanner, player, warm-up), `caregiver/VoiceSettings.jsx`, `caregiver/AudioSettings.jsx` | Kinyarwanda-only playback, bundled speech, installed clips and local recordings |
 | Prediction | `app/src/prediction/` (Predictor, KneserNeyTrigram, PersonalReranker, top-k) | Enabled-vocabulary constrained local trigram with optional personal re-ranking |
-| API/schema | `api/app/routers/`, `api/app/services/`, `schemas.py`, `models.py` | Accounts by mobile number (SMS codes, PIN lock), owned profiles, vocabulary, sync, account backup, predictions and summaries |
+| API/schema | `api/app/routers/`, `api/app/services/`, `schemas.py`, `models.py` | Accounts by mobile number (SMS codes, PIN lock, sessions ended by a new PIN), owned profiles, vocabulary, sync, account backup with revisions, predictions and summaries |
 | ML evidence | `ml/vuga_ml/`, `ml/notebooks/` | Data engineering, architecture and development metrics |
 | Visual references | [Local design pack](../design/README.md) | Earlier layouts, style guide, tokens and SVG/PNG imports |
 
@@ -102,4 +102,4 @@ See the [testing report](testing_report.md) for the executed checks, their resul
 
 `.gitignore` decides what the repository contains. Environments, dependencies, model weights, private/custom recordings, credentials (including the local parent PIN credential), databases, participant logs, raw corpora and held-out test examples are excluded. The superseded generated PNG sources are not in the repository. The repository uses compact licensed online images with source, author, licence and hash records. Included audio is limited to the 188 synthetic Kinyarwanda WAVs, the 1,259 generated MP3 word forms, their provenance/licence files and the nonverbal speaker-test WAV.
 
-The recorded 5–10 minute walkthrough video remains outstanding; its README link is a placeholder. No fresh dependency installation, school validation or production hardening is claimed.
+The [walkthrough video](https://drive.google.com/file/d/11ALnAjvop92pTYnx-89AKJn1B6W2rRHp/view?usp=drive_link) is on Google Drive and linked at the top of the README. No fresh dependency installation, school validation or production hardening is claimed.

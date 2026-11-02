@@ -11,7 +11,7 @@ This is a proposed visual redesign of the Vuga communication app, prepared for r
 - `figma-import/` contains the SVG screens to import into Figma.
 - `previews/` contains PNG reference images. Use SVGs for design editing; PNGs are visual references.
 
-The preview is separate from the working app in `vuga-aac/app`. It does not read its profiles, call its API, or collect research data. Example profiles and selected words are demonstration content. Edits in the preview last only for the current page session and reset when reloaded. The preview does not generate speech; its suggestions are authored examples, not model output.
+The preview is separate from the working app in `app/`. It does not read its profiles, call its API, or collect research data. Example profiles and selected words are demonstration content. Edits in the preview last only for the current page session and reset when reloaded. The preview does not generate speech; its suggestions are authored examples, not model output.
 
 ## Included screens
 

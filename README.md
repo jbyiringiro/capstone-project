@@ -1,15 +1,17 @@
 # Vuga AAC
 
+**[Walkthrough video](https://drive.google.com/file/d/11ALnAjvop92pTYnx-89AKJn1B6W2rRHp/view?usp=drive_link)** · **[Technical report (PDF)](docs/report/Vuga_Final_Technical_Report.pdf)** · [Testing report](docs/testing_report.md)
+
 **An offline Kinyarwanda picture-to-speech communication app for disabled children who cannot speak or are hard to understand, with on-device next-word suggestions that can learn each child's own words.**
 
 | | |
 |---|---|
-| **Walkthrough video** | [Final product walkthrough](VIDEO_LINK_TO_ADD) |
+| **Walkthrough video** | [Final product walkthrough (Google Drive)](https://drive.google.com/file/d/11ALnAjvop92pTYnx-89AKJn1B6W2rRHp/view?usp=drive_link) |
 | **Technical report (PDF, 4 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
 | **Testing and performance evidence** | [docs/testing_report.md](docs/testing_report.md) |
 | **GitHub repository** | https://github.com/jbyiringiro/capstone-project |
 | **Project** | A Kinyarwanda-First Predictive Picture-to-Speech Communication System for Minimally Verbal Children with Disabilities in Rwandan Special Schools: Design and Preliminary Adult-Task Evaluation |
-| **Evaluation** | Adults only (teachers, therapists, caregivers) in a preliminary usability and task study; no children take part |
+| **Evaluation** | Adults only (teachers, therapists, caregivers) in a preliminary usability and task study; no children take part. Approved by the ALU Research Ethics Committee on 2 November 2026 (approval code SEPT26-BSE-048) |
 | **Author** | Josue Byiringiro, BSc Software Engineering (Machine Learning), African Leadership University |
 | **Supervisor** | Junior Turatsinze |
 
@@ -30,7 +32,7 @@ Many disabled children cannot use speech to ask for help, make a choice, say "no
 
 **For the parent, teacher or therapist** (the **Umurezi** area, behind a long press and a PIN)
 - One profile per child, with its own vocabulary and board settings.
-- **Amagambo mashya** (new in the final version): add a word from the child's life: take a photo, name it in Kinyarwanda, record it in a familiar voice. The word stays on the device, and in the caregiver's account backup once they sign in.
+- **Amagambo mashya** (new in the final version): add a word from the child's life: take a photo, name it in Kinyarwanda, record it in a familiar voice. The word, its photo and its voice stay on the device: they are never sent to the server.
 - **Board size** (new): fixed pages of 4, 6, 9, 12, 20, 24 or 40 pictures with page buttons, or **Byikora**, which fits as many large pictures as the screen holds (fewer on a phone, more on a tablet). Every picture keeps its place. On a tablet, a sideways swipe across the pictures also turns the page; a caregiver can switch swiping off for a child who turns pages by accident.
 - **Aho umwana ari** (new): choose where the child is (home, school, a meal, play, the clinic, outside). That place's naming words then come first on the board, followed by the core words, actions, feelings and the body, which stay everywhere; naming words for other places leave the board. The toolbar names the place on every screen size. Each place's list can be edited per child.
 - **Amagambo akurikira** (new): switch next-word pages on or off per child and choose which pictures follow which, for example remove *amata* after *kunywa*, or give a new picture its own next words.
@@ -42,13 +44,13 @@ Many disabled children cannot use speech to ask for help, make a choice, say "no
 - **Child mode** (new, per child): for young or early communicators the child sees only the pictures the caregiver chose (a ready-made board such as *Igihe cyo kurya*, or up to 12 picked pictures), with no categories or buttons to manage. Each tap says the word at once and shows it large, with a friendly character reacting. The caregiver can start **Shakisha**, a picture-finding game on the child's own board that awards stars, highlights the answer after two misses and shows progress to the caregiver. Game play is never counted as communication, and child-mode data stays on the device.
 - **Gusuzuma amagambo** (new, in Amashusho): for the vocabulary review interviews, the 32 words on the paper review sheet shown one at a time in the sheet's order, with the picture, label and voice exactly as the board has them. Answers go on the paper sheet; the screen stores nothing.
 - **Nibagiwe umubare w’ibanga** (new): setting the PIN shows a one-time recovery code to write down. On the PIN screen, *Nibagiwe umubare w’ibanga* sets a new PIN with that code, or with a code texted to the number of the Vuga account linked to the device; every child's data stays. **Kwinjira** makes a new code.
-- **Konti y’umurezi by mobile number** (new): the first time the caregiver area opens, the caregiver types their Rwandan mobile number, Vuga texts a six-digit code, and they choose a PIN of 4 to 6 digits. That one PIN opens the caregiver area on the device, also offline, and signs in to the account with the number on any other device, which then gets the account's copy back. A number that already has an account is told so and signs in with its PIN. A forgotten PIN is replaced with a new texted code, and changing the PIN in **Kwinjira** changes the account's too. Without internet, *Komeza nta nimero* keeps the PIN on the device only, and the number can be added later in **Kwinjira**. The texts go through Africa's Talking. A code works once, for 10 minutes and 5 tries; a number gets at most 5 codes an hour, and 5 wrong PINs lock it for 15 minutes.
-- **Ibibitswe kuri konti** (new, optional, in Ohereza): once the device is linked to the caregiver's number, everything set up on it (children, their words, board, place and next-word settings, child mode, custom words with their photos, and recorded voices) is saved to their account each time they return to the board. Signing in on a new phone or tablet brings it all back. A device that already has its own set-up never overwrites the account copy until the caregiver chooses. Messages stay on each device, and the backup never holds the PIN: a new device takes the PIN the caregiver signs in with. Unlike the rest of Vuga, this puts the caregiver's photos and voice recordings on the server.
+- **Konti y’umurezi by mobile number** (new): the first time the caregiver area opens, the caregiver types their Rwandan mobile number, Vuga texts a six-digit code, and they choose a PIN of 4 to 6 digits. That one PIN opens the caregiver area on the device, also offline, and signs in to the account with the number on any other device, which then gets the account's copy back. A number that already has an account is told so and signs in with its PIN. A forgotten PIN is replaced with a new texted code, and changing the PIN in **Kwinjira** changes the account's too; a new PIN ends the account's sessions on other devices, which ask for it again. Without internet, *Komeza nta nimero* keeps the PIN on the device only, and the number can be added later in **Kwinjira**. The texts go through Africa's Talking. A code works once, for 10 minutes and 5 tries; a number gets at most 5 codes an hour, and 5 wrong PINs lock it for 15 minutes (each try is counted before its PIN is checked, so tries sent at the same moment cannot get past the lock).
+- **Ibibitswe kuri konti** (new, optional, in Ohereza): once the device is linked to the caregiver's number, each child known by a code (such as P-01) is saved to their account with their words and their board, place, next-word and child-mode settings each time they return to the board, and signing in on a new phone or tablet brings them back. As the proposal requires (NFR4: no child names or media on the server), a child the family calls by name, custom words with their photos, recorded voices, messages and the PIN stay on the device, and the server refuses them. Each save names the revision it builds on, so a device holding an older copy never replaces a newer one: a device that changed nothing takes the newer copy, and otherwise Ohereza lists what differs, child by child, and the caregiver keeps the account's copy or this device's.
 - Large tiles, reduced motion, photos or pictograms, recorded familiar voices, a summary of completed messages, and export or sync only when the adult chooses.
 
 **Optional server**: a FastAPI service for adult accounts (a mobile number confirmed by SMS, and the caregiver's PIN), child profiles, vocabulary, message sync, the caregiver's device backup, summaries and server-side prediction, with Swagger documentation.
 
-**Status.** The app is complete for this milestone and passes 284 automated tests and checks (139 unit, 76 Python, 69 in the browser) plus a 9-configuration compatibility matrix ([testing report](docs/testing_report.md)). The vocabulary has 188 words with synthetic speech (Meta MMS-TTS) instead of the proposal's 300 to 500 words with human recordings: when the schedule slipped, this was the first item cut, as the revised proposal sets out (section 1.5), because the three research questions can still be answered with it. The words and speech await native-speaker and stakeholder review. The planned evaluation is a preliminary study with adults, not children; it has not run yet, so no participant findings are claimed.
+**Status.** The app is complete for this milestone and passes 295 automated tests and checks (145 unit, 80 Python, 70 in the browser) plus a 9-configuration compatibility matrix: 7 complete, and the 2 WebKit runs partial because headless WebKit on Windows has no audio output ([testing report](docs/testing_report.md)). Prediction accuracy is below the proposal's targets (45.8% top-3 for the shipped trigram against 60%, and a simulated 14.4% tap saving against 30%), and nothing has yet been checked on a physical Android tablet or with a text sent to a real phone. The vocabulary has 188 words with synthetic speech (Meta MMS-TTS) instead of the proposal's 300 to 500 words with human recordings: when the schedule slipped, this was the first item cut, as the revised proposal sets out (section 1.5), because the three research questions can still be answered with it. The words and speech await native-speaker and stakeholder review. The planned evaluation is a preliminary study with adults, not children. It received ethics approval on 2 November 2026 and is planned for 10–20 November; it has not run yet, so no participant findings are claimed.
 
 ## Technical requirements
 
@@ -77,7 +79,7 @@ cd capstone-project
 ```sh
 cd app
 npm ci
-npm test                 # 139 unit and reference tests
+npm test                 # 145 unit and reference tests
 npm run build            # production build with the offline service worker
 npm run preview          # http://127.0.0.1:4175
 ```
@@ -87,12 +89,12 @@ For hot reload during development use `npm run dev` (http://localhost:5173). On 
 **3. Browser, compatibility and performance tests** (with `npm run preview` running in another terminal)
 
 ```sh
-npm run test:browser     # 69 end-to-end checks in headless Microsoft Edge
+npm run test:browser     # 70 end-to-end checks in headless Microsoft Edge
 npm run test:compat      # 9 browser/device configurations, writes docs/evidence/compatibility.json
 npm run bench            # prediction latency in Node, writes nothing unless --out is given
 ```
 
-`test:compat` starts its own servers. Firefox and WebKit runs need `npx playwright install firefox webkit`; missing engines are reported as skipped.
+`test:compat` starts its own servers and exits with an error if any configuration fails a check, logs a page error or is skipped. Firefox and WebKit runs need `npx playwright install firefox webkit`; a missing engine is reported as skipped. Headless WebKit on Windows has no audio output, so its two runs are reported as partial: everything else is checked, and Erekana is offered when speech cannot start.
 
 **4. Python: notebook, ML tests and the optional API** (from the repository root)
 
@@ -101,12 +103,12 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
 python -m pip install -e "./ml[dev,notebook]" -e "./api[dev]"
 
-python -m pytest ml/tests api/tests          # 76 tests, including the API load test
+python -m pytest ml/tests api/tests          # 80 tests, including the API's sequential batch test
 python ml/notebooks/run_notebook.py          # re-run the model notebook
 python -m uvicorn app.main:app --app-dir api --host 127.0.0.1 --port 8000
 ```
 
-Swagger UI is at http://127.0.0.1:8000/docs. Copy `.env.example` to `.env` and set `VUGA_MODEL_DIR=ml/artifacts`, `VUGA_CORS_ORIGINS` to the app's origin and, for persistent sessions, a `VUGA_JWT_SECRET` of at least 32 characters. Opening an account or replacing a forgotten PIN needs the code texted to the phone. Without an Africa's Talking key, the API sends no SMS and prints each code in its terminal instead, for example `SMS to +250788123456: Vuga: kode yo kwemeza nimero yawe ni 482913. …`. To send real texts, set `VUGA_AFRICASTALKING_USERNAME` and `VUGA_AFRICASTALKING_API_KEY` from an Africa's Talking app. With the username `sandbox`, the texts appear in Africa's Talking's free online phone simulator. `docker compose up` runs the API with PostgreSQL 16. Install `ml[neural]` to run the GRU/ONNX tests and retrain the neural baselines.
+Swagger UI is at http://127.0.0.1:8000/docs. Copy `.env.example` to `.env` and set `VUGA_MODEL_DIR=ml/artifacts`, `VUGA_CORS_ORIGINS` to the app's origin and, for persistent sessions, a `VUGA_JWT_SECRET` of at least 32 characters. Opening an account or replacing a forgotten PIN needs the code texted to the phone. Without an Africa's Talking key, the API sends no SMS and prints each code in its terminal instead, for example `SMS to +250788123456: Vuga: kode yo kwemeza nimero yawe ni 482913. …`. To send real texts, set `VUGA_AFRICASTALKING_USERNAME` and `VUGA_AFRICASTALKING_API_KEY` from an Africa's Talking app. With the username `sandbox`, the texts appear in Africa's Talking's free online phone simulator. `docker compose up` runs the API with PostgreSQL 16. A database created before 2 November needs two new columns ([deployment plan](docs/deployment_plan.md#5-checks-monitoring-and-rollback)). Install `ml[neural]` to run the GRU/ONNX tests and retrain the neural baselines.
 
 **Study analysis.** `ml/scripts/analyse_study.py` runs the pre-specified tap-reduction analysis (RQ3). `ml/scripts/analyse_vocabulary_review.py` summarises the vocabulary review sheets (RQ1): `--template` writes a blank sheet CSV in the paper sheet's order (`vocab/review_words.csv`), and `--reviews` (plus optional `--mentions`) gives each word's counts and a proposed accept, revise, exclude or unresolved status by a fixed majority rule, with `--log-out` drafting rows for `vocab/decision_log.md`. The proposals are only drafts: the native speakers and the researcher decide. Keep participant files in `study/`, which git ignores.
 
@@ -141,11 +143,13 @@ app/                         React PWA (the product the child and caregiver use)
   scripts/                   Playwright suites, compatibility matrix, predictor benchmark
   public/                    photos, Kinyarwanda clips, pictograms, model artefact, icons
 api/                         FastAPI service
-  app/routers/               thin HTTP handlers: health, auth, symbols, profiles, sync, predict
+  app/routers/               thin HTTP handlers: health, auth, symbols, profiles, sync, predict,
+                             backup
   app/services/              business logic: accounts, SMS codes and sender (Africa's Talking),
-                             catalogue, profiles, sync, summary, model registry, domain errors
+                             catalogue, profiles, sync, account backup, summary, model registry,
+                             domain errors
   app/                       main (composition root), dependencies, models (ERD), schemas, security
-  tests/                     API, service and load tests
+  tests/                     API, service and sequential batch tests
 ml/                          vuga_ml package (data pipeline, morphology and sentence grammar,
                              n-gram, GRU and transformer models, re-ranker, metrics, study
                              analysis), scripts, notebook, tests
@@ -168,6 +172,8 @@ hardware/, device/           keyguard and talker firmware drafts (not built)
 | ![Custom words](docs/screenshots/final-2026-10-22/caregiver-custom-words.png) | ![Board settings](docs/screenshots/final-2026-10-22/caregiver-board-grid-settings.png) |
 | **Caregiver: first setup with a mobile number** | **A new board: section tabs and suggestions** |
 | ![First caregiver setup](docs/screenshots/final-2026-10-22/parent-first-setup.png) | ![Board on a laptop](docs/screenshots/final-2026-10-22/board-desktop.png) |
+| **A new phone gets the account's copy back** | **Two devices disagree: the caregiver chooses** |
+| ![New device restored](docs/screenshots/final-2026-10-22/parent-new-device-restored.png) | ![Account copy differences](docs/screenshots/final-2026-10-22/account-backup-choose.png) |
 
 More: [all final screenshots](docs/screenshots/final-2026-10-22/), Figma mockups and design system in [design/](design/README.md).
 
@@ -181,11 +187,11 @@ The [model notebook](ml/notebooks/vuga_model.ipynb) ([HTML](ml/notebooks/vuga_mo
 | Kneser-Ney trigram (shipped) | 45.78% |
 | GRU | 46.92% |
 
-The app ships the trigram: almost as accurate as the GRU, about 100 KB, and a suggestion takes 0.09 ms median in the browser. Its JavaScript port is tested against the Python model on every fixture prefix, as is the personal re-ranker.
+All three are below the proposal's target of 60% top-3. The app ships the trigram: almost as accurate as the GRU, about 100 KB, and a suggestion takes 0.09 ms median in the browser. Its JavaScript port is tested against the Python model on every fixture prefix, as is the personal re-ranker. A fine-tuned AfriBERTa transformer was run earlier, on split v2 (an older lexicon), where it tied the trigram at 48.0% top-3 and took 338 MB; it has not been rerun on the current split, so it is not in the table. On the app's own board (section tabs, 20-key pages), the trigram's suggestions save a simulated 14.4% of taps on the validation messages, against the proposal's 30% simulation target ([results log](docs/results_log.md)).
 
 ## Deployment
 
-The plan is in [docs/deployment_plan.md](docs/deployment_plan.md): the static PWA (`app/dist`) on Netlify or Cloudflare Pages over HTTPS, the optional API from `api/Dockerfile` on Render with managed PostgreSQL, and a pilot only after native-speaker and caregiver review.
+The plan is in [docs/deployment_plan.md](docs/deployment_plan.md): the static PWA on Netlify or Cloudflare Pages over HTTPS (base directory `app`, publish directory `dist`), the optional API from `api/Dockerfile` on Render with managed PostgreSQL, and a pilot only after native-speaker and caregiver review.
 
 ## Licences
 

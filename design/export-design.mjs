@@ -1,7 +1,7 @@
 /**
  * Export the local Vuga design to directly importable, editable Figma SVG files.
  * Run from any directory: node design/export-design.mjs
- * Requires the existing Playwright dependency in vuga-aac/app/node_modules.
+ * Requires the existing Playwright dependency in app/node_modules.
  * Screens are built from DOM geometry, vector icons and live text; SVG outputs
  * contain no raster screenshots or foreignObject elements.
  */
