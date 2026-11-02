@@ -14,6 +14,6 @@ To prepare the reviewed originals again from `vuga-aac`, using Python with Pillo
 .venv\Scripts\python.exe scripts/prepare_licensed_photos.py
 ```
 
-If originals are absent, add `--download`. This restores the pinned source URLs from the manifest and refuses files whose hashes differ. All 181 sources, licences and hashes must be present before the script replaces runtime images. `app/scripts/prepare-photos.mjs` is a compatibility entry point for this same importer.
+If originals are absent, add `--download`. This restores the pinned source URLs from the manifest and refuses files whose hashes differ. All 188 sources, licences and hashes must be present before the script replaces runtime images. `app/scripts/prepare-photos.mjs` is a compatibility entry point for this same importer.
 
 Parents and teachers still need to review meaning with each learner, particularly pronouns, time, questions and emotions. Source licensing and image decoding do not establish child comprehension or clinical benefit.

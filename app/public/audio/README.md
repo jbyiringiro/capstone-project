@@ -4,7 +4,7 @@ The working app's interface and speech are in Kinyarwanda. There is no English s
 
 ## Bundled speech
 
-`rw/` contains 181 synthetic WAV clips, one for each exact `label_rw` in `vocab/symbols.csv`. They were generated locally with Meta AI's pinned `facebook/mms-tts-kin` model. The [bundle README](rw/README.md) explains regeneration, attribution and the **CC BY-NC 4.0** licence. The [manifest](rw/manifest.json) records the model revision, input labels, file hashes, durations and signal measurements. The [licence](rw/LICENSE.txt) is included for offline reference.
+`rw/` contains 188 synthetic WAV clips, one for each exact `label_rw` in `vocab/symbols.csv`, and `rw/forms/` holds 1,259 generated MP3 clips of the inflected words used to say a message as a sentence. They were generated locally with Meta AI's pinned `facebook/mms-tts-kin` model. The [bundle README](rw/README.md) explains regeneration, attribution and the **CC BY-NC 4.0** licence. The [manifest](rw/manifest.json) records the model revision, input labels, file hashes, durations and signal measurements. The [licence](rw/LICENSE.txt) is included for offline reference.
 
 The clips are synthetic and have **not** had fluent-speaker pronunciation review. This is a noncommercial research prototype; retain the attribution and licence restrictions when sharing. Model weights are not shipped in the app. Clips work offline after the production app has finished caching.
 
@@ -22,4 +22,4 @@ A developer can install reviewed clips at `app/public/audio/SYMBOL_ID.wav` befor
 
 ## Packaging
 
-The repository includes only this README, the nonverbal test tone, and `rw/` WAVs plus manifest, README and licence. Custom root clips, microphone/uploaded recordings, browser databases and model weights are excluded. The bundle manifest records all 181 vocabulary texts and hashes. These records establish file integrity and coverage, not pronunciation or communication benefit.
+The repository includes only this README, the nonverbal test tone, and `rw/` WAVs and `rw/forms/` MP3s plus their manifests, README and licence. Custom root clips, microphone/uploaded recordings, browser databases and model weights are excluded. The bundle manifest records all 188 vocabulary texts and hashes, and the forms manifest the 1,259 sentence words. These records establish file integrity and coverage, not pronunciation or communication benefit.

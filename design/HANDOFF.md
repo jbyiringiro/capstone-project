@@ -1,6 +1,6 @@
 ﻿# Vuga design and interaction handoff
 
-This handoff records the earlier illustrated design. The current app uses [licensed online pictures and separate parent access](../docs/licensed_images_parent_access_2026-10-10.md) with Kinyarwanda throughout; the original SVGs and silent sample preview remain historical import references. Current PIN screens and image licence records are in the working app, not in these older SVGs.
+This handoff records the earlier illustrated design. The current app uses licensed online pictures and separate parent access with Kinyarwanda throughout; the original SVGs and silent sample preview remain historical import references. Current PIN screens and image licence records are in the working app, not in these older SVGs. The notes on the working app below describe it as of 10 October 2026 ([implementation record](../docs/licensed_images_parent_access_2026-10-10.md)). Since then the first caregiver setup asks for the caregiver's mobile number, texts a code and sets one PIN for the device and the account; see the [testing report](../docs/testing_report.md) and the [current screenshots](../docs/screenshots/final-2026-10-22/).
 
 ## Product intent
 

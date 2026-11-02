@@ -1,6 +1,6 @@
 ﻿# Vuga — local design pack
 
-**Historical design reference.** The current app uses a fully Kinyarwanda interface, licensed online communication pictures, and separate child and parent access. See the [current implementation and screenshots](../docs/licensed_images_parent_access_2026-10-10.md). This pack preserves the earlier illustrated SVGs and silent sample preview for design history and local Figma import. It does not include the current PIN screens or licensed image set; use the working app as the reference for those changes.
+**Historical design reference.** The current app uses a fully Kinyarwanda interface, licensed online communication pictures, and separate child and parent access, which a caregiver sets up with their mobile number and a PIN. See the [testing report](../docs/testing_report.md) and the [current screenshots](../docs/screenshots/final-2026-10-22/); the notes below describe the app as of 10 October 2026, recorded in the [10 October implementation record](../docs/licensed_images_parent_access_2026-10-10.md). This pack preserves the earlier illustrated SVGs and silent sample preview for design history and local Figma import. It does not include the current PIN screens or licensed image set; use the working app as the reference for those changes.
 
 This is a proposed visual redesign of the Vuga communication app, prepared for review before a school visit. The colours, symbol style, language, layout and motion still need feedback from learners, caregivers and staff. It is not a validated AAC intervention or a finished production app.
 

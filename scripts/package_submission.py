@@ -44,9 +44,9 @@ Installing the app
   open it once in Chrome or Edge on the tablet and choose "Install app"; it then works offline.
 
 Checks
-  cd capstone-project/app && npm ci && npm test        94 unit and reference tests
-  python -m pytest ml/tests api/tests                   66 Python tests
-  npm run build && npm run preview, then npm run test:browser and npm run test:compat
+  cd capstone-project/app && npm ci && npm test        139 unit and reference tests
+  python -m pytest ml/tests api/tests                   76 Python tests
+  npm run build && npm run preview, then npm run test:browser (69 checks) and npm run test:compat (9 configurations)
 """
 
 

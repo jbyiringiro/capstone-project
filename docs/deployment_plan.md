@@ -1,12 +1,12 @@
 # Vuga AAC deployment plan
 
-**Status, 12 October 2026.** Vuga currently runs only as a local production preview (`npm run preview`). Nothing is publicly hosted yet. This plan explains how each part would be deployed, in what order, and how each step would be checked.
+**Status, 2 November 2026.** Vuga currently runs only as a local production preview (`npm run preview`). Nothing is publicly hosted yet. This plan explains how each part would be deployed, in what order, and how each step would be checked.
 
 ## 1. What gets deployed
 
 | Part | What it is | Needs a server? | Where it runs |
 |---|---|---|---|
-| Communication board (PWA) | React + Vite build in `app/dist`, with a service worker that caches the app, 181 pictures, 181 speech clips and the trigram model | No. Static files only | Static HTTPS host, then the child's tablet or phone, offline |
+| Communication board (PWA) | React + Vite build in `app/dist`, with a service worker that caches the app, 188 pictures, 188 word clips, 1,259 generated clips for spoken sentences and the trigram model | No. Static files only | Static HTTPS host, then the child's tablet or phone, offline |
 | Caregiver data | Profiles, vocabulary, messages and parent PIN, stored in IndexedDB (Dexie) | No | On the device only |
 | Optional REST API | FastAPI app in `api/`: auth, profiles, vocabulary, sync, summaries, `/predict` | Yes | Docker container on a cloud web service |
 | Database | SQLAlchemy: SQLite in development, PostgreSQL 16 for hosting | Yes | Managed PostgreSQL |
@@ -54,6 +54,9 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 | `VUGA_CORS_ORIGINS` | `["https://<pwa-domain>"]`, the exact PWA origin and nothing else |
 | `VUGA_MODEL_DIR` | `/srv/ml/artifacts` (already set in the Dockerfile) |
 | `VUGA_DEFAULT_MODEL` | `kn_trigram.json` |
+| `VUGA_AFRICASTALKING_USERNAME` | The Africa's Talking app username. `sandbox` (the default) uses the free sandbox, whose texts appear in its online phone simulator instead of on real phones |
+| `VUGA_AFRICASTALKING_API_KEY` | The API key of that app. Without it the API sends no SMS and writes each sign-up or PIN code to its log, which suits local runs only |
+| `VUGA_AFRICASTALKING_SENDER_ID` | Optional sender name registered with Africa's Talking, such as `VUGA`. Left unset, their default sender is used |
 
 `docker-compose.yml` is for **local use only**. It hard-codes the Postgres password `vuga`, publishes port 5432, and allows only localhost CORS origins. None of those are acceptable on a public host.
 
@@ -76,7 +79,7 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 1. Create the managed PostgreSQL database and copy its connection URL.
 2. Create a Render web service from `api/Dockerfile` with the build context at the repository root. Set the secrets from section 3 and the health check path `/health`.
 3. On first start, the API creates its tables (`create_all`) and imports `vocab/symbols.csv`. Confirm that `/health` returns `{"status":"ok","model_loaded":true}` and that Swagger opens at `/docs`.
-4. Rebuild the PWA with `VITE_API_BASE` pointing to the API, then test register, login, sync and summary from the hosted app.
+4. Rebuild the PWA with `VITE_API_BASE` pointing to the API, then test from the hosted app: opening an account with the code texted to a real phone, signing in with the number and PIN, a PIN reset, sync and summary.
 
 **Phase 3: pilot with a partner school or caregivers (only after validation).** This waits for a native speaker to review the speech, caregivers to review the vocabulary and pictures, and the partner to agree on data handling (section 6). Each tablet is set up once on Wi-Fi, after which daily use is offline. Updates arrive the next time a device is online.
 
@@ -84,7 +87,7 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 
 | When | Check |
 |---|---|
-| Every deploy | Build command runs the 30 Vitest tests. API changes run `python -m pytest ml/tests api/tests` before merging |
+| Every deploy | Build command runs the 139 Vitest tests. API changes run `python -m pytest ml/tests api/tests` before merging |
 | After a PWA deploy | Airplane-mode test on a real device: board, **Vuga** speech, **Erekana**, parent PIN lock |
 | After an API deploy | `/health` shows `model_loaded: true`, plus one Swagger request each to `/auth/login` and `/predict` |
 | Ongoing | The host's uptime check on `/health`, the host's logs, and a weekly `pg_dump` export kept outside the host |
@@ -97,7 +100,8 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 
 - **Children's data.** By default, nothing leaves the device. Sync is explicit and initiated by a caregiver. Any hosted API holding profiles must follow Rwanda's personal data protection law (Law No. 058/2021) and the partner's consent process. Use the smallest amount of data needed, and do not log message content.
 - **Transport.** HTTPS only, CORS limited to the PWA origin, and the JWT secret stored as a host secret.
-- **Parent PIN.** The PIN is a local guard against a child accidentally changing settings. It is not server authentication. API accounts use their own password and JWT login.
+- **Parent PIN.** The PIN guards the caregiver area against a child changing settings by accident. On each device it is checked against a PBKDF2 hash, so it works offline. When the device is linked to the caregiver's number, the same PIN signs in to the account, where it is kept as a bcrypt hash, followed by JWT sessions.
+- **Accounts by mobile number.** An account is opened only with a six-digit code texted to the caregiver's Rwandan mobile number, and a forgotten PIN is replaced with a new code. Because a PIN of 4 to 6 digits is short, five wrong PINs lock the number for 15 minutes; a texted code lifts the lock. The server keeps a keyed hash of each code, never the code itself. A code works once, for 10 minutes and 5 tries, and one number gets at most one code a minute and 5 an hour. Opening an account says when a number already has one, and a PIN reset says when it has none. That is clearer for caregivers, but it lets anyone check whether a number is registered. Per-number limits do not stop one client from texting many different numbers, so a public API should also limit requests per client address (for example at the host's proxy).
 - **Known gaps before a pilot.** The 28 September check recorded six development-dependency advisories in the Vite/Vitest toolchain. Run `npm audit` and update the packages before a public launch.
 - **Licences.** The synthetic speech (Meta MMS-TTS) is CC BY-NC 4.0, which permits only non-commercial deployment. Picture licences and attribution must ship with the app, as recorded in `app/public/photos/manifest.json`. ARASAAC fallback pictograms are CC BY-NC-SA 4.0.
 
@@ -108,3 +112,4 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 | Demonstration (Phases 1–2 on free tiers) | $0 |
 | Small pilot (static host free, small paid API and database) | about $15–25. Check current provider pricing |
 | Per device | No hosting cost; the app runs offline on existing Android tablets |
+| SMS codes | Africa's Talking bills each text: one per account opened and one per forgotten PIN. The sandbox is free. Check current pricing for Rwandan numbers |
