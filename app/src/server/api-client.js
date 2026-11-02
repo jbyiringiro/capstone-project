@@ -1,11 +1,14 @@
 // Thin client for the Vuga API. The token lives in IndexedDB settings so the dashboard survives reloads.
-import { db } from './db.js'
-import { localizedError } from './errors-rw.js'
+import { db } from '../storage/db.js'
+import { localizedError } from '../shared/errors-rw.js'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
 export async function getToken() { return (await db.settings.get('token'))?.value ?? null }
 export async function setToken(value) { await db.settings.put({ key: 'token', value }) }
+// The account last signed in from this device's caregiver area. It can reset a forgotten PIN here,
+// and it is kept after signing out.
+export async function getLinkedAccount() { return (await db.settings.get('account'))?.value ?? null }
 
 async function req(path, { method = 'GET', body, form, auth = true } = {}) {
   const headers = {}
@@ -22,6 +25,7 @@ async function req(path, { method = 'GET', body, form, auth = true } = {}) {
       403: 'Iyi konti ntiyemerewe kubona aya makuru.',
       404: 'Amakuru wasabye ntabonetse.',
       409: 'Amakuru winjije asanzweho. Reba kode cyangwa konti wakoresheje.',
+      413: 'Ibyo kubika ni byinshi cyane kuri konti. Siba amafoto cyangwa amajwi utagikoresha, wongere ugerageze.',
       422: 'Reba ko wujuje neza amakuru yasabwe.'
     }
     throw localizedError(messages[r.status] ?? 'Seriveri ntiyabashije kwakira icyifuzo. Ongera ugerageze nyuma.')
@@ -31,7 +35,12 @@ async function req(path, { method = 'GET', body, form, auth = true } = {}) {
 
 export const api = {
   register: (name, phone, password, role = 'teacher') => req('/auth/register', { method: 'POST', body: { name, phone, password, role }, auth: false }),
-  login: async (phone, password) => { const t = await req('/auth/login', { method: 'POST', form: { username: phone, password }, auth: false }); await setToken(t.access_token); return t },
+  login: async (phone, password) => {
+    const t = await req('/auth/login', { method: 'POST', form: { username: phone, password }, auth: false })
+    await setToken(t.access_token)
+    await db.settings.put({ key: 'account', value: { phone: phone.trim() } })
+    return t
+  },
   logout: () => setToken(null),
   symbols: () => req('/symbols', { auth: false }),
   profiles: () => req('/profiles'),
@@ -39,5 +48,8 @@ export const api = {
   vocabulary: (pid) => req(`/profiles/${pid}/vocabulary`),
   setVocabulary: (pid, symbol_ids) => req(`/profiles/${pid}/vocabulary`, { method: 'PUT', body: { symbol_ids } }),
   summary: (pid) => req(`/profiles/${pid}/summary`),
-  health: () => req('/health', { auth: false })
+  health: () => req('/health', { auth: false }),
+  backupStatus: () => req('/backup/status'),
+  loadBackup: () => req('/backup'),
+  saveBackup: snapshot => req('/backup', { method: 'PUT', body: snapshot })
 }

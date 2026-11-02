@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { localizedError, userError } from '../src/errors-rw.js'
+import { localizedError, userError } from '../../src/shared/errors-rw.js'
 
 it('keeps technical/browser English errors out of the user interface', () => {
   expect(userError(new Error('NetworkError: failed to fetch private endpoint'))).toBe('Ntibyashobotse. Ongera ugerageze.')
