@@ -1,20 +1,55 @@
 import { useEffect, useState } from 'react'
-import { API_BASE, api, getToken } from '../server/api-client.js'
+import { API_BASE, api, getLinkedAccount, getToken } from '../server/api-client.js'
 import { syncPending } from '../server/sync.js'
 import { accountBackupState, connectAccount, replaceAccountCopy, restoreFromAccount, saveToAccount } from '../server/account-backup.js'
+import { displayPhone } from '../server/phone.js'
+import { RecoveryCode } from '../parent-access/ParentAccess.jsx'
+import { resetParentPinWithAccount, unlockParentAccess } from '../parent-access/parent-access.js'
 import { countPendingUploads, exportLocalData } from '../storage/messages.js'
 import { saveServerProfiles } from '../storage/profiles.js'
 import { getVocabulary, setVocabulary } from '../storage/vocabulary.js'
 import { userError } from '../shared/errors-rw.js'
 import { Heading, clearValidation, requiredCode } from './components.jsx'
-import LoginForm from './LoginForm.jsx'
 
 // Data leaves the device only when the adult chooses: a JSON download, an upload of completed
 // messages of server profiles owned by the signed-in account (FR7), or, once signed in, the
 // account backup that brings everything set up here to a new phone or tablet.
 const when = iso => new Date(iso).toLocaleString('rw-RW', { dateStyle: 'medium', timeStyle: 'short' })
 
-export default function SyncTab({ online, setError, onDeviceRestored }) {
+// The Vuga account this device is linked to, by the number given at the first setup or in Kwinjira.
+// Signed out, the caregiver signs in again with the PIN. When the account's PIN was changed on
+// another device, this device takes that PIN too, with a new recovery code.
+function AccountSignIn({ onSignedIn, onOpenAccess }) {
+  const [account, setAccount] = useState(undefined), [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false), [error, setError] = useState(''), [recovery, setRecovery] = useState('')
+  useEffect(() => { getLinkedAccount().then(setAccount).catch(() => setAccount(null)) }, [])
+  async function signIn(event) {
+    event.preventDefault(); setBusy(true); setError('')
+    try {
+      await api.login(account.phone, pin)
+      if ((await unlockParentAccess(pin)).ok) await onSignedIn()
+      else setRecovery((await resetParentPinWithAccount(pin, pin)).recoveryCode)
+    } catch (failure) { setError(userError(failure, 'Kwinjira ntibyashobotse. Ongera ugerageze.')) }
+    finally { setBusy(false) }
+  }
+  if (recovery) return <div className="card"><h2>Umubare w’ibanga mushya kuri iki gikoresho</h2>
+    <p className="muted">Iki gikoresho ubu gikoresha umubare w’ibanga wa konti yawe. Bika kode nshya yo kuwugarura.</p>
+    <RecoveryCode code={recovery} onDone={async () => { setRecovery(''); await onSignedIn() }} done="Nayibitse" /></div>
+  if (account === undefined) return null
+  if (!account?.phone) return <div className="card"><h2>Konti ya Vuga<small>Konti yo kuri seriveri si ngombwa</small></h2>
+    <p className="muted">Iki gikoresho ntikirahuzwa na nimero ya telefoni. Ongeraho nimero yawe muri «Kwinjira» kugira ngo ibyo washyizeho bibikwe kuri konti yawe, kandi ubibone no ku bindi bikoresho.</p>
+    <button className="primary" onClick={onOpenAccess}>Jya muri Kwinjira</button></div>
+  return <form className="card" onSubmit={signIn}>
+    <h2>Injira<small>Konti ya {displayPhone(account.phone)}</small></h2>
+    <p className="muted">{account.stale ? 'Umubare w’ibanga wa konti yawe wahinduwe ku kindi gikoresho. Andika uwo mushya.' : 'Andika umubare w’ibanga wawe kugira ngo wongere winjire kuri konti yawe.'}</p>
+    <label>Umubare w’ibanga<input type="password" inputMode="numeric" pattern="[0-9]{4,6}" minLength={4} maxLength={6} value={pin} onChange={event => setPin(event.target.value)} disabled={busy}
+      onInvalid={event => event.currentTarget.setCustomValidity('Koresha imibare ine kugeza kuri itandatu gusa.')} onInput={clearValidation} autoComplete="current-password" required /></label>
+    {error && <p role="alert" className="dash-form-error">{error}</p>}
+    <button className="primary" disabled={busy}>{busy ? 'Birimo guhuza…' : 'Injira'}</button>
+  </form>
+}
+
+export default function SyncTab({ online, setError, onDeviceRestored, onNavigate }) {
   const [authed, setAuthed] = useState(false)
   const [pending, setPending] = useState(0)
   const [message, setMessage] = useState('')
@@ -111,7 +146,7 @@ export default function SyncTab({ online, setError, onDeviceRestored }) {
         <p className="muted">Dosiye ikubiyemo kode z’abana n’ibikorwa byo gutegura ubutumwa. Nta magambobanga cyangwa amajwi yafashwe birimo.</p>
         {message && <p role="status">{message}</p>}
       </div>
-      {!authed ? <LoginForm setError={setError} onDone={async () => { setAuthed(true); await withBusy(connect); await fetchProfiles() }} /> : <div className="card">
+      {!authed ? <AccountSignIn onSignedIn={async () => { setAuthed(true); await withBusy(connect); await fetchProfiles() }} onOpenAccess={() => onNavigate?.('access')} /> : <div className="card">
         <h2>Konti yo kuri seriveri<small>Winjiye kuri iki gikoresho</small></h2>
         <button className="ghost" disabled={busy || !online} onClick={fetchProfiles}>Zana imyirondoro ya konti yanjye</button>
         <button className="ghost" disabled={busy} onClick={async () => { try { await api.logout(); setAuthed(false); setBackup(null); setBackupMessage('') } catch (e) { setError(userError(e)) } }}>Sohoka</button>

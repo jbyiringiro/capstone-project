@@ -49,12 +49,15 @@ it('keeps next words, speaking on tap and the place per child, and rejects malfo
   }
 })
 
-it('says each picture on tap and shows every picture without tabs unless a caregiver chooses otherwise', async () => {
-  expect(DEFAULT_PREFERENCES).toMatchObject({ speakOnTap: true, section: 'all', sectionTabs: false })
+it('says each picture on tap and shows the section tabs unless a caregiver chooses one section', async () => {
+  expect(DEFAULT_PREFERENCES).toMatchObject({ speakOnTap: true, section: 'all', sectionTabs: true })
   for (const section of ['all', 'core', 'food_drink', 'animals']) expect((await saveBoardPreferences('local-p1', { section })).section).toBe(section)
   for (const section of ['', 'kitchen', null, 3]) expect((await saveBoardPreferences('local-p1', { section })).section).toBe('all')
-  expect((await saveBoardPreferences('local-p1', { sectionTabs: true })).sectionTabs).toBe(true)
-  expect((await saveBoardPreferences('local-p1', { sectionTabs: 'yes' })).sectionTabs).toBe(false)
+  expect((await saveBoardPreferences('local-p1', { sectionTabs: false })).sectionTabs).toBe(false)
+  expect((await saveBoardPreferences('local-p1', { sectionTabs: 'yes' })).sectionTabs).toBe(true)
+  // A child set up before tabs were the default keeps the board the caregiver saved.
+  await db.settings.put({ key: 'appearance:local-p2', value: { ...DEFAULT_PREFERENCES, sectionTabs: false } })
+  expect((await getBoardPreferences('local-p2')).sectionTabs).toBe(false)
 })
 
 it('shows each picture with its word unless a caregiver chooses pictures only', async () => {

@@ -4,12 +4,13 @@
 import { db } from '../storage/db.js'
 import { backupFingerprint, createBackup, isNewDevice, restoreBackup } from '../storage/backup.js'
 import { api, getLinkedAccount, getToken } from './api-client.js'
+import { samePhone } from './phone.js'
 
 const JOINED = 'account-backup'
 
 async function joined() {
   const [state, account] = await Promise.all([db.settings.get(JOINED), getLinkedAccount()])
-  return state?.value && account && state.value.phone === account.phone ? state.value : null
+  return state?.value && account && samePhone(state.value.phone, account.phone) ? state.value : null
 }
 async function remember(fingerprint, saved_at) {
   const account = await getLinkedAccount()

@@ -107,7 +107,7 @@ describe('account backup', () => {
     await saveBoardPreferences('local-1', { ...(await getBoardPreferences('local-1')), environment: 'school' })
     await saveToAccount()
     expect(server.uploads).toHaveLength(2)
-    expect(JSON.stringify(server.copies.get('0780000001').data)).toContain('school')
+    expect(JSON.stringify(server.copies.get('+250780000001').data)).toContain('school')
   })
 
   it('brings everything to a new device on sign-in, without sending anything back', async () => {

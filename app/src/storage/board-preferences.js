@@ -15,16 +15,16 @@ export const GRID_OPTIONS = Object.freeze(['auto', ...Object.keys(GRID_SIZES).ma
 // sentenceSpeech says a message as a Kinyarwanda sentence (Ndashaka amazi) instead of word by word.
 // relatedWords opens the next-words page after a picture such as "kunywa"; speakOnTap says each
 // picture as soon as it is tapped; environment narrows the naming words to where the child is.
-// relatedLists and environmentLists hold the caregiver's own lists for this child. The child's
-// board shows every picture in pages, or one section the caregiver chooses; sectionTabs puts the
-// section tabs back.
+// relatedLists and environmentLists hold the caregiver's own lists for this child. sectionTabs
+// shows the section tabs above the pictures, so the child picks a section; turned off, the board
+// shows every picture in pages, or the one section the caregiver chooses.
 // showLabels writes each picture's word on its key; off, the child sees larger pictures only.
 // swipePages lets a sideways swipe across the pictures turn the page as the page buttons do.
 export const DEFAULT_PREFERENCES = Object.freeze({
   motion: true, largeTiles: false, realisticImages: true, gridSize: 'auto', personalSuggestions: false, sentenceSpeech: true,
   childMode: false, childPreset: 'essentials', childBoard: CHILD_PRESETS[0].keys,
   relatedWords: false, relatedLists: Object.freeze({}), speakOnTap: true, environment: 'all', environmentLists: Object.freeze({}),
-  section: 'all', sectionTabs: false, showLabels: true, swipePages: true
+  section: 'all', sectionTabs: true, showLabels: true, swipePages: true
 })
 
 const validKeys = (value, max) => Array.isArray(value) && value.length <= max

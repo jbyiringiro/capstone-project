@@ -25,7 +25,7 @@ export default function App() {
   const [gameRounds, setGameRounds] = useState(5)
   const [parentUnlocked, setParentUnlocked] = useState(false)
   const [caregiverTab, setCaregiverTab] = useState('children')
-  const [mode, setMode] = useState('static')
+  const [mode, setMode] = useState('predictive')
   const [profile, setProfile] = useState(null)
   const [enabledKeys, setEnabledKeys] = useState(null)
   const [predictor, setPredictor] = useState(null)
@@ -48,11 +48,12 @@ export default function App() {
   }
   const loadProfile = next => Promise.all([next ? getVocabulary(next.profile_id) : null, getBoardPreferences(next?.profile_id)])
   // The board mode, the open child, their words and their settings as this device stores them.
+  // A device starts with word suggestions (Birashoboka) on, until a caregiver turns them off.
   async function readDevice() {
     const [savedMode, savedProfile] = await Promise.all([db.settings.get('mode'), db.settings.get('profile'), getSpeechMode()])
     const selected = savedProfile?.value ?? null
     const [keys, savedPreferences] = await loadProfile(selected)
-    return [savedMode?.value === 'predictive' ? 'predictive' : 'static', selected, keys, savedPreferences]
+    return [savedMode?.value === 'static' ? 'static' : 'predictive', selected, keys, savedPreferences]
   }
   // After the account's copy came back onto this device.
   async function deviceRestored() {
@@ -127,7 +128,7 @@ export default function App() {
     </div>
     {view === 'game' && <ChildGame byKey={catalogue.byKey} profileId={profile?.profile_id ?? 'demo'} preferences={preferences}
       rounds={gameRounds} onFinish={() => setView('board')} onOpenAdult={() => openCaregiver('child')} />}
-    {(view === 'parent' || view === 'dashboard') && !parentUnlocked && <ParentAccess onClose={closeParent} onUnlock={() => { setParentUnlocked(true); setView('dashboard') }} />}
+    {(view === 'parent' || view === 'dashboard') && !parentUnlocked && <ParentAccess onClose={closeParent} onDeviceRestored={deviceRestored} onUnlock={() => { setParentUnlocked(true); setView('dashboard') }} />}
     {view === 'dashboard' && parentUnlocked && <Dashboard initialTab={caregiverTab} catalogue={catalogue} onClose={closeParent}
       onSelectProfile={selectProfile} onDeviceRestored={deviceRestored} activeProfile={profile} mode={mode} setMode={changeMode}
       onVocabularyChanged={vocabularyChanged} predictor={predictor} bench={bench}

@@ -1,16 +1,22 @@
 // Thin client for the Vuga API. The token lives in IndexedDB settings so the dashboard survives reloads.
 import { db } from '../storage/db.js'
 import { localizedError } from '../shared/errors-rw.js'
+import { normalisePhone } from './phone.js'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
 export async function getToken() { return (await db.settings.get('token'))?.value ?? null }
 export async function setToken(value) { await db.settings.put({ key: 'token', value }) }
-// The account last signed in from this device's caregiver area. It can reset a forgotten PIN here,
-// and it is kept after signing out.
+// The account this device is linked to, by the caregiver's mobile number. It can reset a forgotten
+// PIN here, and it is kept after signing out. `stale` marks a PIN the account no longer takes.
 export async function getLinkedAccount() { return (await db.settings.get('account'))?.value ?? null }
 
-async function req(path, { method = 'GET', body, form, auth = true } = {}) {
+// How long to wait, in words: amasegonda 45, or iminota 12.
+export const waitText = seconds => (seconds < 90 ? `amasegonda ${Math.max(1, Math.round(seconds))}` : `iminota ${Math.ceil(seconds / 60)}`)
+
+// A request's own messages, by status, come before the general ones; a function receives the
+// server's reply.
+async function req(path, { method = 'GET', body, form, auth = true, errors = {} } = {}) {
   const headers = {}
   if (auth) { const t = await getToken(); if (t) headers.Authorization = `Bearer ${t}` }
   let payload
@@ -21,24 +27,50 @@ async function req(path, { method = 'GET', body, form, auth = true } = {}) {
   catch { throw localizedError('Ntibyashobotse guhuza na seriveri. Reba niba ufite interineti, wongere ugerageze.') }
   if (!r.ok) {
     const messages = {
-      401: 'Ntiwemerewe gukomeza. Reba telefoni n’ijambobanga, wongere winjire.',
+      401: 'Ntiwemerewe gukomeza. Ongera winjire ukoresheje nimero yawe n’umubare w’ibanga.',
       403: 'Iyi konti ntiyemerewe kubona aya makuru.',
       404: 'Amakuru wasabye ntabonetse.',
       409: 'Amakuru winjije asanzweho. Reba kode cyangwa konti wakoresheje.',
       413: 'Ibyo kubika ni byinshi cyane kuri konti. Siba amafoto cyangwa amajwi utagikoresha, wongere ugerageze.',
-      422: 'Reba ko wujuje neza amakuru yasabwe.'
+      422: 'Reba ko wujuje neza amakuru yasabwe.',
+      ...errors
     }
-    throw localizedError(messages[r.status] ?? 'Seriveri ntiyabashije kwakira icyifuzo. Ongera ugerageze nyuma.')
+    const message = messages[r.status] ?? 'Seriveri ntiyabashije kwakira icyifuzo. Ongera ugerageze nyuma.'
+    const error = localizedError(typeof message === 'function' ? message(await r.json().catch(() => ({}))) : message)
+    error.status = r.status
+    throw error
   }
   return r.status === 204 ? null : r.json()
 }
 
+const WRONG_CODE = 'Kode si yo cyangwa yararangiye. Yandike neza, cyangwa usabe indi.'
+const NUMBER_TAKEN = 'Iyi nimero isanzwe ifite konti ya Vuga. Injira ukoresheje umubare w’ibanga wayo.'
+export const NO_ACCOUNT = 'Iyi nimero ntifite konti ya Vuga. Reba ko wayanditse neza, cyangwa ufungure konti nshya.'
+const WRONG_PIN = 'Nimero cyangwa umubare w’ibanga si byo. Ongera ugerageze.'
+const PIN_LOCKED = reply => `Umubare w’ibanga wanditswe nabi inshuro eshanu. Tegereza ${waitText(reply.retry_after ?? 900)}, cyangwa uhindure umubare w’ibanga ukoresheje SMS.`
+
+// A caregiver has one PIN: it opens the caregiver area on each device and signs in to the account.
 export const api = {
-  register: (name, phone, password, role = 'teacher') => req('/auth/register', { method: 'POST', body: { name, phone, password, role }, auth: false }),
-  login: async (phone, password) => {
-    const t = await req('/auth/login', { method: 'POST', form: { username: phone, password }, auth: false })
+  // Texts a six-digit code to the number: 'register' before opening an account, 'reset' before
+  // choosing a new PIN. The reply says how many seconds until another code may be asked for; a
+  // number that already has an account (409), or has none for a reset (404), gets no code.
+  sendCode: (phone, purpose) => req('/auth/code', {
+    method: 'POST', body: { phone, purpose }, auth: false, errors: {
+      404: NO_ACCOUNT,
+      409: NUMBER_TAKEN,
+      422: 'Andika nimero ya telefoni igendanwa yo mu Rwanda, nka 0788 123 456.',
+      429: reply => `Tegereza ${waitText(reply.retry_after ?? 60)}, wongere usabe kode.`,
+      502: 'Ntibyashobotse kohereza SMS. Ongera ugerageze nyuma gato.'
+    }
+  }),
+  register: (phone, code, pin, name = '', role = 'teacher') => req('/auth/register', { method: 'POST', body: { name, phone, code, pin, role }, auth: false, errors: { 400: WRONG_CODE, 409: NUMBER_TAKEN } }),
+  resetPin: (phone, code, pin) => req('/auth/reset-pin', { method: 'POST', body: { phone, code, pin }, auth: false, errors: { 400: WRONG_CODE, 404: NO_ACCOUNT } }),
+  changePin: (phone, pin, newPin) => req('/auth/change-pin', { method: 'POST', body: { phone, pin, new_pin: newPin }, auth: false, errors: { 401: WRONG_PIN, 429: PIN_LOCKED } }),
+  login: async (phone, pin) => {
+    const number = normalisePhone(phone) ?? String(phone ?? '').trim()
+    const t = await req('/auth/login', { method: 'POST', form: { username: number, password: pin }, auth: false, errors: { 401: WRONG_PIN, 429: PIN_LOCKED } })
     await setToken(t.access_token)
-    await db.settings.put({ key: 'account', value: { phone: phone.trim() } })
+    await db.settings.put({ key: 'account', value: { phone: number } })
     return t
   },
   logout: () => setToken(null),
@@ -52,4 +84,18 @@ export const api = {
   backupStatus: () => req('/backup/status'),
   loadBackup: () => req('/backup'),
   saveBackup: snapshot => req('/backup', { method: 'PUT', body: snapshot })
+}
+
+// After the caregiver opens the caregiver area with the PIN, the linked account signs in again with
+// it, so the account backup keeps working. A PIN the account no longer takes (changed on another
+// device) stops these quiet tries until the caregiver signs in again, so they never lock the number.
+export async function signInQuietly(pin) {
+  try {
+    const account = await getLinkedAccount()
+    if (!account?.phone || account.stale || globalThis.navigator?.onLine === false) return
+    try { await api.login(account.phone, pin) }
+    catch (error) { if (error.status === 401) await db.settings.put({ key: 'account', value: { ...account, stale: true } }) }
+  } catch {
+    // Signing in again is a convenience: the caregiver area is already open.
+  }
 }

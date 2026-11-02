@@ -51,9 +51,10 @@ function useGridArea(ref, visible) {
 }
 
 // The child's board, with Vuga's own pictures: the speech display bar on top, a thin green toolbar,
-// and a dense grid of keys that fills the rest of the screen. The child sees one section, which the
-// caregiver chooses; section tabs come back only when a caregiver turns them on. Every picture keeps
-// one place: hidden words leave their slot empty, and a next-words page opens in the same grid.
+// and a dense grid of keys that fills the rest of the screen. Section tabs above the pictures let the
+// child pick a section, starting at Ingenzi; with the tabs turned off, the child sees the one section
+// the caregiver chooses. Every picture keeps one place: hidden words leave their slot empty, and a
+// next-words page opens in the same grid.
 export default function Board({
   symbols, byKey, allowed, mode, profileId, profileCode, predictor, onOpenAdult,
   preferences = DEFAULT_PREFERENCES, visible = true
