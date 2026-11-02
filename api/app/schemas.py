@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from itertools import pairwise
+from typing import Any, Literal
 
 from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
 
@@ -126,7 +127,7 @@ class MessageIn(BaseModel):
                 raise ValueError("completed messages require exactly one speak action")
         elif any(e.action_type == "speak" for e in ordered):
             raise ValueError("draft messages cannot contain a speak action")
-        if any(later < earlier for earlier, later in zip(timestamps, timestamps[1:])):
+        if any(later < earlier for earlier, later in pairwise(timestamps)):
             raise ValueError("message and event timestamps must be chronological")
         return self
 
@@ -163,3 +164,21 @@ class PredictRequest(BaseModel):
 class PredictResponse(BaseModel):
     suggestions: list[str]
     model: str
+
+
+class BackupIn(BaseModel):
+    """A caregiver's device snapshot, written by the app and returned to it unchanged."""
+
+    format: Literal["vuga-account-backup-v1"]
+    data: dict[str, Any]
+
+
+class BackupStatus(BaseModel):
+    saved_at: AwareDatetime | None
+    size: int = 0
+
+
+class BackupOut(BaseModel):
+    format: Literal["vuga-account-backup-v1"]
+    saved_at: AwareDatetime
+    data: dict[str, Any]

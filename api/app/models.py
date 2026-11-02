@@ -1,14 +1,17 @@
-"""ORM models: one class per table in the proposal ERD (Figure 7, eleven tables).
+"""ORM models: one class per table in the proposal ERD (Figure 7, eleven tables), plus the
+caregiver's account backup added in the final version.
 
 Privacy rules from NFR4 are enforced at the schema level: child_profiles carries a pseudonymous
-`code` and age band only, never a name, photo or date of birth.
+`code` and age band only, never a name, photo or date of birth. The account backup is the
+exception the caregiver opts into by signing in: it holds their custom-word photos and
+familiar-voice recordings, readable only through their own account.
 """
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -148,3 +151,14 @@ class ModelVersion(Base):
     trained_at: Mapped[datetime | None] = mapped_column(DateTime)
     artifact_path: Mapped[str | None] = mapped_column(String(255))
     is_frozen: Mapped[bool] = mapped_column(Boolean, default=False)  # study models never change
+
+
+class AccountBackup(Base):
+    """One caregiver's whole device as the app saved it: children, words, board settings,
+    custom-word photos and voice recordings. The server stores it and never reads inside it."""
+
+    __tablename__ = "account_backups"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id"), primary_key=True)
+    data: Mapped[str] = mapped_column(Text)  # JSON
+    size: Mapped[int] = mapped_column(Integer)  # bytes of `data`
+    saved_at: Mapped[datetime] = mapped_column(DateTime)

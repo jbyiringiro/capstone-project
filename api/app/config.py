@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     model_dir: str = "../ml/artifacts"
     default_model: str = "kn_trigram.json"
     cors_origins: list[str] = ["http://localhost:5173"]
+    # A caregiver's backup holds their custom-word photos and voice recordings.
+    max_backup_bytes: int = 25 * 1024 * 1024
 
 
 settings = Settings()

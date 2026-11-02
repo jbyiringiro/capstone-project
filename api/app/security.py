@@ -1,9 +1,10 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-import bcrypt
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -25,12 +26,13 @@ def verify_password(p: str, h: str) -> bool:
 
 
 def create_token(user: User) -> str:
-    exp = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
+    exp = datetime.now(UTC) + timedelta(minutes=settings.jwt_expire_minutes)
     return jwt.encode({"sub": user.user_id, "role": user.role, "exp": exp},
                       settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)) -> User:
+def current_user(token: Annotated[str, Depends(oauth2)],
+                 db: Annotated[Session, Depends(get_db)]) -> User:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         subject = payload.get("sub")
@@ -43,7 +45,7 @@ def current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)) ->
 
 
 def require_role(*roles: str):
-    def dep(user: User = Depends(current_user)) -> User:
+    def dep(user: Annotated[User, Depends(current_user)]) -> User:
         if user.role not in roles:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "insufficient role")
         return user

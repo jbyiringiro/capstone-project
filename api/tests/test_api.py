@@ -12,6 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import models
+from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.main import app
 
@@ -208,3 +209,41 @@ def test_sync_rejects_cross_profile_upload_and_foreign_device(client):
     with SessionLocal() as db:
         assert db.get(models.Device, "owned-device").last_sync is None
     assert client.post("/sync", json={"messages": [own], "device_id": "owned-device"}, headers=headers).status_code == 200
+
+
+def _snapshot(words=1):
+    return {"format": "vuga-account-backup-v1", "data": {
+        "profiles": [{"profile_id": "local-1", "code": "P-01"}],
+        "settings": [{"key": "appearance:local-1", "value": {"environment": "meal"}}],
+        "custom_symbols": [{"symbol_id": f"CUSTOM-{n}", "label_rw": "nyogokuru",
+                            "image": {"type": "image/webp", "base64": "AAAA"}} for n in range(words)]}}
+
+
+def test_backup_brings_a_caregivers_device_back_and_only_to_their_account(client):
+    h = _auth(client)
+    assert client.get("/backup/status", headers=h).json() == {"saved_at": None, "size": 0}
+    assert client.get("/backup", headers=h).status_code == 404
+    r = client.put("/backup", json=_snapshot(), headers=h)
+    assert r.status_code == 200, r.text
+    assert r.json()["size"] > 0 and r.json()["saved_at"]
+    back = client.get("/backup", headers=h).json()
+    assert back["format"] == "vuga-account-backup-v1"
+    assert back["data"] == _snapshot()["data"]
+    # A later save replaces the earlier one; another account sees nothing.
+    client.put("/backup", json={"format": "vuga-account-backup-v1", "data": {"profiles": []}}, headers=h)
+    assert client.get("/backup", headers=h).json()["data"] == {"profiles": []}
+    other = _auth(client, phone="0780000002")
+    assert client.get("/backup", headers=other).status_code == 404
+    assert client.get("/backup/status", headers=other).json()["saved_at"] is None
+
+
+def test_backup_needs_an_account_a_known_format_and_stays_under_its_size_limit(client, monkeypatch):
+    assert client.get("/backup").status_code == 401
+    assert client.put("/backup", json=_snapshot()).status_code == 401
+    h = _auth(client)
+    assert client.put("/backup", json={"format": "other", "data": {}}, headers=h).status_code == 422
+    bad = client.put("/backup", content=b"not json", headers={**h, "Content-Type": "application/json"})
+    assert bad.status_code == 422
+    monkeypatch.setattr(settings, "max_backup_bytes", 200)
+    assert client.put("/backup", json=_snapshot(words=10), headers=h).status_code == 413
+    assert client.get("/backup/status", headers=h).json()["saved_at"] is None
