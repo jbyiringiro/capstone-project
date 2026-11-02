@@ -15,11 +15,11 @@ npm.cmd run preview -- --host 127.0.0.1
 
 Open `http://localhost:4173`. Production preview is needed for service-worker/offline tests. No API account is required for the board or local caregiver setup.
 
-Choose pictures and use **Siba**, **Byose**, **Erekana**, and **Vuga** to compose, correct, display and speak a message. The 181-symbol draft vocabulary and real local predictor remain connected to the design. A phone uses two columns; communication words use licensed online images bundled for offline use, and simple action controls retain icons. Missing photos fall back to existing pictograms.
+Choose pictures and use **Siba**, **Siba byose**, **Erekana**, and **Vuga** to compose, correct, display and speak a message. The 181-symbol draft vocabulary and real local predictor remain connected to the design. A phone uses two columns; communication words use licensed online images bundled for offline use, and simple action controls retain icons. Missing photos fall back to existing pictograms.
 
 The child board opens without a PIN. Hold **Umurezi** or activate it with the keyboard to open the separate parent access screen. On first use, the parent creates and confirms a four-to-six-digit PIN; **Subira ku kibaho** dismisses setup so communication remains available. Subsequent visits require the PIN before any caregiver controls are mounted. There is no default PIN. **Abana** creates/selects a device profile; **Amashusho** configures its vocabulary. **Ikibaho** controls **Amagambo afasha**, **Amashusho anyeganyega buhoro**, **Amashusho manini cyane**, and **Amafoto afatika**. The photo preference defaults on; turning it off restores pictograms for that profile. Appearance is saved per profile; system reduced-motion takes precedence. Returning to the board preserves its draft. Changing profile or prediction mode resets it; browser-reload draft recovery is not claimed.
 
-**Kwinjira** changes the parent PIN after checking the current PIN. Returning to the child board, reloading, backgrounding the app, or five minutes without input locks the parent session. Five incorrect attempts trigger a 30-second cooldown that survives reload. The PIN is stored only as a salted PBKDF2-derived credential; unlocked sessions are never persisted. This local guard prevents unintended settings changes but does not authenticate an adult's identity or protect against someone with browser-storage access. There is no child-facing reset; clearing browser storage removes the PIN and other local data. Keep the chosen PIN separately.
+**Kwinjira** changes the parent PIN after checking the current PIN. Returning to the child board, reloading, backgrounding the app, or five minutes without input locks the parent session. Five incorrect attempts trigger a 30-second cooldown that survives reload. The PIN is stored only as a salted PBKDF2-derived credential; unlocked sessions are never persisted. This local guard prevents unintended settings changes but does not authenticate an adult's identity or protect against someone with browser-storage access. Setting the PIN shows a one-time recovery code (16 letters and digits) to write down; it is stored only as a second PBKDF2-derived credential. **Nibagiwe umubare w’ibanga** on the PIN screen sets a new PIN with that code (wrong codes count towards the same cooldown), or after signing in to the Vuga account last used in this device's caregiver area; both keep every child's data and show a new code. **Kwinjira** makes a new code with the current PIN. There is no child-facing reset; without a code or a linked account, clearing browser storage removes the PIN and the local data that is not on the account backup.
 
 **Incamake** reports actual completed spoken messages and has an empty state. **Ohereza** provides explicit JSON export and optional authenticated server sync. Profiles, settings and activity remain in this browser unless a supported export/sync is explicitly requested.
 
@@ -79,16 +79,17 @@ Use a private random `VUGA_JWT_SECRET` of at least 32 characters for persistent 
 
 | Layer | Source | Demonstration |
 |---|---|---|
-| Kinyarwanda UI | `app/src/Board.jsx`, `Dashboard.jsx`, `App.jsx`, styles | Responsive composition, caregiver flows, labels and form/error messages |
-| Device storage | `db.js`, `message-session.js` | Profiles, vocabulary, preferences, ordered actions and export |
-| Parent access | `ParentAccess.jsx`, `parent-access.js` | PIN setup/unlock/change, persisted attempt cooldown and automatic session locking |
-| Speech | `VoiceSettings.jsx`, `AudioSettings.jsx`, `speech.js`, `audio-preferences.js` | Kinyarwanda-only playback, bundled speech and local recordings |
-| Prediction | `app/src/predictor.js` | Enabled-vocabulary constrained local trigram |
-| API/schema | `api/app/main.py`, `schemas.py`, `models.py` | Auth, owned profiles, vocabulary, sync, predictions and summaries |
+| Child board | `app/src/board/` (Board, SymbolCell, grid pages, MessageSession, suggestions hook) | Responsive composition, stable tiles, fixed 4–40 cell pages, ordered action log |
+| Caregiver area | `app/src/caregiver/` (Dashboard shell, one component per tab) | Profiles, vocabulary, custom words, board settings, speech, summary, sync |
+| Device storage | `app/src/storage/` (one module per IndexedDB store) | Profiles, vocabulary, messages, recordings, custom words, board preferences, export, device backup |
+| Parent access | `app/src/parent-access/` | PIN setup/unlock/change, recovery code and account reset, persisted attempt cooldown and automatic session locking |
+| Speech | `app/src/speech/` (audio source chain, SpeechPlanner, player, warm-up), `caregiver/VoiceSettings.jsx`, `caregiver/AudioSettings.jsx` | Kinyarwanda-only playback, bundled speech, installed clips and local recordings |
+| Prediction | `app/src/prediction/` (Predictor, KneserNeyTrigram, PersonalReranker, top-k) | Enabled-vocabulary constrained local trigram with optional personal re-ranking |
+| API/schema | `api/app/routers/`, `api/app/services/`, `schemas.py`, `models.py` | Auth, owned profiles, vocabulary, sync, predictions and summaries |
 | ML evidence | `ml/vuga_ml/`, `ml/notebooks/` | Data engineering, architecture and development metrics |
 | Visual references | [Local design pack](../design/README.md) | Earlier layouts, style guide, tokens and SVG/PNG imports |
 
-The silent design preview is separate sample content. Its earlier bilingual copy and illustrated cards are superseded by the app's Kinyarwanda copy, licensed pictures and parent gate; it is retained as a visual design reference. SVGs are not a native `.fig` file or a verified account prototype. Current app screenshots are in `docs/screenshots/licensed-2026-10-10/`; the generated-picture screenshots dated 6 October are historical. Browser checks do not establish target-device suitability or learner outcomes. Stakeholder research with a school or caregivers is still outstanding.
+The silent design preview is separate sample content. Its earlier bilingual copy and illustrated cards are superseded by the app's Kinyarwanda copy, licensed pictures and parent gate; it is retained as a visual design reference. SVGs are not a native `.fig` file or a verified account prototype. Current app screenshots are in `docs/screenshots/final-2026-10-22/`; the 10 October and 6 October folders are historical. Browser checks do not establish target-device suitability or learner outcomes. Stakeholder research with a school or caregivers is still outstanding.
 
 ## Deployment, verification and packaging
 

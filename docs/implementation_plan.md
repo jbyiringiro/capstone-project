@@ -26,7 +26,7 @@ Grading anchors: implementation review 15%, report draft 26%, defense W12 20%, f
 ## Rules carried over from the proposal that the code enforces
 
 - Draft message is stored before its first event; every task action (select, navigate, correct, speak)
-  is one event; only select carries a symbol. Tap totals include Speak. (`app/src/db.js`, `api/app/main.py`)
+  is one event; only select carries a symbol. Tap totals include Speak. (`app/src/storage/messages.js`, `api/app/services/sync.py`)
 - Upload happens only after an adult asks and the device is online. (`syncPending`)
 - The test partition is evaluated once: `vuga_ml.evaluate` refuses `--split test` without `--final`.
 - Study models are frozen: `model_versions.is_frozen`; the API serves only the configured artefact.

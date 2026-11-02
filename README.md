@@ -1,242 +1,195 @@
 # Vuga AAC
 
-**An offline Kinyarwanda picture-to-speech communication app for disabled children who cannot speak or are hard to understand, with machine-learning next-word suggestions.**
+**An offline Kinyarwanda picture-to-speech communication app for disabled children who cannot speak or are hard to understand, with on-device next-word suggestions that can learn each child's own words.**
 
 | | |
 |---|---|
+| **Walkthrough video** | [Final product walkthrough](VIDEO_LINK_TO_ADD) |
+| **Technical report (PDF, 5 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
+| **Testing and performance evidence** | [docs/testing_report.md](docs/testing_report.md) |
 | **GitHub repository** | https://github.com/jbyiringiro/capstone-project |
-| **Video demo** | [Watch the demo on Google Drive](https://drive.google.com/file/d/16Nq9ihLEjOk3gUrY7Ac3sgkN2MsOsO_b/view?usp=drive_link) |
+| **Project** | A Kinyarwanda-First Predictive Picture-to-Speech Communication System for Minimally Verbal Children with Disabilities in Rwandan Special Schools: Design and Preliminary Adult-Task Evaluation |
+| **Evaluation** | Adults only (teachers, therapists, caregivers) in a preliminary usability and task study; no children take part |
 | **Author** | Josue Byiringiro, BSc Software Engineering (Machine Learning), African Leadership University |
 | **Supervisor** | Junior Turatsinze |
 
-## Description
+## Project overview
 
-**Who it is for.** Many disabled children cannot use speech to ask for help, make a choice, say "no" or join a conversation. Others speak, but people outside the family cannot understand them. This includes children with:
-- autism
-- cerebral palsy
-- Down syndrome
-- intellectual disability
-- speech motor disorders such as childhood apraxia of speech
+Many disabled children cannot use speech to ask for help, make a choice, say "no" or join a conversation: children with autism, cerebral palsy, Down syndrome, intellectual disability or speech motor disorders such as childhood apraxia of speech. Rwanda's 2022 census counted 17,852 children aged 5 to 17 with a communication disability ([NISR](https://beta.statistics.gov.rw/file/14175/download?token=zQsSYuB4)). Augmentative and alternative communication (AAC) lets them communicate with pictures and a device that speaks ([ASHA](https://www.asha.org/Practice-Portal/Professional-Issues/Augmentative-and-Alternative-Communication/)), but most AAC apps are in English, are expensive, or need dedicated hardware or a constant connection.
 
-Rwanda's child census identifies children with communication difficulties ([NISR children report](https://beta.statistics.gov.rw/file/14175/download?token=zQsSYuB4)).
+**Vuga** ("speak") is a free Kinyarwanda AAC app that runs on an ordinary Android tablet or phone and works fully offline after the first visit.
 
-**Problem.** Augmentative and alternative communication (AAC) lets these children communicate with pictures and a device that speaks for them ([ASHA AAC overview](https://www.asha.org/Practice-Portal/Professional-Issues/Augmentative-and-Alternative-Communication/)). In Rwanda, though, most families and schools cannot use AAC apps:
-- they are mostly in English, not Kinyarwanda
-- they are expensive
-- they often need dedicated devices or a constant internet connection
+**For the child**
+- Tap picture cards to build a message; **Vuga** (or a tap on the message bar) speaks it in Kinyarwanda, **Erekana** shows it full screen, **Siba** removes the last word.
+- **A dense picture board with Vuga's own pictures** (new): a white speech display bar showing the chosen words (and the sentence Vuga will say), a thin green toolbar, and a dense grid of keys that fills the screen of any phone, tablet or laptop (up to 12 × 7, never below 2 cm). Each key has its word on top and its picture below, coloured by word type. The board shows every picture in pages, with no section tabs to manage, and every picture keeps one place: words a caregiver hides leave an empty key instead of moving the others.
+- **Each picture is said as soon as it is tapped** (new), so the child hears each word; Vuga then says the whole message.
+- **Next words after a picture** (new, a caregiver turns it on): tapping *kunywa* (drink) adds the word and opens the drinks in the same grid (amazi, amata, umutobe, icyayi, igikoma, igikombe…); one more tap finishes the choice and returns the child to the page they came from.
+- **Spoken as a sentence** (new): the pictures are joined into a Kinyarwanda sentence, so njye + gushaka + amazi is said "Ndashaka amazi." and njye + ntabwo + gukunda + amata "Sinkunda amata." Rule-based on the device: subject and verb become one inflected word, states (ndananiwe), requests (Mama, ngwino hano), "where" questions (Umusarani uri he?) and places (mu rugo), using 1,259 generated word clips. A verb is only inflected for a person the message names: a picture on its own, or a verb with no person, keeps its own word (gushaka, never ndashaka). Anything the rules do not cover is said word by word. A caregiver can switch it off per child.
+- 188 everyday words, each with a licensed photograph (or an ARASAAC pictogram) and a Kinyarwanda voice clip.
+- Three suggested next words in a separate row, from a Kneser-Ney trigram running in the browser, so the main board never moves.
 
-Without a way to communicate, a child's needs and choices are easily missed. Frustration can show up as behaviour, and the child is left out of class and family life.
+**For the parent, teacher or therapist** (the **Umurezi** area, behind a long press and a PIN)
+- One profile per child, with its own vocabulary and board settings.
+- **Amagambo mashya** (new in the final version): add a word from the child's life: take a photo, name it in Kinyarwanda, record it in a familiar voice. The word stays on the device, and in the caregiver's account backup once they sign in.
+- **Board size** (new): fixed pages of 4, 6, 9, 12, 20, 24 or 40 pictures with page buttons, or **Byikora**, which fits as many large pictures as the screen holds (fewer on a phone, more on a tablet). Every picture keeps its place. On a tablet, a sideways swipe across the pictures also turns the page; a caregiver can switch swiping off for a child who turns pages by accident.
+- **Aho umwana ari** (new): choose where the child is (home, school, a meal, play, the clinic, outside). That place's naming words then come first on the board, followed by the core words, actions, feelings and the body, which stay everywhere; naming words for other places leave the board. The toolbar names the place on every screen size. Each place's list can be edited per child.
+- **Amagambo akurikira** (new): switch next-word pages on or off per child and choose which pictures follow which, for example remove *amata* after *kunywa*, or give a new picture its own next words.
+- **Icyiciro umwana abona** (new, in Ikibaho): every picture in pages by default, or one section when it is needed, such as Ingenzi. A switch brings the section tabs back for an adult or a study task.
+- **Amagambo ku mashusho** (new, in Ikibaho): show each picture with its word, or pictures only (larger, and the message bar then shows pictures too).
+- **Vuga buri shusho** (in Ikibaho): saying each picture on tap is on by default and can be turned off per child.
+- **Personal suggestions** (new): suggestions re-ranked by this child's own frequency, recency and word pairs, computed on the device.
+- **Child mode** (new, per child): for young or early communicators the child sees only the pictures the caregiver chose (a ready-made board such as *Igihe cyo kurya*, or up to 12 picked pictures), with no categories or buttons to manage. Each tap says the word at once and shows it large, with a friendly character reacting. The caregiver can start **Shakisha**, a picture-finding game on the child's own board that awards stars, highlights the answer after two misses and shows progress to the caregiver. Game play is never counted as communication, and child-mode data stays on the device.
+- **Gusuzuma amagambo** (new, in Amashusho): for the vocabulary review interviews, the 32 words on the paper review sheet shown one at a time in the sheet's order, with the picture, label and voice exactly as the board has them. Answers go on the paper sheet; the screen stores nothing.
+- **Nibagiwe umubare w’ibanga** (new): setting the PIN shows a one-time recovery code to write down. On the PIN screen, *Nibagiwe umubare w’ibanga* sets a new PIN with that code, or by signing in to the Vuga account linked to the device; every child's data stays. **Kwinjira** makes a new code.
+- **Ibibitswe kuri konti** (new, optional, in Ohereza): once the caregiver signs in, everything set up on the device (children, their words, board, place and next-word settings, child mode, custom words with their photos, and recorded voices) is saved to their account each time they return to the board. Signing in on a new phone or tablet brings it all back. A device that already has its own set-up never overwrites the account copy until the caregiver chooses. The PIN and messages stay on each device. Unlike the rest of Vuga, this puts the caregiver's photos and voice recordings on the server.
+- Large tiles, reduced motion, photos or pictograms, recorded familiar voices, a summary of completed messages, and export or sync only when the adult chooses.
 
-**Solution.** Vuga ("speak" in Kinyarwanda) is a free communication app in Kinyarwanda. It runs on an ordinary Android tablet or phone and works fully offline after the first load.
+**Optional server**: a FastAPI service for adult accounts, child profiles, vocabulary, message sync, the caregiver's device backup, summaries and server-side prediction, with Swagger documentation.
 
-- The child taps picture cards to build a message. **Vuga** speaks it aloud in Kinyarwanda, and **Erekana** ("show") displays it full screen.
-- There are 181 everyday words, such as "want", "help", "no", "water", "toilet", "hurt" and "play". Each word has a picture and a Kinyarwanda voice clip.
-- A parent, teacher or therapist sets up the app for each child in the caregiver area, **Umurezi**, which is protected by a PIN.
-- All data stays on the device unless a caregiver chooses to sync it.
+**Status.** The app is complete for this milestone and passes 217 automated tests and checks plus a 9-configuration compatibility matrix ([testing report](docs/testing_report.md)). The vocabulary has 188 words with synthetic speech (Meta MMS-TTS) instead of the proposal's 300 to 500 words with human recordings: when the schedule slipped, this was the first item cut, as the revised proposal sets out (section 1.5), because the three research questions can still be answered with it. The words and speech await native-speaker and stakeholder review. The planned evaluation is a preliminary study with adults, not children; it has not run yet, so no participant findings are claimed.
 
-**How it adapts to each child's disability.** Each child has their own profile, and the caregiver adjusts the board to fit that child:
+## Technical requirements
 
-| Feature | Who it helps |
-|---|---|
-| The main board layout never moves; word suggestions appear in a separate row | Autistic children and children with motor-planning difficulties, who learn where words are and rely on them staying there |
-| Large-tile setting per child | Children with limited hand control (for example, cerebral palsy) or low vision |
-| Real photographs or simple pictograms, chosen per child | Children with intellectual disability who recognise photos more easily than symbols, or who need a simpler image |
-| Reduced-motion setting, and the device's reduce-motion preference is respected | Children who are distracted or upset by animation |
-| **Erekana** shows the message as large text and pictures | When speech audio fails, in a noisy place, or when the listener has hearing loss |
-| Caregivers can record words in their own voice | Children who respond better to a familiar voice |
-| The caregiver area opens only with a long press and a PIN | Prevents the child from accidentally changing their settings |
-| Word suggestions can be turned off | Children for whom suggestions are confusing rather than helpful |
-| A 3D-printable keyguard design in `hardware/` (not yet produced) | Children who accidentally press neighbouring tiles |
+| Component | Requirement | Tested with |
+|---|---|---|
+| App runtime (child's device) | Android 9+ with Chrome or Edge 105+, Safari 16+ or Firefox 110+ (container queries, IndexedDB, service worker); about 20 MB free for the offline cache | Edge 155, Firefox 155, WebKit 26.6 (Safari engine), tablet and phone profiles |
+| App build | Node.js 20+ and npm 10+ | Node 24.12, npm 11.6 |
+| Front end | React 18.3, Vite 5.4, vite-plugin-pwa 0.20 (Workbox), Dexie 4.4 (IndexedDB) | as listed |
+| App tests | Vitest 2.1, fake-indexeddb 6.2, Playwright 1.63 with Microsoft Edge installed (Firefox and WebKit optional) | as listed |
+| API and ML | Python 3.11+ | CPython 3.11.15 |
+| API | FastAPI 0.141, SQLAlchemy 2.1, Pydantic 2.13, Uvicorn 0.54, bcrypt, python-jose; SQLite for development, PostgreSQL 16 in Docker | as listed |
+| ML (optional) | NumPy 2.4, Matplotlib 3.11 for the notebook; PyTorch 2.14, ONNX 1.23 and onnxruntime 1.30 for the GRU; transformers 4.57 for the transformer baseline | as listed |
+| Development hardware | Any laptop that runs Node and Python; a GPU is only needed to retrain the neural baselines | Windows 11, Intel Core Ultra 7 255H, 31 GB RAM |
 
-**Not yet supported.** These are planned or open problems:
-- **Switch scanning** for children who cannot tap a screen, for example some children with severe cerebral palsy.
-- **Protection against accidental taps** for children with tremor.
-- **Reading a tile's word aloud before it is selected**, for blind or low-vision children.
-- **Testing with disabled children, families and therapists.** This has not happened yet. Partner organisations working with disabled children in Rwanda are the next step.
+## Installation and running
 
-**Machine learning.** A next-symbol predictor suggests likely next words in a separate row, so the main board's layout never moves. The [model notebook](ml/notebooks/vuga_model.ipynb) ([HTML version](ml/notebooks/vuga_model.html)) covers data engineering, visualisations, model architecture and metrics. It compares three models trained on Kinyarwanda sentences mapped to the board vocabulary:
-
-| Model | Validation top-3 accuracy |
-|---|---|
-| Frequency baseline | 21.96% |
-| Kneser-Ney trigram | 45.78% |
-| GRU | 46.92% |
-
-The app ships the small trigram model because it is almost as accurate as the GRU, runs instantly offline, and is only about 100 KB.
-
-**Architecture.**
-- **App:** React + Vite PWA with Dexie (IndexedDB) storage and a service-worker cache.
-- **API (optional):** FastAPI with Swagger UI, SQLAlchemy over SQLite or PostgreSQL, JWT authentication, sync, summaries and `/predict`.
-- **ML package and notebook:** in `ml/`.
-
-**Status (12 October 2026).** This is an initial demonstration.
-- The interface, pictures, speech, parent access and prediction work, and are covered by automated and browser tests.
-- The speech is synthetic (Meta MMS-TTS) and has not yet been reviewed by a native speaker.
-- No school, caregiver or therapist has evaluated the app yet, and no participant findings are claimed.
-
-The app's labels, dialogs, accessible names and messages are in Kinyarwanda. Developer documentation is in English.
-
-## Set up the environment and run the project
-
-**Prerequisites:**
-- Git
-- [Node.js 20](https://nodejs.org/) with npm, for the app
-- [Python 3.11+](https://www.python.org/), for the notebook and API (optional)
-
-### 1. Get the code
+**1. Get the code**
 
 ```sh
 git clone https://github.com/jbyiringiro/capstone-project.git
 cd capstone-project
 ```
 
-If you downloaded the ZIP from GitHub instead, unzip it and open a terminal in the extracted folder.
-
-### 2. Run the app (communication board)
+**2. Run the app** (the child's board needs nothing else)
 
 ```sh
 cd app
-npm ci              # install dependencies
-npm test            # run the unit tests
-npm run build       # production build with offline service worker
-npm run preview -- --host 127.0.0.1
+npm ci
+npm test                 # 94 unit and reference tests
+npm run build            # production build with the offline service worker
+npm run preview          # http://127.0.0.1:4175
 ```
 
-Open http://localhost:4173. For development with hot reload, run `npm run dev` and open http://localhost:5173. On Windows PowerShell, use `npm.cmd` if the execution policy blocks `npm`.
+For hot reload during development use `npm run dev` (http://localhost:5173). On Windows PowerShell, use `npm.cmd` if the execution policy blocks `npm`.
 
-**Using the app:**
-- The board opens directly, with no account or PIN. Tap pictures to build a message, then press **Vuga** to hear it or **Erekana** to show it full screen.
-- Hold **Umurezi** (or activate it by keyboard) for the caregiver area. On first use, a parent chooses a four-to-six-digit PIN. Setup can be dismissed without blocking the child.
-- Parent tabs are **Abana** (profiles), **Amashusho** (pictures), **Ikibaho** (board), **Ijwi** (speech), **Incamake** (summary), **Ohereza** (export/sync) and **Kwinjira** (change PIN).
+**3. Browser, compatibility and performance tests** (with `npm run preview` running in another terminal)
 
-### 3. Set up Python, the notebook and the API (optional)
+```sh
+npm run test:browser     # 57 end-to-end checks in headless Microsoft Edge
+npm run test:compat      # 9 browser/device configurations, writes docs/evidence/compatibility.json
+npm run bench            # prediction latency in Node, writes nothing unless --out is given
+```
 
-From the repository root:
+`test:compat` starts its own servers. Firefox and WebKit runs need `npx playwright install firefox webkit`; missing engines are reported as skipped.
+
+**4. Python: notebook, ML tests and the optional API** (from the repository root)
 
 ```sh
 python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
 python -m pip install -e "./ml[dev,notebook]" -e "./api[dev]"
 
+python -m pytest ml/tests api/tests          # 66 tests, including the API load test
 python ml/notebooks/run_notebook.py          # re-run the model notebook
-python -m pytest ml/tests api/tests          # run the Python tests
 python -m uvicorn app.main:app --app-dir api --host 127.0.0.1 --port 8000
 ```
 
-Open Swagger UI at http://localhost:8000/docs.
+Swagger UI is at http://127.0.0.1:8000/docs. Copy `.env.example` to `.env` and set `VUGA_MODEL_DIR=ml/artifacts`, `VUGA_CORS_ORIGINS` to the app's origin and, for persistent sessions, a `VUGA_JWT_SECRET` of at least 32 characters. `docker compose up` runs the API with PostgreSQL 16. Install `ml[neural]` to run the GRU/ONNX tests and retrain the neural baselines.
 
-**API configuration.** Copy `.env.example` to `.env` to configure the API:
-- Set `VUGA_MODEL_DIR` to `ml/artifacts`.
-- Set `VUGA_CORS_ORIGINS` to the app's origin.
-- For persistent sessions, set `VUGA_JWT_SECRET` to a private value of at least 32 characters. Without it, local development uses a temporary key.
+**Study analysis.** `ml/scripts/analyse_study.py` runs the pre-specified tap-reduction analysis (RQ3). `ml/scripts/analyse_vocabulary_review.py` summarises the vocabulary review sheets (RQ1): `--template` writes a blank sheet CSV in the paper sheet's order (`vocab/review_words.csv`), and `--reviews` (plus optional `--mentions`) gives each word's counts and a proposed accept, revise, exclude or unresolved status by a fixed majority rule, with `--log-out` drafting rows for `vocab/decision_log.md`. The proposals are only drafts: the native speakers and the researcher decide. Keep participant files in `study/`, which git ignores.
 
-To run the API with PostgreSQL in Docker instead, set `VUGA_JWT_SECRET` and run `docker compose up`.
+**Using the app.** The board opens directly, with no account. Hold **Umurezi** (or press it with the keyboard) for the caregiver area; on first use an adult chooses a 4–6 digit PIN and writes down the recovery code shown. Caregiver tabs: **Abana** (profiles), **Amashusho** (vocabulary, and the word-by-word review screen), **Amagambo mashya** (custom words), **Aho umwana ari** (words for where the child is), **Ikibaho** (the section the child sees, section tabs, suggestions, personal suggestions, sentence speech, speaking each picture, board size, motion, tile size, photos), **Amagambo akurikira** (next words after a picture), **Uburyo bw’umwana** (child mode, its pictures, the game and progress), **Ijwi** (speech and recordings), **Incamake** (summary), **Ohereza** (export, sync and the account backup), **Kwinjira** (change PIN, new recovery code).
 
-The notebook reads the committed `ml/notebooks/evidence/` snapshot. It does not download the corpus or retrain the neural models. To regenerate the trigram model from that snapshot, run `python ml/scripts/export_artifacts.py --data ml/notebooks/evidence`. Optional neural tests need `ml[neural]`.
+## Repository structure
 
-More detail: [project guide](docs/project_guide.md).
+```
+app/                         React PWA (the product the child and caregiver use)
+  src/
+    child/                   child mode: ChildBoard, ChildGame, FindGame (game rules), ready-made
+                             boards, Mascot, word speaker
+    board/                   full board: Board, SymbolCell, HoldButton, MessageDialogs,
+                             MessageSession (ordered action log), grid pages, suggestions hook
+    caregiver/               Dashboard shell and one component per tab, LoginForm, AudioSettings
+    parent-access/           PIN gate (PBKDF2, cooldown, recovery code) and the idle/background
+                             lock hook
+    prediction/              Predictor base class, KneserNeyTrigram, PersonalHistory,
+                             PersonalReranker, bounded top-k, benchmark
+    grammar/                 SentenceBuilder: pictures to a Kinyarwanda sentence, with the
+                             generated word table (grammar_rw.json)
+    speech/                  audio source chain (recording, installed clip, bundled clip, system
+                             voice, generated sentence words), SpeechPlanner, player, warm-up
+    storage/                 Dexie schema and one module per store: profiles, vocabulary,
+                             messages, recordings, custom words, board preferences, device
+                             backup
+    server/                  API client, adult-requested sync and the account backup
+    symbols/                 catalogue (CSV + custom words), categories, picture preparation
+    shared/                  icons and artwork, Kinyarwanda error handling
+  tests/                     Vitest suites mirroring src/, with Python parity fixtures
+  scripts/                   Playwright suites, compatibility matrix, predictor benchmark
+  public/                    photos, Kinyarwanda clips, pictograms, model artefact, icons
+api/                         FastAPI service
+  app/routers/               thin HTTP handlers: health, auth, symbols, profiles, sync, predict
+  app/services/              business logic: accounts, catalogue, profiles, sync, summary,
+                             model registry, domain errors
+  app/                       main (composition root), dependencies, models (ERD), schemas, security
+  tests/                     API, service and load tests
+ml/                          vuga_ml package (data pipeline, morphology and sentence grammar,
+                             n-gram, GRU and transformer models, re-ranker, metrics, study
+                             analysis), scripts, notebook, tests
+vocab/                       188-word Kinyarwanda vocabulary, lexicon, review-sheet word list,
+                             decision log
+docs/                        testing report, technical report, evidence JSON, screenshots,
+                             deployment plan, project guide, dated verification records
+design/                      Figma-importable mockups, tokens, icons
+hardware/, device/           keyguard and talker firmware drafts (not built)
+```
 
-## Designs
+## Designs and screenshots
 
-**Screenshots of the working app** (from [docs/screenshots/licensed-2026-10-10](docs/screenshots/licensed-2026-10-10/)):
-
-| Communication board (tablet/desktop) | Board on a phone, offline |
+| Board with a 3×3 page (tablet) | Board on a phone |
 |---|---|
-| ![Communication board](docs/screenshots/licensed-2026-10-10/board-desktop.png) | ![Phone board offline](docs/screenshots/licensed-2026-10-10/board-mobile-offline.png) |
-| **Message shown full screen (Erekana)** | **Parent PIN unlock** |
-| ![Message display](docs/screenshots/licensed-2026-10-10/message-display.png) | ![Parent unlock](docs/screenshots/licensed-2026-10-10/parent-unlock.png) |
-| **Caregiver: child profiles** | **Caregiver: vocabulary** |
-| ![Caregiver profiles](docs/screenshots/licensed-2026-10-10/caregiver-profiles.png) | ![Caregiver vocabulary](docs/screenshots/licensed-2026-10-10/caregiver-vocabulary.png) |
-| **Caregiver: speech and recordings** | **Caregiver: board preferences** |
-| ![Caregiver voice](docs/screenshots/licensed-2026-10-10/caregiver-voice.png) | ![Caregiver preferences](docs/screenshots/licensed-2026-10-10/caregiver-preferences.png) |
+| ![Board, 9-cell page](docs/screenshots/final-2026-10-22/board-grid-9-tablet.png) | ![Phone board](docs/screenshots/final-2026-10-22/board-grid-9-phone.png) |
+| **Child mode: only the chosen pictures** | **Child mode: the Shakisha game** |
+| ![Child mode](docs/screenshots/final-2026-10-22/child-board-spoken.png) | ![Picture-finding game](docs/screenshots/final-2026-10-22/child-game-hint.png) |
+| **Caregiver: new words** | **Caregiver: board settings** |
+| ![Custom words](docs/screenshots/final-2026-10-22/caregiver-custom-words.png) | ![Board settings](docs/screenshots/final-2026-10-22/caregiver-board-grid-settings.png) |
 
-**Figma mockups and design system** (in [design/](design/README.md)):
-- 16 screen mockups (tablet and phone) as Figma-importable SVGs in [design/figma-import/](design/figma-import/), with PNG previews in [design/previews/](design/previews/). For example: [all screens](design/previews/all-screens.png), [tablet board](design/previews/tablet-board.png), [compose](design/previews/tablet-compose.png), [mobile board](design/previews/mobile-board.png).
-- Style foundations ([foundations.html](design/foundations.html), [foundations sheet](design/previews/foundations-system.png)), design tokens ([tokens.json](design/tokens.json)) and 25 custom icons ([icon sheet](design/assets/icons-contact-sheet.png)).
-- An interactive clickable preview: open [design/preview.html](design/preview.html) in a browser.
+More: [all final screenshots](docs/screenshots/final-2026-10-22/), Figma mockups and design system in [design/](design/README.md).
 
-The mockups record the earlier visual design. The running app (screenshots above) is the current version, with Kinyarwanda text and licensed photographs.
+## Machine learning
 
-**Circuit diagram.** Not applicable. Vuga is a software project that runs on existing tablets and phones. The physical-access parts in `hardware/` (a 3D-printable keyguard) and `device/` (firmware scaffold for a possible talker box) are early drafts and have not been built.
+The [model notebook](ml/notebooks/vuga_model.ipynb) ([HTML](ml/notebooks/vuga_model.html)) covers data engineering, visualisations, architecture and metrics on Kinyarwanda sentences mapped to the board vocabulary (validation set):
 
-## Deployment plan
-
-The full plan is in [docs/deployment_plan.md](docs/deployment_plan.md). In summary:
-
-1. **Phase 0, local preview (done):** `npm run build` and `npm run preview`, as shown in the video demo.
-2. **Phase 1, public app:** publish the static PWA (`app/dist`) on Netlify or Cloudflare Pages over HTTPS. The board needs no server, so this alone makes it usable. A tablet installs the app once and then works offline.
-3. **Phase 2, optional API:** deploy `api/Dockerfile` to Render with managed PostgreSQL, secrets set as environment variables, CORS limited to the app's domain, and a `/health` check.
-4. **Phase 3, pilot:** only after a native speaker reviews the speech and caregivers review the vocabulary and pictures.
-
-The plan also covers configuration, checks after each deploy, rollback, privacy for children's data, licensing and cost ($0 for the demo).
-
-## Code files
-
-| Folder | Contents |
+| Model | Top-3 accuracy |
 |---|---|
-| `app/` | React PWA: communication board, caregiver screens, speech, prediction, offline storage, tests |
-| `api/` | FastAPI backend (auth, profiles, vocabulary, sync, summary, prediction), database models, Dockerfile, tests |
-| `ml/` | Prediction models (unigram, trigram, GRU), training and export scripts, model notebook, tests |
-| `vocab/` | The 181-word Kinyarwanda vocabulary and lexicon |
-| `design/` | Figma mockups, design tokens, icons and previews |
-| `docs/` | Project guide, deployment plan, verification records and screenshots |
-| `hardware/`, `device/` | Keyguard and talker-box firmware drafts (not yet built) |
-| `scripts/` | Asset generation (pictures, speech) |
+| Frequency baseline | 21.96% |
+| Kneser-Ney trigram (shipped) | 45.78% |
+| GRU | 46.92% |
 
-Key source files:
+The app ships the trigram: almost as accurate as the GRU, about 100 KB, and a suggestion takes 0.09 ms median in the browser. Its JavaScript port is tested against the Python model on every fixture prefix, as is the personal re-ranker.
 
-| Component | Location |
-|---|---|
-| Board and caregiver UI | `app/src/Board.jsx`, `app/src/Dashboard.jsx` |
-| Profiles, vocabulary and messages | `app/src/db.js`, `app/src/message-session.js` |
-| Parent access | `app/src/ParentAccess.jsx`, `app/src/parent-access.js` |
-| Speech and recordings | `app/src/speech.js`, `app/src/VoiceSettings.jsx`, `app/src/AudioSettings.jsx` |
-| Next-symbol prediction (in app) | `app/src/predictor.js` |
-| API endpoints, schemas, database models | `api/app/main.py`, `api/app/schemas.py`, `api/app/models.py` |
-| ML models and training | `ml/vuga_ml/` |
+## Deployment
 
-## Pictures and Kinyarwanda speech
-
-**Pictures.** Each card uses a licensed online image, bundled locally in `app/public/photos/` so it works offline. The [photo manifest](app/public/photos/manifest.json) records source pages, authors, licences and hashes. These are not photographs of project participants. **Umurezi → Ikibaho → Amafoto afatika** switches a profile to ARASAAC pictograms instead. Fetch those with `python ml/scripts/fetch_pictograms.py`; they have their own licence.
-
-**Speech.** The app bundles **181 synthetic Kinyarwanda WAV clips**, generated from the exact `label_rw` entries in `vocab/symbols.csv` with Meta AI's pinned `facebook/mms-tts-kin` model. They have not been reviewed by a native speaker.
-- **Playback order:** a caregiver's saved recording, then an installation's `/audio/SYMBOL.wav`, then the bundled `/audio/rw/SYMBOL.wav`, then a Kinyarwanda system voice if one is installed. English is never used as a fallback.
-- **If speech fails,** the message is kept and **Erekana** is offered.
-- **Caregiver recordings:** in **Umurezi → Ijwi**, a caregiver can record or upload, preview, save or delete a recording for any word. Recordings stay on the device and are excluded from export, sync and the repository.
-
-Details: [audio setup](app/public/audio/README.md) and [speech licensing and generation](app/public/audio/rw/README.md).
-
-**Parent access security.**
-- Parent access locks when the user returns to the board, reloads the page, leaves the app in the background, or makes no input for five minutes.
-- Five failed PIN attempts start a 30-second cooldown.
-- Only a salted PBKDF2-derived credential is stored.
-
-This PIN is a local guard against accidental settings changes. It is not a server account.
-
-## Verification
-
-The [current implementation record](docs/licensed_images_parent_access_2026-10-10.md) has the executed checks and screenshots. They cover:
-- asset provenance and hashes
-- offline use of images and audio
-- child communication
-- PIN setup, unlock and change
-- cooldown persistence
-- draft preservation
-- automatic locking
-
-The API and ML results are from September; the later interface changes did not retrain the predictor.
-
-This repository includes the bundled pictures, Kinyarwanda speech, the trigram model and the executed notebook. It does not include dependencies (`node_modules`, `.venv`), model weights or private data; install those with the setup steps above.
+The plan is in [docs/deployment_plan.md](docs/deployment_plan.md): the static PWA (`app/dist`) on Netlify or Cloudflare Pages over HTTPS, the optional API from `api/Dockerfile` on Render with managed PostgreSQL, and a pilot only after native-speaker and caregiver review.
 
 ## Licences
 
 | Material | Licence |
 |---|---|
 | Code | MIT |
-| Online pictures | Per-image licence and attribution, recorded in the photo manifest |
-| Original vocabulary translations and permitted human recordings | CC BY 4.0 |
-| **Synthetic Kinyarwanda speech** (Meta AI MMS-TTS) | **CC BY-NC 4.0** (non-commercial). Its provenance and licence notice ship with the bundle |
+| Online photographs | Per-image licence and attribution in the [photo manifest](app/public/photos/manifest.json) |
+| Synthetic Kinyarwanda speech (Meta AI MMS-TTS) | CC BY-NC 4.0 (non-commercial) |
 | ARASAAC pictograms | CC BY-NC-SA 4.0 |
-| Training text (Digital Umuganda Common Voice Kinyarwanda sentence corpus, pinned by commit) | MPL-2.0. See the [source notice](ml/notebooks/evidence/NOTICE.md) |
+| Training text (Digital Umuganda sentence corpus) | MPL-2.0, see the [notice](ml/notebooks/evidence/NOTICE.md) |
 
-No held-out test examples or participant data are included.
+No held-out test examples, participant data, recordings or custom words are included in the repository.

@@ -19,6 +19,8 @@ ml/artifacts/*
 !ml/artifacts/*.json
 vocab/audio/*
 !vocab/audio/README.md
+# adult-study files (trial logs, transcribed review sheets): study codes only, still never committed
+/study/
 *.pt
 *.onnx
 *.bin
@@ -46,7 +48,8 @@ app/public/audio/*
 !app/public/audio/README.md
 !app/public/audio/rw/
 !app/public/audio/speaker-test.wav
-# app/tests/fixtures/kn_fixture.json is committed: a small snapshot used by the JS parity test
+!app/public/audio/installed.json
+# app/tests/prediction/fixtures/*.json are committed: small snapshots used by the JS parity tests
 device/bundle/*.json
 
 # ARASAAC pictograms are fetched by ml/scripts/fetch_pictograms.py (CC BY-NC-SA), not committed
@@ -54,3 +57,7 @@ app/public/symbols/*.png
 
 # Linters
 .ruff_cache/
+
+# Local development databases (the API creates vuga_dev.db; never commit participant data)
+*.db
+*.sqlite3
