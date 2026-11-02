@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T17:15:20.953Z",
+  "generated_at": "2026-11-02T21:16:53.224Z",
   "server": "vite preview of app/dist, one per run, stopped for the offline phase",
   "host": {
     "os": "Windows_NT 10.0.26200",
@@ -8,6 +8,12 @@
     "memory_gb": 31
   },
   "note": "Headless runs on one laptop. CPU slowdown and network profiles emulate low-end hardware; they are not measurements on a physical tablet.",
+  "summary": {
+    "passed": 7,
+    "partial": 2,
+    "failed": 0,
+    "skipped": 0
+  },
   "results": [
     {
       "id": "edge-desktop",
@@ -23,38 +29,40 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 417,
+        "cold_board_ms": 398,
         "navigation": {
           "dom_content_loaded_ms": 125,
-          "load_ms": 125,
-          "transferred_kb": 1101
+          "load_ms": 126,
+          "transferred_kb": 1312
         },
-        "warm_board_ms": 291,
-        "offline_board_ms": 381,
+        "warm_board_ms": 306,
+        "offline_board_ms": 391,
         "prediction_ms": {
           "median": 0.1,
-          "p95": 0.3,
+          "p95": 0.2,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 14.9,
-          "p95": 48.3,
+          "median": 15.9,
+          "p95": 42.1,
           "taps": 20
         },
-        "speech_start_ms": 95,
+        "speech_start_ms": 53,
+        "speech_driver_ms": 31,
         "page_turns": {
-          "fps": 120.1,
-          "longest_frame_ms": 54.4,
-          "frames": 241,
-          "turns": 24
+          "fps": 98.8,
+          "longest_frame_ms": 46.9,
+          "frames": 198,
+          "turns": 19
         },
-        "js_heap_mb": 10.5,
-        "dom_nodes": 9432
+        "js_heap_mb": 12.7,
+        "dom_nodes": 5899
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
       "screenshot": "compat-edge-desktop.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -71,38 +79,40 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 510,
+        "cold_board_ms": 494,
         "navigation": {
-          "dom_content_loaded_ms": 214,
-          "load_ms": 214,
-          "transferred_kb": 780
+          "dom_content_loaded_ms": 162,
+          "load_ms": 163,
+          "transferred_kb": 1635
         },
-        "warm_board_ms": 285,
-        "offline_board_ms": 350,
+        "warm_board_ms": 261,
+        "offline_board_ms": 329,
         "prediction_ms": {
           "median": 0.1,
           "p95": 0.2,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 9.6,
-          "p95": 45.5,
+          "median": 13.3,
+          "p95": 36.7,
           "taps": 20
         },
-        "speech_start_ms": 86,
+        "speech_start_ms": 53,
+        "speech_driver_ms": 27,
         "page_turns": {
-          "fps": 129.4,
-          "longest_frame_ms": 54.7,
-          "frames": 260,
-          "turns": 26
+          "fps": 109.6,
+          "longest_frame_ms": 38.9,
+          "frames": 220,
+          "turns": 22
         },
-        "js_heap_mb": 13.3,
-        "dom_nodes": 6239
+        "js_heap_mb": 12.3,
+        "dom_nodes": 5357
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
       "screenshot": "compat-edge-android-tablet.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -119,38 +129,40 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 448,
+        "cold_board_ms": 480,
         "navigation": {
-          "dom_content_loaded_ms": 216,
-          "load_ms": 216,
-          "transferred_kb": 396
+          "dom_content_loaded_ms": 265,
+          "load_ms": 265,
+          "transferred_kb": 1128
         },
-        "warm_board_ms": 259,
-        "offline_board_ms": 407,
+        "warm_board_ms": 257,
+        "offline_board_ms": 289,
         "prediction_ms": {
           "median": 0.1,
           "p95": 0.2,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 10.6,
+          "median": 12.7,
           "p95": 40.1,
           "taps": 20
         },
-        "speech_start_ms": 86,
+        "speech_start_ms": 60,
+        "speech_driver_ms": 39,
         "page_turns": {
-          "fps": 154.5,
-          "longest_frame_ms": 24.2,
-          "frames": 310,
-          "turns": 31
+          "fps": 127.6,
+          "longest_frame_ms": 15.8,
+          "frames": 255,
+          "turns": 25
         },
-        "js_heap_mb": 7.6,
-        "dom_nodes": 391
+        "js_heap_mb": 9.1,
+        "dom_nodes": 1481
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
       "screenshot": "compat-edge-android-phone.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -167,38 +179,40 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 3142,
+        "cold_board_ms": 3129,
         "navigation": {
-          "dom_content_loaded_ms": 2334,
-          "load_ms": 2338,
-          "transferred_kb": 160
+          "dom_content_loaded_ms": 2344,
+          "load_ms": 2349,
+          "transferred_kb": 182
         },
-        "warm_board_ms": 1471,
-        "offline_board_ms": 2315,
+        "warm_board_ms": 1013,
+        "offline_board_ms": 1179,
         "prediction_ms": {
-          "median": 0.9,
-          "p95": 1.7,
+          "median": 0.5,
+          "p95": 1.4,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 94.7,
-          "p95": 160.7,
+          "median": 58.4,
+          "p95": 155.6,
           "taps": 20
         },
-        "speech_start_ms": 479,
+        "speech_start_ms": 92,
+        "speech_driver_ms": 86,
         "page_turns": {
-          "fps": 19.4,
-          "longest_frame_ms": 321,
-          "frames": 39,
-          "turns": 4
+          "fps": 35.9,
+          "longest_frame_ms": 254.5,
+          "frames": 80,
+          "turns": 8
         },
-        "js_heap_mb": 17.4,
-        "dom_nodes": 4685
+        "js_heap_mb": 7.7,
+        "dom_nodes": 4908
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
       "screenshot": "compat-edge-lowend-tablet.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -215,38 +229,40 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 5371,
+        "cold_board_ms": 3479,
         "navigation": {
-          "dom_content_loaded_ms": 2646,
-          "load_ms": 2660,
-          "transferred_kb": 206
+          "dom_content_loaded_ms": 2432,
+          "load_ms": 2437,
+          "transferred_kb": 182
         },
-        "warm_board_ms": 3536,
-        "offline_board_ms": 2991,
+        "warm_board_ms": 1778,
+        "offline_board_ms": 1797,
         "prediction_ms": {
-          "median": 2.2,
-          "p95": 4.4,
+          "median": 0.8,
+          "p95": 1.9,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 325.6,
-          "p95": 481.4,
+          "median": 164.6,
+          "p95": 298.5,
           "taps": 20
         },
-        "speech_start_ms": 778,
+        "speech_start_ms": 146,
+        "speech_driver_ms": 138,
         "page_turns": {
-          "fps": 21.9,
-          "longest_frame_ms": 284.8,
-          "frames": 44,
-          "turns": 4
+          "fps": 43.6,
+          "longest_frame_ms": 186.6,
+          "frames": 90,
+          "turns": 9
         },
-        "js_heap_mb": 15.1,
-        "dom_nodes": 3514
+        "js_heap_mb": 19,
+        "dom_nodes": 3934
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
       "screenshot": "compat-edge-lowend-phone.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -263,36 +279,38 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 798,
+        "cold_board_ms": 743,
         "navigation": {
-          "dom_content_loaded_ms": 547,
-          "load_ms": 548,
-          "transferred_kb": 159
+          "dom_content_loaded_ms": 490,
+          "load_ms": 491,
+          "transferred_kb": 181
         },
-        "warm_board_ms": 260,
-        "offline_board_ms": 269,
+        "warm_board_ms": 251,
+        "offline_board_ms": 287,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 12,
-          "p95": 17,
+          "median": 26,
+          "p95": 28,
           "taps": 20
         },
-        "speech_start_ms": 87,
+        "speech_start_ms": 5,
+        "speech_driver_ms": 51,
         "page_turns": {
-          "fps": 109.5,
-          "longest_frame_ms": 54.6,
-          "frames": 221,
-          "turns": 22
+          "fps": 59.2,
+          "longest_frame_ms": 46.8,
+          "frames": 120,
+          "turns": 12
         }
       },
       "notes": [],
       "browser_version": "155.0",
       "screenshot": "compat-firefox-desktop.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -309,36 +327,38 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 1050,
+        "cold_board_ms": 1070,
         "navigation": {
-          "dom_content_loaded_ms": 715,
-          "load_ms": 716,
-          "transferred_kb": 180
+          "dom_content_loaded_ms": 680,
+          "load_ms": 683,
+          "transferred_kb": 182
         },
-        "warm_board_ms": 337,
-        "offline_board_ms": 279,
+        "warm_board_ms": 258,
+        "offline_board_ms": 261,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 11,
-          "p95": 14,
+          "median": 27,
+          "p95": 30,
           "taps": 20
         },
-        "speech_start_ms": 78,
+        "speech_start_ms": 5,
+        "speech_driver_ms": 53,
         "page_turns": {
-          "fps": 144.6,
-          "longest_frame_ms": 30.3,
-          "frames": 291,
-          "turns": 29
+          "fps": 63.7,
+          "longest_frame_ms": 31.1,
+          "frames": 128,
+          "turns": 12
         }
       },
       "notes": [],
       "browser_version": "155.0",
       "screenshot": "compat-firefox-phone-size.png",
       "page_errors": [],
+      "failed_checks": [],
       "status": "passed"
     },
     {
@@ -352,41 +372,44 @@
         "service_worker": true,
         "offline_reload": true,
         "suggestions": true,
-        "speech": false
+        "speech": false,
+        "speech_fallback": true
       },
       "metrics": {
-        "cold_board_ms": 533,
+        "cold_board_ms": 595,
         "navigation": {
-          "dom_content_loaded_ms": 149,
-          "load_ms": 151,
-          "transferred_kb": 1721
+          "dom_content_loaded_ms": 147,
+          "load_ms": 148,
+          "transferred_kb": 1722
         },
-        "warm_board_ms": 360,
-        "offline_board_ms": 788,
+        "warm_board_ms": 393,
+        "offline_board_ms": 890,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 154,
-          "p95": 190,
+          "median": 166,
+          "p95": 203,
           "taps": 20
         },
         "page_turns": {
-          "fps": 13,
-          "longest_frame_ms": 532,
+          "fps": 12.8,
+          "longest_frame_ms": 566,
           "frames": 31,
           "turns": 3
         }
       },
       "notes": [
-        "Audio did not start in this headless engine; the message stays and Erekana remains available."
+        "Audio did not start in this headless engine; the message stayed and Erekana was offered. Speech start not measured."
       ],
       "browser_version": "26.6",
       "screenshot": "compat-webkit-ipad.png",
       "page_errors": [],
-      "status": "passed"
+      "failed_checks": [],
+      "status": "partial",
+      "coverage": "partial: no audio output in headless WebKit on Windows; speech start not measured"
     },
     {
       "id": "webkit-iphone",
@@ -399,41 +422,44 @@
         "service_worker": true,
         "offline_reload": true,
         "suggestions": true,
-        "speech": false
+        "speech": false,
+        "speech_fallback": true
       },
       "metrics": {
-        "cold_board_ms": 467,
+        "cold_board_ms": 435,
         "navigation": {
-          "dom_content_loaded_ms": 168,
-          "load_ms": 169,
-          "transferred_kb": 1082
+          "dom_content_loaded_ms": 151,
+          "load_ms": 152,
+          "transferred_kb": 1083
         },
-        "warm_board_ms": 284,
-        "offline_board_ms": 560,
+        "warm_board_ms": 285,
+        "offline_board_ms": 482,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 166,
-          "p95": 269,
+          "median": 138,
+          "p95": 188,
           "taps": 20
         },
         "page_turns": {
-          "fps": 24.6,
-          "longest_frame_ms": 266,
-          "frames": 49,
-          "turns": 5
+          "fps": 29.3,
+          "longest_frame_ms": 187,
+          "frames": 60,
+          "turns": 6
         }
       },
       "notes": [
-        "Audio did not start in this headless engine; the message stays and Erekana remains available."
+        "Audio did not start in this headless engine; the message stayed and Erekana was offered. Speech start not measured."
       ],
       "browser_version": "26.6",
       "screenshot": "compat-webkit-iphone.png",
       "page_errors": [],
-      "status": "passed"
+      "failed_checks": [],
+      "status": "partial",
+      "coverage": "partial: no audio output in headless WebKit on Windows; speech start not measured"
     }
   ]
 }

@@ -1,0 +1,169 @@
+{
+  "generated_at": "2026-11-02T21:32:58.808Z",
+  "baseURL": "http://127.0.0.1:4175/",
+  "profile": "Pixel 5",
+  "results": [
+    {
+      "cpu_slowdown": 1,
+      "browser": "155.0.4283.62",
+      "runs": [
+        {
+          "message": "WATER",
+          "driver_ms": 55,
+          "play_call_ms": 1,
+          "playing_ms": 76
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 47,
+          "play_call_ms": 1,
+          "playing_ms": 85
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 53,
+          "play_call_ms": 1,
+          "playing_ms": 79
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 55,
+          "play_call_ms": 1,
+          "playing_ms": 115
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 53,
+          "play_call_ms": 1,
+          "playing_ms": 101
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 70,
+          "play_call_ms": 1,
+          "playing_ms": 73
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 57,
+          "play_call_ms": 1,
+          "playing_ms": 91
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 57,
+          "play_call_ms": 1,
+          "playing_ms": 80
+        }
+      ]
+    },
+    {
+      "cpu_slowdown": 4,
+      "browser": "155.0.4283.62",
+      "runs": [
+        {
+          "message": "WATER",
+          "driver_ms": 157,
+          "play_call_ms": 5,
+          "playing_ms": 124
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 169,
+          "play_call_ms": 2,
+          "playing_ms": 97
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 117,
+          "play_call_ms": 2,
+          "playing_ms": 73
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 145,
+          "play_call_ms": 2,
+          "playing_ms": 108
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 166,
+          "play_call_ms": 5,
+          "playing_ms": 94
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 121,
+          "play_call_ms": 2,
+          "playing_ms": 73
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 198,
+          "play_call_ms": 3,
+          "playing_ms": 106
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 107,
+          "play_call_ms": 6,
+          "playing_ms": 118
+        }
+      ]
+    },
+    {
+      "cpu_slowdown": 6,
+      "browser": "155.0.4283.62",
+      "runs": [
+        {
+          "message": "WATER",
+          "driver_ms": 220,
+          "play_call_ms": 7,
+          "playing_ms": 196
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 135,
+          "play_call_ms": 4,
+          "playing_ms": 128
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 153,
+          "play_call_ms": 2,
+          "playing_ms": 112
+        },
+        {
+          "message": "WATER",
+          "driver_ms": 82,
+          "play_call_ms": 2,
+          "playing_ms": 86
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 168,
+          "play_call_ms": 2,
+          "playing_ms": 127
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 145,
+          "play_call_ms": 3,
+          "playing_ms": 118
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 162,
+          "play_call_ms": 4,
+          "playing_ms": 149
+        },
+        {
+          "message": "I WANT WATER",
+          "driver_ms": 181,
+          "play_call_ms": 1,
+          "playing_ms": 89
+        }
+      ]
+    }
+  ]
+}

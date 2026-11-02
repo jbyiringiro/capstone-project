@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-02T17:06:01.805Z",
+  "generated_at": "2026-11-02T21:39:28.908Z",
   "baseURL": "http://127.0.0.1:4175/",
   "checks": [
     {
@@ -57,6 +57,10 @@
     {
       "name": "On another new device the number signs in with its PIN; wrong PINs lock it, and a texted code sets a new PIN",
       "status": "passed"
+    },
+    {
+      "name": "A device with an older account copy never replaces the newer one: it signs in again with the new PIN, sees what differs and keeps the account’s",
+      "status": "passed"
     }
   ],
   "screenshots": [
@@ -67,10 +71,11 @@
     "parent-new-device-restored.png",
     "parent-unlock-mobile.png",
     "account-register-code.png",
-    "parent-forgot-account-sms.png"
+    "parent-forgot-account-sms.png",
+    "account-backup-choose.png"
   ],
   "pageErrors": [],
-  "total": 14,
+  "total": 15,
   "status": "passed",
   "note": "Isolated test context; test PINs are disposable. Background event is simulated; idle clock is advanced. This local gate does not authenticate an adult identity or protect against browser-storage access."
 }

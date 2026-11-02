@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "checked_at": "2026-11-02T17:05:43.139Z",
+  "checked_at": "2026-11-02T21:39:09.057Z",
   "passed_checks": 25,
   "browser": "Headless msedge",
   "base_url": "http://127.0.0.1:4175/",
@@ -408,7 +408,7 @@
     },
     {
       "screen": "profile dialog",
-      "visibleCharacters": 2308,
+      "visibleCharacters": 2351,
       "obsoleteEnglishMatches": 0
     },
     {

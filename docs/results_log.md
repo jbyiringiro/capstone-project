@@ -92,6 +92,33 @@ Recovered mean reduction 31.4%, bootstrap 95% CI [28.5, 34.2], paired t p < 0.00
 SUS mean 75.4; MDE at n = 20 with the simulated SD of 6.6 points is 3.8 points. The pipeline from
 trial CSV to the pre-specified report works end to end; the numbers are synthetic.
 
+### Simulated keystroke saving on the app's board, 2026-11-02
+
+`node app/scripts/export-board-layout.mjs` writes the default board (section tabs on, every one of
+the 188 words enabled, no place chosen: 14 sections), then
+`python -m vuga_ml.evaluate --data ml/data/processed --split validation --layout ml/data/processed/board_layout.json --page-size N`.
+Split v3, all 319 validation messages (every word is on the board); three suggestions masked to the
+board's words; the fewest all-action taps per message, Vuga included, with a section tab opening its
+first page, one tap per page turn, one per word and one per suggestion, which keeps the open page.
+
+| Keys per page | Static board | Unigram | KN trigram (deployed) | Saving, KN |
+|---|---|---|---|---|
+| 12 (4 × 3) | 3,662 | 3,439 | 2,981 | 18.6% |
+| 20 (5 × 4) | 3,050 | 2,972 | 2,611 | 14.4% |
+| 40 (8 × 5) | 2,560 | 2,512 | 2,277 | 11.1% |
+
+Below the proposal's 30% simulation target at every grid size; unigram suggestions save 1.9-6.1%.
+Larger pages need fewer page turns, which leaves suggestions less to save. The messages are filtered
+public text mapped to pictures, not AAC messages, so this is an estimate for the study, not a result.
+The earlier simulator modelled a home board with a Back key, which the board no longer has; no
+number from it had been reported.
+
+The same rules in `app/scripts/study-message-sets.mjs` (same totals per message as the Python
+simulator) show the study's two message sets are matched only on 12-key pages (62 static actions
+each). On 20-key pages set A needs 56 and set B 54, on 40-key pages 55 and 54, because *SLEEP* in A's
+"I tired want sleep" is on the third page of Ibikorwa. The study board's grid, or the sets, must be
+fixed before the sessions.
+
 ## Test results (frozen, written once)
 
 _Not yet run._
