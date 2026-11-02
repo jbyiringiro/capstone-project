@@ -2,33 +2,49 @@
 from .accounts import AccountService
 from .backups import BackupService
 from .catalogue import SymbolCatalogue
+from .codes import PhoneCodes
 from .errors import (
     Conflict,
+    InvalidCode,
     InvalidCredentials,
     InvalidInput,
     NotFound,
     NotOwned,
+    RetryLater,
     ServiceError,
+    SmsFailed,
     TooLarge,
+    TooManyCodes,
+    TooManyTries,
 )
 from .prediction import ModelRegistry
 from .profiles import ProfileService
+from .sms import AfricasTalkingSms, LogSms, SmsSender
 from .summary import SummaryService
 from .sync import SyncService
 
 __all__ = [
     "AccountService",
+    "AfricasTalkingSms",
     "BackupService",
     "Conflict",
+    "InvalidCode",
     "InvalidCredentials",
     "InvalidInput",
+    "LogSms",
     "ModelRegistry",
     "NotFound",
     "NotOwned",
+    "PhoneCodes",
     "ProfileService",
+    "RetryLater",
     "ServiceError",
+    "SmsFailed",
+    "SmsSender",
     "SummaryService",
     "SymbolCatalogue",
     "SyncService",
     "TooLarge",
+    "TooManyCodes",
+    "TooManyTries",
 ]

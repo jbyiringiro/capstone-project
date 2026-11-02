@@ -1,6 +1,10 @@
 """Service-layer unit tests: business rules checked directly on a session, without HTTP."""
+import io
+import json
 import uuid
 from datetime import UTC, datetime, timedelta
+from urllib.error import URLError
+from urllib.parse import parse_qs
 
 import pytest
 from sqlalchemy import create_engine, func, select
@@ -10,12 +14,14 @@ from sqlalchemy.pool import StaticPool
 from app import models, schemas
 from app.db import Base
 from app.services import (
+    AfricasTalkingSms,
     Conflict,
     InvalidInput,
     ModelRegistry,
     NotFound,
     NotOwned,
     ProfileService,
+    SmsFailed,
     SummaryService,
     SymbolCatalogue,
     SyncService,
@@ -189,3 +195,38 @@ def test_model_registry_returns_none_until_an_artefact_exists(tmp_path):
     (tmp_path / "odd.json").write_text('{"type": "lstm"}', encoding="utf-8")
     with pytest.raises(ValueError, match="unsupported model type"):
         registry.get("odd.json")
+
+
+def _africas_talking(reply, sent=None, **options):
+    """The sender with Africa's Talking replaced by `reply`: an answer to return, or an error."""
+    def open_url(request, timeout):
+        if sent is not None:
+            sent.append(request)
+        if isinstance(reply, Exception):
+            raise reply
+        return io.BytesIO(reply if isinstance(reply, bytes) else json.dumps(reply).encode())
+    return AfricasTalkingSms(options.pop("username", "sandbox"), "key-1", open_url=open_url, **options)
+
+
+def _recipients(*codes):
+    return {"SMSMessageData": {"Message": f"Sent to {codes.count(101)}/{len(codes)}", "Recipients": [
+        {"statusCode": code, "number": "+250788123456", "status": "Success" if code == 101 else "Failed",
+         "cost": "RWF 15.0000", "messageId": "ATXid_1"} for code in codes]}}
+
+
+def test_africas_talking_gets_the_number_text_and_key_and_its_refusals_are_failures():
+    sent = []
+    _africas_talking(_recipients(101), sent).send("+250788123456", "Vuga: kode ni 123456")
+    request = sent[-1]
+    assert request.full_url == "https://api.sandbox.africastalking.com/version1/messaging"
+    assert request.get_method() == "POST" and request.get_header("Apikey") == "key-1"
+    assert request.get_header("Accept") == "application/json"
+    assert parse_qs(request.data.decode()) == {"username": ["sandbox"], "to": ["+250788123456"],
+                                               "message": ["Vuga: kode ni 123456"]}
+    _africas_talking(_recipients(102), sent, username="vuga", sender_id="VUGA").send("+250788123456", "x")
+    assert sent[-1].full_url == "https://api.africastalking.com/version1/messaging"
+    assert parse_qs(sent[-1].data.decode())["from"] == ["VUGA"]
+    for reply in (_recipients(405), _recipients(), {"error": "bad"}, b"<html>busy</html>",
+                  URLError("no route to host")):
+        with pytest.raises(SmsFailed):
+            _africas_talking(reply).send("+250788123456", "x")

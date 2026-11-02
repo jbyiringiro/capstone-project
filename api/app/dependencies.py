@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from . import models
 from .db import get_db
 from .security import current_user
-from .services import NotFound, ProfileService
+from .services import NotFound, ProfileService, SmsSender
 from .services.prediction import Predictor
 
 DbSession = Annotated[Session, Depends(get_db)]
@@ -35,3 +35,13 @@ def get_model() -> Predictor | None:
 
 
 ServedModel = Annotated[Predictor | None, Depends(get_model)]
+
+
+def get_sms() -> SmsSender:
+    """The SMS sender for codes, chosen in the composition root (app.main); tests replace it."""
+    from . import main
+
+    return main.sms
+
+
+Sms = Annotated[SmsSender, Depends(get_sms)]

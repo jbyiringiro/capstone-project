@@ -1,5 +1,6 @@
 """ORM models: one class per table in the proposal ERD (Figure 7, eleven tables), plus the
-caregiver's account backup added in the final version.
+caregiver's account backup, the SMS codes that confirm mobile numbers and the count of wrong PINs,
+added in the final version.
 
 Privacy rules from NFR4 are enforced at the schema level: child_profiles carries a pseudonymous
 `code` and age band only, never a name, photo or date of birth. The account backup is the
@@ -25,8 +26,9 @@ class User(Base):
     __tablename__ = "users"
     user_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(120))
-    phone: Mapped[str] = mapped_column(String(32), unique=True)
+    phone: Mapped[str] = mapped_column(String(32), unique=True)  # +2507XXXXXXXX, confirmed by SMS
     role: Mapped[str] = mapped_column(String(16))  # teacher | caregiver | administrator
+    # The caregiver's PIN, which also opens the caregiver area on each device signed in to it.
     password_hash: Mapped[str] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -162,3 +164,29 @@ class AccountBackup(Base):
     data: Mapped[str] = mapped_column(Text)  # JSON
     size: Mapped[int] = mapped_column(Integer)  # bytes of `data`
     saved_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class PhoneCode(Base):
+    """The last code texted to a mobile number for one purpose: opening an account, or setting a
+    new PIN. Only a keyed hash of the code is kept; it works once, for a few tries, until it
+    expires. The send count limits how many texts one number gets in an hour."""
+
+    __tablename__ = "phone_codes"
+    phone: Mapped[str] = mapped_column(String(32), primary_key=True)
+    purpose: Mapped[str] = mapped_column(String(16), primary_key=True)  # register | reset
+    code_hash: Mapped[str | None] = mapped_column(String(64))  # None once used or tried too often
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)  # wrong tries of this code
+    sent_at: Mapped[datetime] = mapped_column(DateTime)
+    sends: Mapped[int] = mapped_column(Integer, default=0)  # codes sent since window_start
+    window_start: Mapped[datetime] = mapped_column(DateTime)
+
+
+class LoginAttempt(Base):
+    """Wrong PINs for an account's number. A short PIN is safe online only because five wrong
+    tries lock the number for a while."""
+
+    __tablename__ = "login_attempts"
+    phone: Mapped[str] = mapped_column(String(32), primary_key=True)
+    failures: Mapped[int] = mapped_column(Integer, default=0)  # wrong PINs since the last lock
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime)

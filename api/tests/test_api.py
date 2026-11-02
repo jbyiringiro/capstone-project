@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -14,22 +15,50 @@ from fastapi.testclient import TestClient
 from app import models
 from app.config import settings
 from app.db import Base, SessionLocal, engine
+from app.dependencies import get_sms
 from app.main import app
+from app.schemas import normalise_phone
+from app.services import SmsFailed, codes
+
+
+class Outbox:
+    """Stands in for the SMS service: keeps every text, so a test reads the code a caregiver would."""
+
+    def __init__(self):
+        self.texts = []
+
+    def send(self, phone, text):
+        self.texts.append((phone, text))
+
+    def code(self, phone):
+        text = next(text for to, text in reversed(self.texts) if to == normalise_phone(phone))
+        return re.search(r"\b\d{6}\b", text).group()
+
+
+def _other(code):
+    return "000000" if code != "000000" else "111111"
 
 
 @pytest.fixture
 def client():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+    outbox = Outbox()
+    app.dependency_overrides[get_sms] = lambda: outbox
     with TestClient(app) as c:
+        c.sms = outbox
         yield c
+    app.dependency_overrides.clear()
     Base.metadata.drop_all(engine)
     engine.dispose()
 
 
 def _auth(client, phone="0780000001", role="teacher"):
-    client.post("/auth/register", json={"name": "T", "phone": phone, "role": role, "password": "secret1"})
-    r = client.post("/auth/login", data={"username": phone, "password": "secret1"})
+    """Opens an account for the number if it has none, with the texted code, and signs in."""
+    if client.post("/auth/code", json={"phone": phone, "purpose": "register"}).status_code == 202:
+        client.post("/auth/register", json={"name": "T", "phone": phone, "code": client.sms.code(phone),
+                                            "role": role, "pin": "2468"})
+    r = client.post("/auth/login", data={"username": phone, "password": "2468"})
     assert r.status_code == 200, r.text
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
@@ -112,11 +141,14 @@ def _message(profile_id):
             "board_mode": "static", "events": events}
 
 
-def test_public_registration_cannot_create_admin_and_password_limits(client):
-    body = {"name": "Teacher", "phone": "0780000020", "password": "secret1"}
+def test_public_registration_cannot_create_admin_and_takes_a_four_to_six_digit_pin(client):
+    assert client.post("/auth/code", json={"phone": "0780000020", "purpose": "register"}).status_code == 202
+    body = {"phone": "0780000020", "code": client.sms.code("0780000020"), "pin": "2468"}
     assert client.post("/auth/register", json={**body, "role": "administrator"}).status_code == 422
-    assert client.post("/auth/register", json={**body, "password": "é" * 37}).status_code == 422
-    assert client.post("/auth/register", json=body).status_code == 201
+    for pin in ("123", "1234567", "12a4", "secret1", "é" * 37):
+        assert client.post("/auth/register", json={**body, "pin": pin}).status_code == 422
+    r = client.post("/auth/register", json=body)
+    assert r.status_code == 201 and r.json()["name"] == ""
     assert client.post("/auth/login", data={"username": body["phone"], "password": "x" * 73}).status_code == 401
     headers = _auth(client, body["phone"])
     assert client.post("/symbols/import", headers=headers).status_code == 403
@@ -247,3 +279,141 @@ def test_backup_needs_an_account_a_known_format_and_stays_under_its_size_limit(c
     monkeypatch.setattr(settings, "max_backup_bytes", 200)
     assert client.put("/backup", json=_snapshot(words=10), headers=h).status_code == 413
     assert client.get("/backup/status", headers=h).json()["saved_at"] is None
+
+
+def test_a_phone_number_is_a_rwandan_mobile_kept_in_one_form():
+    for spelling in ("0788123456", "0788 123 456", "+250 788 123 456", "250788123456",
+                     "00250-788-123-456", "788123456", "(078) 812-3456"):
+        assert normalise_phone(spelling) == "+250788123456"
+    for number in ("0722123456", "0732123456", "0792123456"):
+        assert normalise_phone(number) == "+250" + number[1:]
+    for wrong in ("", "0788", "07881234567", "0748123456", "+254712345678", "07881234ab"):
+        with pytest.raises(ValueError):
+            normalise_phone(wrong)
+
+
+def test_an_account_opens_only_with_the_code_texted_to_its_number(client):
+    body = {"name": "Mama Keza", "phone": "0788 123 456", "pin": "2468"}
+    assert client.post("/auth/register", json={**body, "code": "123456"}).status_code == 400
+    sent = client.post("/auth/code", json={"phone": "0788 123 456", "purpose": "register"})
+    assert sent.status_code == 202 and sent.json() == {"resend_after": 60, "expires_in": 600}
+    [(to, text)] = client.sms.texts
+    assert to == "+250788123456" and text.startswith("Vuga:") and text.isascii() and len(text) <= 160
+    code = client.sms.code(to)
+    with SessionLocal() as db:
+        kept = db.get(models.PhoneCode, (to, "register")).code_hash
+    assert len(kept) == 64 and code not in kept
+    assert client.post("/auth/register", json={**body, "code": _other(code)}).status_code == 400
+    r = client.post("/auth/register", json={**body, "code": code})
+    assert r.status_code == 201, r.text
+    assert r.json()["phone"] == "+250788123456"
+    for spelling in ("0788123456", "+250 788 123 456", "250788123456"):
+        assert client.post("/auth/login", data={"username": spelling, "password": "2468"}).status_code == 200
+    # One account for a number: no second code and no second account.
+    assert client.post("/auth/code", json={"phone": "+250788123456", "purpose": "register"}).status_code == 409
+    assert client.post("/auth/register", json={**body, "code": code}).status_code == 409
+    assert len(client.sms.texts) == 1
+    assert client.post("/auth/code", json={"phone": "0748 123 456", "purpose": "register"}).status_code == 422
+    assert client.post("/auth/login", data={"username": "not a phone", "password": "2468"}).status_code == 401
+
+
+def test_a_code_works_once_for_a_few_tries_and_a_number_gets_few_texts(client, monkeypatch):
+    start = codes._now()
+    clock = [start]
+    monkeypatch.setattr(codes, "_now", lambda: clock[0])
+    body = {"phone": "0788123456", "pin": "2468"}
+    ask = lambda: client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"})
+    register = lambda code: client.post("/auth/register", json={**body, "code": code}).status_code
+    assert ask().status_code == 202
+    # Another code only after a minute; the wait is in the body and the Retry-After header.
+    early = ask()
+    assert early.status_code == 429 and early.json()["retry_after"] == 60 and early.headers["Retry-After"] == "60"
+    # Five wrong tries spend the code.
+    code = client.sms.code("0788123456")
+    for _ in range(5):
+        assert register(_other(code)) == 400
+    assert register(code) == 400
+    # A code works for ten minutes.
+    clock[0] += timedelta(seconds=61)
+    assert ask().status_code == 202
+    clock[0] += timedelta(minutes=10)
+    assert register(client.sms.code("0788123456")) == 400
+    # Five texts an hour at most to one number.
+    for _ in range(3):
+        clock[0] += timedelta(seconds=61)
+        assert ask().status_code == 202
+    clock[0] += timedelta(seconds=61)
+    capped = ask()
+    assert capped.status_code == 429 and capped.json()["retry_after"] > 60 * 40
+    assert len(client.sms.texts) == 5
+    clock[0] = start + timedelta(hours=1, seconds=1)
+    assert ask().status_code == 202
+    assert register(client.sms.code("0788123456")) == 201
+
+
+def test_a_forgotten_pin_is_replaced_with_a_texted_code_which_also_lifts_a_lock(client):
+    _auth(client, "0788123456")
+    texts = len(client.sms.texts)
+    # A number without an account is told so, and gets no text.
+    assert client.post("/auth/code", json={"phone": "0722000000", "purpose": "reset"}).status_code == 404
+    assert len(client.sms.texts) == texts
+    assert client.post("/auth/reset-pin", json={"phone": "0722000000", "code": "123456", "pin": "1357"}).status_code == 404
+    assert client.post("/auth/code", json={"phone": "+250 788 123 456", "purpose": "reset"}).status_code == 202
+    to, text = client.sms.texts[-1]
+    assert to == "+250788123456" and "ijambobanga" in text
+    code = client.sms.code(to)
+    # Five wrong PINs had locked the number; the texted code lifts the lock.
+    for _ in range(5):
+        client.post("/auth/login", data={"username": "0788123456", "password": "0000"})
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).status_code == 429
+    reset = lambda code, pin: client.post("/auth/reset-pin", json={"phone": "0788123456", "code": code, "pin": pin}).status_code
+    assert reset(_other(code), "1357") == 400
+    assert reset(code, "short") == 422
+    assert reset(code, "1357") == 204
+    assert reset(code, "9753") == 400
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).status_code == 401
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "1357"}).status_code == 200
+
+
+def test_a_text_the_sms_service_refuses_is_reported_and_leaves_no_wait(client):
+    class Down:
+        def send(self, phone, text):
+            raise SmsFailed("could not send the code")
+
+    app.dependency_overrides[get_sms] = Down
+    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"}).status_code == 502
+    app.dependency_overrides[get_sms] = lambda: client.sms
+    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"}).status_code == 202
+
+
+def test_five_wrong_pins_lock_the_number_for_fifteen_minutes(client, monkeypatch):
+    _auth(client, "0788123456")
+    start = codes._now()
+    clock = [start]
+    monkeypatch.setattr(codes, "_now", lambda: clock[0])
+    login = lambda pin: client.post("/auth/login", data={"username": "0788123456", "password": pin})
+    for _ in range(4):
+        assert login("0000").status_code == 401
+    # The fifth wrong PIN locks the number, and the lock holds even for the right PIN.
+    locked = login("0000")
+    assert locked.status_code == 429 and locked.json()["retry_after"] == 15 * 60
+    assert login("2468").status_code == 429
+    # A right PIN clears the count, so wrong ones are counted afresh after the lock.
+    clock[0] = start + timedelta(minutes=15, seconds=1)
+    assert login("2468").status_code == 200
+    for _ in range(4):
+        assert login("0000").status_code == 401
+    assert login("2468").status_code == 200
+    assert login("0000").status_code == 401
+    # Another number is not affected.
+    _auth(client, "0722000000")
+
+
+def test_a_pin_is_changed_with_the_current_one(client):
+    _auth(client, "0788123456")
+    change = lambda pin, new_pin: client.post("/auth/change-pin", json={"phone": "0788 123 456", "pin": pin, "new_pin": new_pin}).status_code
+    assert change("0000", "1357") == 401
+    assert change("2468", "13") == 422
+    assert change("2468", "1357") == 204
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).status_code == 401
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "1357"}).status_code == 200

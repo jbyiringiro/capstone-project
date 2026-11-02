@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     # A caregiver's backup holds their custom-word photos and voice recordings.
     max_backup_bytes: int = 25 * 1024 * 1024
+    # The codes that confirm a caregiver's mobile number go out through Africa's Talking once an
+    # API key is set; the username "sandbox" uses their free sandbox and its phone simulator.
+    # Without a key the API writes each code to its log, which is enough on a developer machine.
+    africastalking_username: str = "sandbox"
+    africastalking_api_key: str | None = None
+    africastalking_sender_id: str | None = None  # a registered sender name, if the account has one
 
 
 settings = Settings()

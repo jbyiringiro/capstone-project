@@ -12,7 +12,7 @@ class ServiceError(Exception):
 
 
 class InvalidCredentials(ServiceError):
-    """Unknown phone or wrong password (401)."""
+    """Unknown phone or wrong PIN (401)."""
 
 
 class NotOwned(ServiceError):
@@ -33,3 +33,27 @@ class InvalidInput(ServiceError):
 
 class TooLarge(ServiceError):
     """An upload over its size limit (413)."""
+
+
+class InvalidCode(ServiceError):
+    """A wrong, used or expired SMS code (400)."""
+
+
+class RetryLater(ServiceError):
+    """A request refused for now (429); `retry_after` is in seconds."""
+
+    def __init__(self, detail: str, retry_after: int) -> None:
+        super().__init__(detail)
+        self.retry_after = retry_after
+
+
+class TooManyCodes(RetryLater):
+    """Another SMS code asked for too soon (429)."""
+
+
+class TooManyTries(RetryLater):
+    """Five wrong PINs for a number: it is locked for a while (429)."""
+
+
+class SmsFailed(ServiceError):
+    """The SMS service did not take the message (502)."""

@@ -1,33 +1,82 @@
 from __future__ import annotations
 
+import re
 from itertools import pairwise
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 Role = Literal["teacher", "caregiver", "administrator"]
 ActionType = Literal["select", "navigate", "correct", "speak"]
 BoardMode = Literal["static", "predictive"]
+CodePurpose = Literal["register", "reset"]
+
+# A Rwandan mobile number (MTN 078 and 079, Airtel 072 and 073) in any usual spelling. It is kept
+# as +2507XXXXXXXX, the form SMS services take, so 0788 123 456 and +250 788 123 456 are one account.
+_RWANDAN_MOBILE = re.compile(r"7[2389]\d{7}")
+
+
+def normalise_phone(value: str) -> str:
+    digits = re.sub(r"[\s().-]", "", value)
+    for prefix in ("+250", "00250", "250", "0"):
+        if digits.startswith(prefix) and len(digits) == len(prefix) + 9:
+            digits = digits[len(prefix):]
+            break
+    if not _RWANDAN_MOBILE.fullmatch(digits):
+        raise ValueError("phone must be a Rwandan mobile number, such as 0788 123 456")
+    return f"+250{digits}"
+
+
+MobileNumber = Annotated[str, Field(max_length=32), AfterValidator(normalise_phone)]
+# One PIN of four to six digits opens the caregiver area on each device and signs in to the
+# account; five wrong tries lock the number for a while (services/accounts.py).
+Pin = Annotated[str, Field(pattern=r"^\d{4,6}$")]
+SmsCode = Annotated[str, Field(pattern=r"^\d{6}$")]
+
+
+class CodeRequest(BaseModel):
+    phone: MobileNumber
+    purpose: CodePurpose
+
+
+class CodeSent(BaseModel):
+    resend_after: int  # seconds before another code may be asked for
+    expires_in: int  # seconds the code works
 
 
 class UserCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=120)
-    phone: str = Field(min_length=1, max_length=32)
+    name: str = Field(default="", max_length=120)  # optional: the number identifies the account
+    phone: MobileNumber
+    code: SmsCode  # texted to `phone`: the caregiver holds the number
     # Privileged accounts must be provisioned by the deployment operator.
     role: Literal["teacher", "caregiver"] = "teacher"
-    password: str = Field(min_length=6)
+    pin: Pin
 
-    @field_validator("name", "phone", mode="before")
+    @field_validator("name", mode="before")
     @classmethod
-    def trim_identity(cls, value):
+    def trim_name(cls, value):
         return value.strip() if isinstance(value, str) else value
 
-    @field_validator("password")
-    @classmethod
-    def bcrypt_length(cls, value: str) -> str:
-        if len(value.encode("utf-8")) > 72:
-            raise ValueError("password must be at most 72 UTF-8 bytes")
-        return value
+
+class PinReset(BaseModel):
+    """A forgotten PIN replaced with the code texted to the number."""
+
+    phone: MobileNumber
+    code: SmsCode
+    pin: Pin
+
+
+class PinChange(BaseModel):
+    phone: MobileNumber
+    pin: str = Field(max_length=72)  # the current PIN, checked like a sign-in
+    new_pin: Pin
 
 
 class UserOut(BaseModel):
