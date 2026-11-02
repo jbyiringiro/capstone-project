@@ -72,8 +72,11 @@ async function settings() {
   const gate = page.locator('.parent-access')
   await expect(gate).toBeVisible()
   await expect(gate).toHaveAttribute('data-mode', /setup|unlock/)
+  const setup = await gate.getAttribute('data-mode') === 'setup'
+  // A first setup offers the caregiver's number; these checks keep the PIN on this device only.
+  if (setup) await gate.getByRole('button', { name: 'Komeza nta nimero', exact: true }).click()
   await gate.getByLabel('Umubare w’ibanga', { exact: true }).fill('629418')
-  if (await gate.getAttribute('data-mode') === 'setup') {
+  if (setup) {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('629418')
     await gate.getByRole('button', { name: 'Bika kandi winjire', exact: true }).click()
     await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
@@ -187,8 +190,14 @@ try {
     await expect(tile('I')).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'rw')
     await expect(rwPlay()).toBeVisible()
-    // The child sees one section the caregiver chose, with no section tabs to manage.
-    await expect(board.locator('.category-bar, .category-button')).toHaveCount(0)
+    // A new device opens with the section tabs, at Ingenzi, and three word suggestions (Birashoboka).
+    const sections = board.getByRole('navigation', { name: 'Ibyiciro', exact: true }).getByRole('button')
+    await expect(sections.first()).toHaveAccessibleName('Ingenzi')
+    await expect(sections.first()).toHaveAttribute('aria-pressed', 'true')
+    await expect(board.locator('.suggestion-label')).toHaveText('Birashoboka')
+    await expect(board.locator('.suggestion-tile')).toHaveCount(3)
+    const sectionTabs = await sections.count()
+    expect(sectionTabs).toBeGreaterThan(10)
     for (const width of [1280, 1024, 768]) {
       await page.setViewportSize({ width, height: 900 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
@@ -201,7 +210,7 @@ try {
     expect((await storage()).settings.find(setting => setting.key === 'speech-mode')?.value).toBe('kinyarwanda')
     await auditLanguage('board')
     await screenshot('board-desktop')
-    return { documentLanguage: 'rw', sectionTabs: 0, installedVoicesAvailableToTest: 0 }
+    return { documentLanguage: 'rw', sectionTabs, wordSuggestions: 3, installedVoicesAvailableToTest: 0 }
   })
 
   await check('All 188 licensed online photos have attribution, are precached, match their manifest and decode at 480 square', async () => {
@@ -351,6 +360,9 @@ try {
   })
 
   await check('Real predictions provide three allowed suggestions without moving the main grid', async () => {
+    // Suggestions are on by default: turned off, the board gives the positions to compare with.
+    await settings(); await tab('Ikibaho'); await setToggle('Amagambo afasha', false); await back()
+    await expect(board.locator('.suggestion-tile')).toHaveCount(0)
     const staticPositions = await positions()
     await settings(); await tab('Ikibaho'); await setToggle('Amagambo afasha', true); await back()
     await expect(board.locator('.suggestion-tile')).toHaveCount(3)
@@ -369,7 +381,9 @@ try {
     let draftId
     await expect.poll(async () => {
       const data = await storage()
-      draftId = data.messages.filter(message => message.board_mode === 'predictive').at(-1)?.message_id
+      // The newest draft: the store lists messages by ID, not by time.
+      draftId = data.messages.filter(message => message.board_mode === 'predictive' && !message.spoken_at)
+        .sort((a, b) => new Date(a.started_at) - new Date(b.started_at)).at(-1)?.message_id
       return data.tap_events.filter(event => event.message_id === draftId).length
     }).toBe(5)
     const events = (await storage()).tap_events.filter(event => event.message_id === draftId).sort((a, b) => a.action_index - b.action_index)
@@ -555,11 +569,17 @@ try {
     await auditLanguage('completed message summary')
     await tab('Ohereza')
     await expect(page.getByRole('button', { name: 'Ohereza ubu', exact: true })).toBeDisabled()
-    await page.getByRole('button', { name: 'Injira', exact: true }).click()
-    expect(await page.getByRole('textbox', { name: 'Telefoni', exact: true }).evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni yawe.')
-    await page.getByRole('button', { name: 'Fungura konti y’umuntu mukuru', exact: true }).click()
-    await auditLanguage('account registration')
-    await page.getByRole('button', { name: 'Mfite konti', exact: true }).click()
+    // The device has no number yet: Ohereza sends the caregiver to Kwinjira to add one.
+    await page.getByRole('button', { name: 'Jya muri Kwinjira', exact: true }).click()
+    const account = page.getByRole('region', { name: 'Nimero ya telefoni', exact: true })
+    await account.getByRole('button', { name: 'Ohereza kode', exact: true }).click()
+    const number = account.getByRole('textbox', { name: /^Nimero ya telefoni/ })
+    expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni yawe.')
+    await number.fill('12345')
+    expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni igendanwa yo mu Rwanda, nka 0788 123 456.')
+    await number.fill('')
+    await auditLanguage('account by mobile number')
+    await tab('Ohereza')
     const pending = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Kuramo ubutumwa bwo kuri iki gikoresho', exact: true }).click()
     const download = await pending

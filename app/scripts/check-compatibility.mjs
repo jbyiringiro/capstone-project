@@ -49,8 +49,11 @@ async function unlockCaregiver(page, board) {
   await page.keyboard.press('Enter')
   const gate = page.locator('.parent-access')
   await expect(gate).toHaveAttribute('data-mode', /setup|unlock/)
+  const setup = await gate.getAttribute('data-mode') === 'setup'
+  // A first setup offers the caregiver's number; these checks keep the PIN on this device only.
+  if (setup) await gate.getByRole('button', { name: 'Komeza nta nimero', exact: true }).click()
   await gate.getByLabel('Umubare w’ibanga', { exact: true }).fill('583104')
-  if (await gate.getAttribute('data-mode') === 'setup') {
+  if (setup) {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('583104')
     await gate.getByRole('button', { name: 'Bika kandi winjire', exact: true }).click()
     await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
@@ -77,6 +80,8 @@ async function run(entry, port) {
   })
   const page = await context.newPage()
   page.setDefaultTimeout(entry.cpu ? 60000 : 20000)
+  // The board's load times are measured, so waiting for it allows as long as any other step.
+  const usable = { timeout: entry.cpu ? 60000 : 20000 }
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   const board = page.locator('.board:visible')
@@ -93,7 +98,7 @@ async function run(entry, port) {
     // 1. Cold load: nothing cached, the board is usable when its first tile can be pressed.
     result.metrics.cold_board_ms = await timed(async () => {
       await page.goto(server.resolvedUrls.local[0], { waitUntil: 'commit' })
-      await expect(board.locator('.symbol-grid .symbol-tile').first()).toBeEnabled()
+      await expect(board.locator('.symbol-grid .symbol-tile').first()).toBeEnabled(usable)
     })
     result.metrics.navigation = await page.evaluate(() => {
       const nav = performance.getEntriesByType('navigation')[0]
@@ -113,13 +118,13 @@ async function run(entry, port) {
       await page.waitForFunction(async () => (await caches.keys()).some(key => key.includes('precache')), null, { timeout: 120000 })
       result.metrics.warm_board_ms = await timed(async () => {
         await page.reload({ waitUntil: 'commit' })
-        await expect(board.locator('.symbol-grid .symbol-tile').first()).toBeEnabled()
+        await expect(board.locator('.symbol-grid .symbol-tile').first()).toBeEnabled(usable)
       })
       await stopServer(server)
       online = false
       result.metrics.offline_board_ms = await timed(async () => {
         await page.reload({ waitUntil: 'commit' })
-        await expect(board.locator('.symbol-grid .symbol-tile').first()).toBeEnabled()
+        await expect(board.locator('.symbol-grid .symbol-tile').first()).toBeEnabled(usable)
       })
       result.checks.offline_reload = await board.locator('.symbol-grid img').first().evaluate(img => img.complete && img.naturalWidth > 0)
     } else result.notes.push('No service worker in this engine/headless build: warm and offline reloads not measured.')
@@ -180,10 +185,15 @@ async function run(entry, port) {
     }
 
     // 6. Frame rate while turning pages of every picture back and forth. The board fits the screen
-    // and does not scroll, so page turns are where the grid re-renders. The caregiver chooses the
-    // section: "Amashusho yose" has several pages on every screen.
+    // and does not scroll, so page turns are where the grid re-renders. The caregiver turns the
+    // section tabs off and chooses the section: "Amashusho yose" has several pages on every screen.
     await unlockCaregiver(page, board)
     await page.getByRole('navigation', { name: 'Ibyiciro by’umurezi', exact: true }).getByRole('button', { name: 'Ikibaho', exact: true }).click()
+    const sectionTabs = page.getByRole('switch', { name: 'Ibyiciro ku kibaho cy’umwana', exact: true })
+    if (await sectionTabs.isChecked()) {
+      await sectionTabs.click()
+      await expect(page.locator('.dash-save-note')).toContainText('Ibyatoranyijwe byabitswe')
+    }
     await page.locator('.dash-section-options label').filter({ hasText: /^Amashusho yose$/ }).click()
     await expect(page.locator('.dash-save-note')).toContainText('Ibyatoranyijwe byabitswe')
     await page.locator('.dash .app-header').getByRole('button', { name: 'Subira ku kibaho', exact: true }).click()

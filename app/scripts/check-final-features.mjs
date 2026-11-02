@@ -35,7 +35,7 @@ const tiles = () => board.locator('.symbol-grid .symbol-tile')
 const chips = () => board.locator('.message-tray .message-chip')
 const suggestionKeys = () => board.locator('.suggestion-row [data-symbol]').evaluateAll(cells => cells.map(cell => cell.dataset.symbol))
 const tab = name => page.getByRole('navigation', { name: 'Ibyiciro by’umurezi', exact: true }).getByRole('button', { name, exact: true }).click()
-// The child's board has no section tabs: the caregiver chooses the section in Ikibaho.
+// The caregiver chooses the section in Ikibaho; these checks run with the section tabs off.
 async function category(name) {
   await caregiver()
   await tab('Ikibaho')
@@ -60,8 +60,11 @@ async function caregiver() {
   await page.keyboard.press('Enter')
   const gate = page.locator('.parent-access')
   await expect(gate).toHaveAttribute('data-mode', /setup|unlock/)
+  const setup = await gate.getAttribute('data-mode') === 'setup'
+  // A first setup offers the caregiver's number; these checks keep the PIN on this device only.
+  if (setup) await gate.getByRole('button', { name: 'Komeza nta nimero', exact: true }).click()
   await gate.getByLabel('Umubare w’ibanga', { exact: true }).fill('730521')
-  if (await gate.getAttribute('data-mode') === 'setup') {
+  if (setup) {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('730521')
     await gate.getByRole('button', { name: 'Bika kandi winjire', exact: true }).click()
     await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
@@ -125,6 +128,14 @@ async function stored() {
 try {
   await page.goto(baseURL)
   await expect(board).toBeVisible()
+  // A new device opens with the section tabs and word suggestions on (the Kinyarwanda suite's first
+  // check). These checks pick the section in Ikibaho, which needs the tabs off; the section check
+  // below turns them on and off again.
+  await expect(board.locator('.category-bar')).toBeVisible()
+  await caregiver()
+  await tab('Ikibaho')
+  await setSwitch('Ibyiciro ku kibaho cy’umwana', false)
+  await back()
 
   let customKey
   await check('A caregiver adds a word from a phone photo; the picture is cropped square and stored on the device only', async () => {
@@ -289,9 +300,11 @@ try {
   await check('Personal suggestions need word suggestions on and lift a word this child uses after "I"', async () => {
     await caregiver()
     await tab('Ikibaho')
-    await expect(page.getByRole('switch', { name: 'Amagambo umwana akunze gukoresha', exact: true })).toBeDisabled()
+    const personal = page.getByRole('switch', { name: 'Amagambo umwana akunze gukoresha', exact: true })
+    await setSwitch('Amagambo afasha', false)
+    await expect(personal).toBeDisabled()
     await setSwitch('Amagambo afasha', true)
-    await expect(page.getByRole('switch', { name: 'Amagambo umwana akunze gukoresha', exact: true })).toBeEnabled()
+    await expect(personal).toBeEnabled()
     await back()
     await board.locator('.symbol-grid [data-symbol="I"]').click()
     const base = await suggestionKeys()
@@ -523,7 +536,7 @@ try {
     await back()
   })
 
-  await check('The child’s board has no section tabs: the caregiver picks the section, or every picture in pages, and can bring the tabs back', async () => {
+  await check('With the section tabs turned off, the caregiver picks the section, or every picture in pages, and can bring the tabs back', async () => {
     await expect(board.locator('.category-bar')).toHaveCount(0)
     await category('Inyamaswa')
     await expect(board.locator('.symbol-grid [data-symbol="COW"]')).toBeVisible()
