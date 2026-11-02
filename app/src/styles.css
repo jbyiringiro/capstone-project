@@ -27,7 +27,7 @@ small { font-weight: 400; color: var(--muted); }
 .icon img, .icon svg { width: 100%; height: 100%; object-fit: contain; display: block; }
 .symbol-artwork { display: inline-flex; width: 100%; height: 100%; align-items: center; justify-content: center; }
 .symbol-artwork img, .symbol-artwork svg { width: 100%; height: 100%; object-fit: contain; display: block; }
-.symbol-artwork--photo { border-radius: 14px; overflow: hidden; background: #fff; }
+.symbol-artwork--photo { border-radius: 14px; overflow: hidden; background: transparent; }
 .symbol-artwork--photo img { object-fit: contain; }
 .symbol-artwork .glyph { font-size: 48px; line-height: 1; }
 .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--teal); background: transparent; padding: 0; text-decoration: none; flex: 0 0 auto; }
@@ -60,6 +60,14 @@ button.brand { min-height: 48px; }
 .loading { max-width: 620px; padding: 64px 24px; margin: 0 auto; line-height: 1.7; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
 .no-motion *, .no-motion *::before, .no-motion *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+/* Caregiver screens: a white page with few colours. Teal marks actions and choices; red is kept for errors. */
+:root:has(.dash, .parent-access) { background: #fff; }
+.dash, .parent-access { --paper: #fff; --cream: #fff; --muted: #5d6866; --line: #e2e5e4; --line-strong: #b6bdbb; --soft: #f4f5f5; --mint: #e8f1ef; --danger-soft: #fbefed; }
+.dash .button-outline, .dash .ghost, .parent-access .button-outline { border-color: var(--line-strong); }
+.dash .button-soft { background: var(--soft); border-color: var(--line); }
+/* A text box in focus turns its border teal instead of showing the orange ring. */
+.dash :is(input:not([type=checkbox], [type=radio]), select, textarea):focus-visible { outline: none; border-color: var(--teal); }
+.dash .dash-search:focus-within { border-color: var(--teal); }
 @media (max-width: 640px) {
   .app-header { min-height: 80px; padding: 12px 17px; gap: 12px; }
   .brand { gap: 8px; }

@@ -1,13 +1,16 @@
 {
   "name": "vuga-app",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run"
+    "preview": "vite preview --host 127.0.0.1 --port 4175 --strictPort",
+    "test": "vitest run",
+    "test:browser": "node scripts/check-kinyarwanda-browser.mjs && node scripts/check-parent-access.mjs && node scripts/check-final-features.mjs && node scripts/check-child-mode.mjs",
+    "test:compat": "node scripts/check-compatibility.mjs",
+    "bench": "node scripts/bench-predictor.mjs"
   },
   "dependencies": {
     "dexie": "^4.0.8",
