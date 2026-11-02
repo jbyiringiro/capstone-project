@@ -1,5 +1,8 @@
 """Generate and verify Vuga's synthetic Kinyarwanda word clips locally.
 
+--forms makes the sentence words (ndashaka, uri he, mu rugo) listed in app/src/grammar/grammar_rw.json
+as small MP3 clips in app/public/audio/rw/forms, so the app can say a message as a sentence.
+
 Uses only the official Meta MMS Kinyarwanda checkpoint, pinned to an immutable
 revision, with safetensors and no remote Python code. Model weights and caches
 stay under this repository's ignored .venv directory. No vocabulary, microphone
@@ -28,6 +31,9 @@ MODEL = "facebook/mms-tts-kin"
 REVISION = "71d00a03419b9bfd203a6bfa4d6bc565cbe3c4e0"
 MODEL_URL = f"https://huggingface.co/{MODEL}"
 LICENSE_URL = "https://creativecommons.org/licenses/by-nc/4.0/"
+GRAMMAR = ROOT / "app" / "src" / "grammar" / "grammar_rw.json"
+FORMS = OUTPUT / "forms"
+MP3_KBPS = 32
 
 
 def sha256(path: Path) -> str:
@@ -115,7 +121,7 @@ def verify(symbols: list[dict[str, str]], selected: set[str] | None = None) -> d
     }
 
 
-def generate(symbols: list[dict[str, str]], selected: set[str] | None, threads: int) -> None:
+def load_model(threads: int):
     CACHE.mkdir(parents=True, exist_ok=True)
     os.environ["HF_HOME"] = str(CACHE)
     os.environ["HF_HUB_CACHE"] = str(CACHE / "hub")
@@ -145,28 +151,56 @@ def generate(symbols: list[dict[str, str]], selected: set[str] | None, threads: 
     )
     if tokenizer.language != "kin" or model.config.sampling_rate != 16000:
         raise ValueError("The loaded checkpoint is not the expected Kinyarwanda model.")
+    return model, tokenizer, snapshot
+
+
+def synthesise(model, tokenizer, text: str, seed: int, label: str):
+    """One phrase as PCM16 samples, peak normalized to 85% without clipping or altering the text."""
+    import numpy as np
+    import torch
+
+    torch.manual_seed(seed)
+    inputs = tokenizer(text, return_tensors="pt")
+    with torch.inference_mode():
+        waveform = model(**inputs).waveform[0].cpu().numpy()
+    if not len(waveform) or not np.isfinite(waveform).all():
+        raise ValueError(f"Invalid generated waveform: {label}")
+    peak = float(np.max(np.abs(waveform)))
+    if peak < 0.001:
+        raise ValueError(f"Generated audio is silent: {label}")
+    return np.rint(waveform * (0.85 / peak) * 32767).astype("<i2")
+
+
+def model_provenance(snapshot: Path) -> dict:
+    return {
+        "id": MODEL,
+        "revision": REVISION,
+        "source": MODEL_URL,
+        "publisher": "Meta AI",
+        "license": "CC-BY-NC-4.0",
+        "license_url": LICENSE_URL,
+        "weights_format": "safetensors",
+        "weights_sha256": sha256(snapshot / "model.safetensors"),
+        "weights_in_app": False,
+    }
+
+
+def generate(symbols: list[dict[str, str]], selected: set[str] | None, threads: int) -> None:
+    model, tokenizer, snapshot = load_model(threads)
     OUTPUT.mkdir(parents=True, exist_ok=True)
     previous = {}
     manifest_path = OUTPUT / "manifest.json"
     if selected and manifest_path.exists():
         old = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if old["vocabulary_sha256"] == sha256(VOCAB) and old["model"]["revision"] == REVISION:
-            previous = {item["symbol_id"]: item for item in old["clips"]}
+        if old["model"]["revision"] == REVISION:
+            # Keep every clip whose word is unchanged, so adding words regenerates only the new ones.
+            labels = {row["symbol_id"]: row["label_rw"] for row in symbols}
+            previous = {item["symbol_id"]: item for item in old["clips"] if labels.get(item["symbol_id"]) == item["text"]}
     todo = [row for row in symbols if not selected or row["symbol_id"] in selected]
     for index, row in enumerate(todo, 1):
         key, text = row["symbol_id"], row["label_rw"]
         seed = 42 + zlib.crc32(key.encode("ascii"))
-        torch.manual_seed(seed)
-        inputs = tokenizer(text, return_tensors="pt")
-        with torch.inference_mode():
-            waveform = model(**inputs).waveform[0].cpu().numpy()
-        if not len(waveform) or not np.isfinite(waveform).all():
-            raise ValueError(f"Invalid generated waveform: {key}")
-        peak = float(np.max(np.abs(waveform)))
-        if peak < 0.001:
-            raise ValueError(f"Generated audio is silent: {key}")
-        # Normalize peak to 85% of PCM range without clipping or altering the text.
-        pcm = np.rint(waveform * (0.85 / peak) * 32767).astype("<i2")
+        pcm = synthesise(model, tokenizer, text, seed, key)
         path = OUTPUT / f"{key}.wav"
         temporary = path.with_suffix(".wav.tmp")
         with wave.open(str(temporary), "wb") as handle:
@@ -193,17 +227,7 @@ def generate(symbols: list[dict[str, str]], selected: set[str] | None, threads: 
         "synthetic": True,
         "human_recordings": False,
         "pronunciation_review": "not_reviewed",
-        "model": {
-            "id": MODEL,
-            "revision": REVISION,
-            "source": MODEL_URL,
-            "publisher": "Meta AI",
-            "license": "CC-BY-NC-4.0",
-            "license_url": LICENSE_URL,
-            "weights_format": "safetensors",
-            "weights_sha256": sha256(snapshot / "model.safetensors"),
-            "weights_in_app": False,
-        },
+        "model": model_provenance(snapshot),
         "generation": {
             "script": "scripts/generate_kinyarwanda_audio.py",
             "device": "cpu",
@@ -221,12 +245,101 @@ def generate(symbols: list[dict[str, str]], selected: set[str] | None, threads: 
     print(json.dumps(verify(symbols, selected), indent=2), flush=True)
 
 
+def clip_name(text: str) -> str:
+    """'uri he' -> 'uri_he'; the app's clipName() uses the same rule."""
+    return text.replace(" ", "_")
+
+
+def grammar_clips() -> list[str]:
+    clips = json.loads(GRAMMAR.read_text(encoding="utf-8"))["clips"]
+    for text in clips:
+        if not text or any(c not in "abcdefghijklmnopqrstuvwxyz' " for c in text):
+            raise ValueError(f"Unsafe sentence word: {text!r}")
+    return clips
+
+
+def generate_forms(threads: int) -> None:
+    import lameenc
+
+    model, tokenizer, snapshot = load_model(threads)
+    FORMS.mkdir(parents=True, exist_ok=True)
+    clips = []
+    texts = grammar_clips()
+    for index, text in enumerate(texts, 1):
+        seed = 42 + zlib.crc32(text.encode("ascii"))
+        pcm = synthesise(model, tokenizer, text, seed, text)
+        encoder = lameenc.Encoder()
+        encoder.set_bit_rate(MP3_KBPS)
+        encoder.set_in_sample_rate(model.config.sampling_rate)
+        encoder.set_channels(1)
+        encoder.set_quality(2)
+        data = bytes(encoder.encode(pcm.tobytes()) + encoder.flush())
+        path = FORMS / f"{clip_name(text)}.mp3"
+        path.write_bytes(data)
+        clips.append({"text": text, "file": path.name, "seed": seed, "bytes": len(data), "sha256": sha256(path),
+                      "duration_seconds": round(len(pcm) / model.config.sampling_rate, 4)})
+        if index % 100 == 0 or index == len(texts):
+            print(f"[{index}/{len(texts)}] {text}", flush=True)
+    for stale in {p.name for p in FORMS.glob("*.mp3")} - {c["file"] for c in clips}:
+        (FORMS / stale).unlink()
+    manifest = {
+        "format": "vuga-kinyarwanda-sentence-words-v1",
+        "language": "rw",
+        "synthetic": True,
+        "pronunciation_review": "not_reviewed",
+        "model": model_provenance(snapshot),
+        "generation": {
+            "script": "scripts/generate_kinyarwanda_audio.py --forms",
+            "seed_algorithm": "42 + crc32(text)",
+            "encoding": f"MP3 {MP3_KBPS} kbit/s mono 16 kHz (lameenc {importlib.metadata.version('lameenc')})",
+            "normalization": "Peak normalized to 0.85 before encoding.",
+        },
+        "grammar_source": "app/src/grammar/grammar_rw.json",
+        "grammar_sha256": sha256(GRAMMAR),
+        "clip_count": len(clips),
+        "clips": clips,
+    }
+    (FORMS / "manifest.json").write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(json.dumps(verify_forms(), indent=2), flush=True)
+
+
+def verify_forms() -> dict:
+    manifest = json.loads((FORMS / "manifest.json").read_text(encoding="utf-8"))
+    if manifest["model"]["revision"] != REVISION:
+        raise ValueError("Unexpected speech model provenance.")
+    if manifest["grammar_sha256"] != sha256(GRAMMAR):
+        raise ValueError("Grammar changed: run --forms again.")
+    expected = {clip_name(text) + ".mp3" for text in grammar_clips()}
+    listed = {clip["file"]: clip for clip in manifest["clips"]}
+    if set(listed) != expected or {p.name for p in FORMS.glob("*.mp3")} != expected:
+        raise ValueError("Sentence-word clips do not match the grammar exactly.")
+    for name, clip in listed.items():
+        data = (FORMS / name).read_bytes()
+        mp3 = data[:3] == b"ID3" or (data[0] == 0xFF and data[1] & 0xE0 == 0xE0)
+        if len(data) != clip["bytes"] or hashlib.sha256(data).hexdigest() != clip["sha256"] or not mp3:
+            raise ValueError(f"Sentence-word clip changed or is not MP3: {name}")
+    return {
+        "verified_sentence_words": len(listed),
+        "bytes": sum(c["bytes"] for c in listed.values()),
+        "seconds": round(sum(c["duration_seconds"] for c in listed.values()), 1),
+        "pronunciation_review": "not_reviewed",
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", nargs="+", help="Generate/check specified vocabulary IDs first.")
     parser.add_argument("--check", action="store_true", help="Verify existing WAVs without ML dependencies or network.")
     parser.add_argument("--threads", type=int, default=4, help="CPU inference threads (default 4).")
+    parser.add_argument("--forms", action="store_true", help="Generate the sentence-word MP3 clips from the grammar table.")
+    parser.add_argument("--check-forms", action="store_true", help="Verify the sentence-word clips without ML dependencies.")
     args = parser.parse_args()
+    if args.check_forms:
+        print(json.dumps(verify_forms(), indent=2))
+        return
+    if args.forms:
+        generate_forms(args.threads)
+        return
     symbols = read_symbols()
     selected = set(args.only) if args.only else None
     if selected and selected - {row["symbol_id"] for row in symbols}:

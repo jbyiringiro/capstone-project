@@ -9,8 +9,20 @@ The model's language is `kin`; the app uses `rw` for Kinyarwanda.
 The audio is **synthetic and has not been reviewed by a Kinyarwanda speaker,
 caregiver or therapist**. Automated checks verify readable, non-silent PCM and
 exact vocabulary coverage; they do not establish pronunciation quality or
-communication benefit. Each word is played separately. Joining these clips does
-not produce a grammatically corrected sentence.
+communication benefit.
+
+## Sentence words (`forms/`)
+
+When "Vuga interuro yuzuye" is on (the default), the app says a message as a
+Kinyarwanda sentence: njye + gushaka + amazi is spoken "Ndashaka amazi". The
+inflected words this needs (ndashaka, sinkunda, ndananiwe, ngwino, uri he,
+mu rugo...) are listed in `app/src/grammar/grammar_rw.json`, built by rules
+from `vocab/` with `ml/scripts/export_grammar.py`, and synthesised with the same
+pinned model into `forms/` as 32 kbit/s mono MP3 files, one per word or short
+phrase. [forms/manifest.json](forms/manifest.json) records the grammar hash,
+texts, seeds and file hashes. The rules and these words are a draft until a
+native speaker has checked `vocab/grammar_forms_review.csv`; anything the rules
+do not cover is still said word by word.
 
 ## Attribution and license
 
@@ -43,6 +55,10 @@ CPU. No private recordings or participant information is sent to a service.
 .\.venv\Scripts\python.exe scripts/generate_kinyarwanda_audio.py --only WATER
 .\.venv\Scripts\python.exe scripts/generate_kinyarwanda_audio.py
 .\.venv\Scripts\python.exe scripts/generate_kinyarwanda_audio.py --check
+.\.venv\Scripts\python.exe ml/scripts/export_grammar.py
+.\.venv\Scripts\python.exe -m pip install lameenc
+.\.venv\Scripts\python.exe scripts/generate_kinyarwanda_audio.py --forms
+.\.venv\Scripts\python.exe scripts/generate_kinyarwanda_audio.py --check-forms
 ```
 
 The script accepts only the pinned official model, loads safetensors without

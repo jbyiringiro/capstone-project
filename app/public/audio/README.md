@@ -18,7 +18,7 @@ Select a word to record or upload, listen to the preview, verify its meaning/pro
 
 Saved clips stay in this browser's IndexedDB, apply to all its profiles and work offline. Replacing/deleting a word affects all profiles; deletion requires confirmation. Recordings are excluded from sync/export and the submission archive. Clearing browser storage removes them; retain original files separately.
 
-A developer can install reviewed clips at `app/public/audio/SYMBOL_ID.wav` before building. The playback order is: saved recording, installed root clip, bundled `rw/` clip, then a matching Kinyarwanda system voice if available. No system voice is assumed. If audio cannot play, the message remains available through **Erekana**.
+A developer can install reviewed clips at `app/public/audio/SYMBOL_ID.wav` before building and list each `SYMBOL_ID` in `app/public/audio/installed.json` (`{"clips": ["WATER"]}`). Only listed clips are requested, so the board never probes the network for files that do not exist, which matters offline. The playback order is: saved recording, installed root clip, bundled `rw/` clip, then a matching Kinyarwanda system voice if available. No system voice is assumed. If audio cannot play, the message remains available through **Erekana**.
 
 ## Packaging
 

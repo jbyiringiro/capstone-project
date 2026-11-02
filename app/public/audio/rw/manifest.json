@@ -31,8 +31,8 @@
     }
   },
   "vocabulary_source": "vocab/symbols.csv",
-  "vocabulary_sha256": "5dedfd89551dbc61cc253fbd7598e6ef8c3ce5a05faa51cbf64db74d846b4973",
-  "clip_count": 181,
+  "vocabulary_sha256": "4c65f6919c00ab27ea86d469e82e53bf0368271f458981de2fe587c52f1c8cf8",
+  "clip_count": 188,
   "clips": [
     {
       "symbol_id": "AFRAID",
@@ -793,6 +793,25 @@
       "duration_seconds": 0.544,
       "peak_pcm": 27852,
       "rms_pcm": 6481.973
+    },
+    {
+      "symbol_id": "CUP",
+      "text": "igikombe",
+      "language": "rw",
+      "seed": 557453976,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "CUP.wav",
+      "url": "/audio/rw/CUP.wav",
+      "bytes": 34860,
+      "sha256": "e832bb294605648754c875e2fe4964c17831137878ba6136098d82fa0248ef4b",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 17408,
+      "duration_seconds": 1.088,
+      "peak_pcm": 27852,
+      "rms_pcm": 3630.117
     },
     {
       "symbol_id": "DAD",
@@ -1707,6 +1726,25 @@
       "rms_pcm": 8396.493
     },
     {
+      "symbol_id": "JUICE",
+      "text": "umutobe",
+      "language": "rw",
+      "seed": 2317047837,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "JUICE.wav",
+      "url": "/audio/rw/JUICE.wav",
+      "bytes": 27692,
+      "sha256": "9742a1a1b8a5706ac60b119e86765cb175644630485edf866c82f6f8c3b0c2d3",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 13824,
+      "duration_seconds": 0.864,
+      "peak_pcm": 27852,
+      "rms_pcm": 6130.93
+    },
+    {
       "symbol_id": "JUMP",
       "text": "gusimbuka",
       "language": "rw",
@@ -1876,6 +1914,25 @@
       "duration_seconds": 1.008,
       "peak_pcm": 27852,
       "rms_pcm": 4410.797
+    },
+    {
+      "symbol_id": "MEDICINE",
+      "text": "umuti",
+      "language": "rw",
+      "seed": 2651174635,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "MEDICINE.wav",
+      "url": "/audio/rw/MEDICINE.wav",
+      "bytes": 21036,
+      "sha256": "54cf74f883e3faeb0d172cf567ce7a7a6a3fce635452c8a6361016c8bdb87fc8",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 10496,
+      "duration_seconds": 0.656,
+      "peak_pcm": 27852,
+      "rms_pcm": 5584.834
     },
     {
       "symbol_id": "MILK",
@@ -2220,6 +2277,25 @@
       "rms_pcm": 7857.412
     },
     {
+      "symbol_id": "PLATE",
+      "text": "isahani",
+      "language": "rw",
+      "seed": 2261390869,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "PLATE.wav",
+      "url": "/audio/rw/PLATE.wav",
+      "bytes": 33836,
+      "sha256": "b3e3d10e40677770ee558889975af0529ba13b760ceae45ccb88e1ea5621c69a",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 16896,
+      "duration_seconds": 1.056,
+      "peak_pcm": 27852,
+      "rms_pcm": 4574.211
+    },
+    {
       "symbol_id": "PLAY",
       "text": "gukina",
       "language": "rw",
@@ -2256,6 +2332,25 @@
       "duration_seconds": 1.104,
       "peak_pcm": 27852,
       "rms_pcm": 4038.645
+    },
+    {
+      "symbol_id": "PORRIDGE",
+      "text": "igikoma",
+      "language": "rw",
+      "seed": 2849194568,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "PORRIDGE.wav",
+      "url": "/audio/rw/PORRIDGE.wav",
+      "bytes": 36396,
+      "sha256": "f8e9f0893a19fbbc63fd5dfcd903d82f23bd06cdfd3d425bc223e296d949621b",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 18176,
+      "duration_seconds": 1.136,
+      "peak_pcm": 27852,
+      "rms_pcm": 3693.524
     },
     {
       "symbol_id": "POTATOES",
@@ -2695,6 +2790,25 @@
       "rms_pcm": 7924.383
     },
     {
+      "symbol_id": "SOAP",
+      "text": "isabune",
+      "language": "rw",
+      "seed": 20159047,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "SOAP.wav",
+      "url": "/audio/rw/SOAP.wav",
+      "bytes": 25132,
+      "sha256": "da2f7c2f8c2252e73fe6c2eae15d5b436c14bf7d79d7321ead090aab2b11190a",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 12544,
+      "duration_seconds": 0.784,
+      "peak_pcm": 27852,
+      "rms_pcm": 4707.053
+    },
+    {
       "symbol_id": "SONG",
       "text": "indirimbo",
       "language": "rw",
@@ -2712,6 +2826,25 @@
       "duration_seconds": 1.088,
       "peak_pcm": 27852,
       "rms_pcm": 6809.037
+    },
+    {
+      "symbol_id": "SPOON",
+      "text": "ikiyiko",
+      "language": "rw",
+      "seed": 4024416302,
+      "synthetic": true,
+      "pronunciation_review": "not_reviewed",
+      "file": "SPOON.wav",
+      "url": "/audio/rw/SPOON.wav",
+      "bytes": 33836,
+      "sha256": "915059a62710e845c864050fe24631703209059961ad8728fe7eaab3743645b3",
+      "sample_rate": 16000,
+      "channels": 1,
+      "bits_per_sample": 16,
+      "frames": 16896,
+      "duration_seconds": 1.056,
+      "peak_pcm": 27852,
+      "rms_pcm": 5901.196
     },
     {
       "symbol_id": "STAND",
