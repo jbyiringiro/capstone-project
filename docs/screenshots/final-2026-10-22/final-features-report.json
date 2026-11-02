@@ -1,0 +1,204 @@
+{
+  "generated_at": "2026-10-28T17:13:30.339Z",
+  "browser": "Headless msedge",
+  "base_url": "http://127.0.0.1:4175/",
+  "total": 20,
+  "status": "passed",
+  "checks": [
+    {
+      "name": "A caregiver adds a word from a phone photo; the picture is cropped square and stored on the device only",
+      "status": "passed"
+    },
+    {
+      "name": "Duplicate labels and non-image files are refused with Kinyarwanda messages",
+      "status": "passed"
+    },
+    {
+      "name": "The new word appears in its category on the board with its own photo, and Erekana still works without speech",
+      "status": "passed"
+    },
+    {
+      "name": "A familiar-voice recording makes the custom word speak, and its message is kept off the server",
+      "status": "passed"
+    },
+    {
+      "name": "Deleting a custom word removes it, its recording and its place on every board",
+      "status": "passed"
+    },
+    {
+      "name": "A 9-cell grid shows fixed 3 x 3 pages; turning a page is logged as a navigation action",
+      "status": "passed"
+    },
+    {
+      "name": "The last page keeps the grid shape with empty slots, and tiles stay at least 2 cm on a phone",
+      "status": "passed"
+    },
+    {
+      "name": "A 40-cell grid fits the whole everyday page, and \"Byikora\" fits the grid to a tablet and a phone with no page scroll",
+      "status": "passed"
+    },
+    {
+      "name": "Personal suggestions need word suggestions on and lift a word this child uses after \"I\"",
+      "status": "passed"
+    },
+    {
+      "name": "The vocabulary review shows the sheet words one at a time, in order, with their voice",
+      "status": "passed"
+    },
+    {
+      "name": "Closing the review leaves no trace: no message, action or vocabulary change is stored",
+      "status": "passed"
+    },
+    {
+      "name": "Vuga says I + want + water as the sentence “Ndashaka amazi.”, Erekana shows it, and want alone stays “gushaka”",
+      "status": "passed"
+    },
+    {
+      "name": "With “Vuga interuro yuzuye” off, the same pictures are spoken word by word again",
+      "status": "passed"
+    },
+    {
+      "name": "With next words on, “kunywa” opens drinks (cup, juice, milk) in the grid; one choice returns to the same page without navigation taps",
+      "status": "passed"
+    },
+    {
+      "name": "A caregiver changes the pictures after “kunywa” for this child and can restore the starting list",
+      "status": "passed"
+    },
+    {
+      "name": "A chosen place puts its words first on the board, core words after them, and opens on its first page",
+      "status": "passed"
+    },
+    {
+      "name": "Each picture is said as soon as it is tapped, and a caregiver can switch that off and on",
+      "status": "passed"
+    },
+    {
+      "name": "The child’s board has no section tabs: the caregiver picks the section, or every picture in pages, and can bring the tabs back",
+      "status": "passed"
+    },
+    {
+      "name": "Keys show the picture with its word on top, and a caregiver can choose pictures only",
+      "status": "passed"
+    },
+    {
+      "name": "The final-feature workflow raised no uncaught page errors",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "caregiver-custom-words.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "caregiver-board-grid-settings.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-grid-9-tablet.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-grid-9-phone.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "board-fit-1280.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-fit-390.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "board-personal-suggestions.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "caregiver-vocabulary-review.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-erekana-sentence.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "caregiver-next-words.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-next-words-drink.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "caregiver-place.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-place-meal.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-place-meal-phone.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "file": "board-section-animals.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "file": "board-pictures-only.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    }
+  ],
+  "pageErrors": []
+}

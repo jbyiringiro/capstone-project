@@ -1,0 +1,348 @@
+{
+  "practice": {
+    "rows": [
+      {
+        "keys": [
+          "YES"
+        ],
+        "kinyarwanda": "yego",
+        "english": "yes",
+        "sentence_rw": "Yego.",
+        "sentence_en": "Yes.",
+        "words": 1,
+        "static_actions": 2,
+        "predictive_actions": 2
+      },
+      {
+        "keys": [
+          "HELLO",
+          "FRIEND"
+        ],
+        "kinyarwanda": "muraho inshuti",
+        "english": "hello friend",
+        "sentence_rw": "Muraho, nshuti.",
+        "sentence_en": "Hello, friend.",
+        "words": 2,
+        "static_actions": 5,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "LIKE",
+          "CAT"
+        ],
+        "kinyarwanda": "njye gukunda injangwe",
+        "english": "i like cat",
+        "sentence_rw": "Nkunda injangwe.",
+        "sentence_en": "I like cats.",
+        "words": 3,
+        "static_actions": 5,
+        "predictive_actions": 5
+      }
+    ],
+    "words": 6,
+    "static_actions": 12,
+    "predictive_actions": 12
+  },
+  "A": {
+    "rows": [
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "WATER"
+        ],
+        "kinyarwanda": "njye gushaka amazi",
+        "english": "i want water",
+        "sentence_rw": "Ndashaka amazi.",
+        "sentence_en": "I want water.",
+        "words": 3,
+        "static_actions": 4,
+        "predictive_actions": 4
+      },
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "EAT",
+          "BREAD"
+        ],
+        "kinyarwanda": "njye gushaka kurya umugati",
+        "english": "i want eat bread",
+        "sentence_rw": "Ndashaka kurya umugati.",
+        "sentence_en": "I want to eat bread.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 6
+      },
+      {
+        "keys": [
+          "I",
+          "HURT",
+          "HEAD"
+        ],
+        "kinyarwanda": "njye kubabara umutwe",
+        "english": "i hurt head",
+        "sentence_rw": "Ndababara umutwe.",
+        "sentence_en": "My head hurts.",
+        "words": 3,
+        "static_actions": 5,
+        "predictive_actions": 4
+      },
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "GO",
+          "HOME"
+        ],
+        "kinyarwanda": "njye gushaka kugenda urugo",
+        "english": "i want go home",
+        "sentence_rw": "Ndashaka kujya mu rugo.",
+        "sentence_en": "I want to go home.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 6
+      },
+      {
+        "keys": [
+          "MUM",
+          "COME",
+          "HERE"
+        ],
+        "kinyarwanda": "mama kuza hano",
+        "english": "mum come here",
+        "sentence_rw": "Mama, ngwino hano.",
+        "sentence_en": "Mum, come here.",
+        "words": 3,
+        "static_actions": 6,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "NOT",
+          "LIKE",
+          "MILK"
+        ],
+        "kinyarwanda": "njye ntabwo gukunda amata",
+        "english": "i not like milk",
+        "sentence_rw": "Sinkunda amata.",
+        "sentence_en": "I don’t like milk.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 6
+      },
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "PLAY",
+          "BALL"
+        ],
+        "kinyarwanda": "njye gushaka gukina umupira",
+        "english": "i want play ball",
+        "sentence_rw": "Ndashaka gukina umupira.",
+        "sentence_en": "I want to play ball.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "WHERE",
+          "TOILET"
+        ],
+        "kinyarwanda": "hehe umusarani",
+        "english": "where toilet",
+        "sentence_rw": "Umusarani uri he?",
+        "sentence_en": "Where is the toilet?",
+        "words": 2,
+        "static_actions": 5,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "TIRED",
+          "WANT",
+          "SLEEP"
+        ],
+        "kinyarwanda": "njye kunanirwa gushaka kuryama",
+        "english": "i tired want sleep",
+        "sentence_rw": "Ndananiwe, ndashaka kuryama.",
+        "sentence_en": "I’m tired, I want to sleep.",
+        "words": 4,
+        "static_actions": 7,
+        "predictive_actions": 7
+      },
+      {
+        "keys": [
+          "THANK_YOU",
+          "TEACHER"
+        ],
+        "kinyarwanda": "murakoze mwarimu",
+        "english": "thank you teacher",
+        "sentence_rw": "Murakoze, mwarimu.",
+        "sentence_en": "Thank you, teacher.",
+        "words": 2,
+        "static_actions": 3,
+        "predictive_actions": 3
+      }
+    ],
+    "words": 33,
+    "static_actions": 54,
+    "predictive_actions": 51
+  },
+  "B": {
+    "rows": [
+      {
+        "keys": [
+          "YOU",
+          "HELP",
+          "I"
+        ],
+        "kinyarwanda": "wowe gufasha njye",
+        "english": "you help i",
+        "sentence_rw": "Mfasha.",
+        "sentence_en": "Help me.",
+        "words": 3,
+        "static_actions": 4,
+        "predictive_actions": 4
+      },
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "DRINK",
+          "TEA"
+        ],
+        "kinyarwanda": "njye gushaka kunywa icyayi",
+        "english": "i want drink tea",
+        "sentence_rw": "Ndashaka kunywa icyayi.",
+        "sentence_en": "I want to drink tea.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "HURT",
+          "STOMACH"
+        ],
+        "kinyarwanda": "njye kubabara inda",
+        "english": "i hurt stomach",
+        "sentence_rw": "Ndababara inda.",
+        "sentence_en": "My stomach hurts.",
+        "words": 3,
+        "static_actions": 5,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "GO",
+          "SCHOOL"
+        ],
+        "kinyarwanda": "njye gushaka kugenda ishuri",
+        "english": "i want go school",
+        "sentence_rw": "Ndashaka kujya ku ishuri.",
+        "sentence_en": "I want to go to school.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "TEACHER",
+          "COME",
+          "HERE"
+        ],
+        "kinyarwanda": "mwarimu kuza hano",
+        "english": "teacher come here",
+        "sentence_rw": "Mwarimu, ngwino hano.",
+        "sentence_en": "Teacher, come here.",
+        "words": 3,
+        "static_actions": 6,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "NOT",
+          "LIKE",
+          "RICE"
+        ],
+        "kinyarwanda": "njye ntabwo gukunda umuceri",
+        "english": "i not like rice",
+        "sentence_rw": "Sinkunda umuceri.",
+        "sentence_en": "I don’t like rice.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 6
+      },
+      {
+        "keys": [
+          "I",
+          "WANT",
+          "EAT",
+          "BANANA"
+        ],
+        "kinyarwanda": "njye gushaka kurya umuneke",
+        "english": "i want eat banana",
+        "sentence_rw": "Ndashaka kurya umuneke.",
+        "sentence_en": "I want to eat a banana.",
+        "words": 4,
+        "static_actions": 6,
+        "predictive_actions": 6
+      },
+      {
+        "keys": [
+          "WHERE",
+          "DAD"
+        ],
+        "kinyarwanda": "hehe papa",
+        "english": "where dad",
+        "sentence_rw": "Papa ari he?",
+        "sentence_en": "Where is Dad?",
+        "words": 2,
+        "static_actions": 5,
+        "predictive_actions": 5
+      },
+      {
+        "keys": [
+          "I",
+          "HUNGRY",
+          "WANT",
+          "EAT"
+        ],
+        "kinyarwanda": "njye gushonja gushaka kurya",
+        "english": "i hungry want eat",
+        "sentence_rw": "Ndashonje, ndashaka kurya.",
+        "sentence_en": "I’m hungry, I want to eat.",
+        "words": 4,
+        "static_actions": 7,
+        "predictive_actions": 7
+      },
+      {
+        "keys": [
+          "THANK_YOU",
+          "MUM"
+        ],
+        "kinyarwanda": "murakoze mama",
+        "english": "thank you mum",
+        "sentence_rw": "Murakoze, mama.",
+        "sentence_en": "Thank you, Mum.",
+        "words": 2,
+        "static_actions": 3,
+        "predictive_actions": 3
+      }
+    ],
+    "words": 33,
+    "static_actions": 54,
+    "predictive_actions": 51
+  }
+}

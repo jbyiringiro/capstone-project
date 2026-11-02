@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-10-28T17:13:58.712Z",
+  "base_url": "http://127.0.0.1:4175/",
+  "total": 9,
+  "status": "passed",
+  "checks": [
+    {
+      "name": "The caregiver turns child mode on behind the PIN; the child then sees only nine big pictures",
+      "status": "passed"
+    },
+    {
+      "name": "A tap says the word at once, shows it large, and is logged as a device-only child message",
+      "status": "passed"
+    },
+    {
+      "name": "A quick accidental second tap on the same picture is ignored; other pictures respond at once",
+      "status": "passed"
+    },
+    {
+      "name": "The caregiver switches to a ready-made board and edits it; the child board follows",
+      "status": "passed"
+    },
+    {
+      "name": "The game asks for pictures, highlights the answer after two misses, and ends with five stars",
+      "status": "passed"
+    },
+    {
+      "name": "Progress appears for the caregiver: stars, first-try finds and words to practise",
+      "status": "passed"
+    },
+    {
+      "name": "On a phone in portrait the board uses three columns and keeps every picture over 2 cm",
+      "status": "passed"
+    },
+    {
+      "name": "Turning child mode off brings back the full board with its grid and Vuga",
+      "status": "passed"
+    },
+    {
+      "name": "Child mode raised no uncaught page errors",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    "child-board-tablet.png",
+    "child-board-spoken.png",
+    "caregiver-child-mode.png",
+    "child-game-hint.png",
+    "child-game-finished.png",
+    "child-board-phone.png"
+  ],
+  "pageErrors": []
+}

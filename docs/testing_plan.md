@@ -1,5 +1,7 @@
 # Testing plan (feeds Chapter 4 of the final report)
 
+> **Superseded on 22 October 2026 by [testing_report.md](testing_report.md)**, which records the executed strategies and results. This plan is kept as the September baseline; the load row is now `api/tests/test_load.py`.
+
 Goal: every component is tested before the vocabulary and the study data arrive, so that the
 weeks after REC approval are spent on data, participants and writing, not on debugging.
 

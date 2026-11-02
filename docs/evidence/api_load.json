@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-02",
+  "test": "api/tests/test_load.py",
+  "scenario": "20 tablets x 200 completed messages x 5 actions, uploaded in 50-message sync sessions, sequential requests through FastAPI TestClient",
+  "database": "SQLite file in a temporary directory",
+  "requests": 80,
+  "messages": 4000,
+  "events": 20000,
+  "wall_seconds": 5.16,
+  "messages_per_second": 775.5,
+  "events_per_second": 3877.3,
+  "upload_latency_ms": {
+    "p50": 60.5,
+    "p95": 73.3,
+    "max": 313.6
+  },
+  "idempotent_resend_latency_ms": {
+    "requests": 20,
+    "p50": 33.2,
+    "p95": 37.9
+  },
+  "environment": {
+    "python": "3.11.15",
+    "os": "Windows 11 (build 26200)",
+    "fastapi": "0.141.1",
+    "sqlalchemy": "2.1.1"
+  }
+}

@@ -1,0 +1,407 @@
+{
+  "generated_at": "2026-10-26T14:35:54.644Z",
+  "server": "vite preview of app/dist, one per run, stopped for the offline phase",
+  "host": {
+    "os": "Windows_NT 10.0.26200",
+    "cpu": "Intel(R) Core(TM) Ultra 7 255H",
+    "cores": 16,
+    "memory_gb": 31
+  },
+  "note": "Headless runs on one laptop. CPU slowdown and network profiles emulate low-end hardware; they are not measurements on a physical tablet.",
+  "results": [
+    {
+      "id": "edge-desktop",
+      "label": "Microsoft Edge, desktop 1280x900",
+      "engine": "chromium",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 303,
+        "navigation": {
+          "dom_content_loaded_ms": 106,
+          "load_ms": 108,
+          "transferred_kb": 755
+        },
+        "warm_board_ms": 286,
+        "offline_board_ms": 261,
+        "prediction_ms": {
+          "median": 0.1,
+          "p95": 0.2,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 13,
+          "p95": 28.3,
+          "taps": 20
+        },
+        "speech_start_ms": 108,
+        "page_turns": {
+          "fps": 145,
+          "longest_frame_ms": 30.2,
+          "frames": 282,
+          "turns": 28
+        },
+        "js_heap_mb": 9.1,
+        "dom_nodes": 2196
+      },
+      "notes": [],
+      "browser_version": "155.0.4283.62",
+      "screenshot": "compat-edge-desktop.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "edge-android-tablet",
+      "label": "Edge (Chromium), Galaxy Tab S4 profile",
+      "engine": "chromium",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 416,
+        "navigation": {
+          "dom_content_loaded_ms": 122,
+          "load_ms": 122,
+          "transferred_kb": 1100
+        },
+        "warm_board_ms": 279,
+        "offline_board_ms": 260,
+        "prediction_ms": {
+          "median": 0.1,
+          "p95": 0.2,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 14.1,
+          "p95": 60.2,
+          "taps": 20
+        },
+        "speech_start_ms": 138,
+        "page_turns": {
+          "fps": 144.8,
+          "longest_frame_ms": 24.4,
+          "frames": 290,
+          "turns": 29
+        },
+        "js_heap_mb": 9.7,
+        "dom_nodes": 2530
+      },
+      "notes": [],
+      "browser_version": "155.0.4283.62",
+      "screenshot": "compat-edge-android-tablet.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "edge-android-phone",
+      "label": "Edge (Chromium), Pixel 5 profile",
+      "engine": "chromium",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 296,
+        "navigation": {
+          "dom_content_loaded_ms": 113,
+          "load_ms": 113,
+          "transferred_kb": 797
+        },
+        "warm_board_ms": 229,
+        "offline_board_ms": 367,
+        "prediction_ms": {
+          "median": 0.1,
+          "p95": 0.2,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 9.3,
+          "p95": 19.9,
+          "taps": 20
+        },
+        "speech_start_ms": 134,
+        "page_turns": {
+          "fps": 160,
+          "longest_frame_ms": 24.2,
+          "frames": 320,
+          "turns": 32
+        },
+        "js_heap_mb": 16.7,
+        "dom_nodes": 5180
+      },
+      "notes": [],
+      "browser_version": "155.0.4283.62",
+      "screenshot": "compat-edge-android-phone.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "edge-lowend-tablet",
+      "label": "Edge (Chromium), Galaxy Tab S4, 4x CPU slowdown, Fast 3G",
+      "engine": "chromium",
+      "cpu_slowdown": 4,
+      "network": "Fast 3G",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 2976,
+        "navigation": {
+          "dom_content_loaded_ms": 2266,
+          "load_ms": 2268,
+          "transferred_kb": 153
+        },
+        "warm_board_ms": 1473,
+        "offline_board_ms": 1465,
+        "prediction_ms": {
+          "median": 0.5,
+          "p95": 1.7,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 168.7,
+          "p95": 310.9,
+          "taps": 20
+        },
+        "speech_start_ms": 404,
+        "page_turns": {
+          "fps": 40.9,
+          "longest_frame_ms": 230.3,
+          "frames": 82,
+          "turns": 8
+        },
+        "js_heap_mb": 8.1,
+        "dom_nodes": 1288
+      },
+      "notes": [],
+      "browser_version": "155.0.4283.62",
+      "screenshot": "compat-edge-lowend-tablet.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "edge-lowend-phone",
+      "label": "Edge (Chromium), Pixel 5, 6x CPU slowdown, Fast 3G",
+      "engine": "chromium",
+      "cpu_slowdown": 6,
+      "network": "Fast 3G",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 3841,
+        "navigation": {
+          "dom_content_loaded_ms": 2414,
+          "load_ms": 2415,
+          "transferred_kb": 173
+        },
+        "warm_board_ms": 1372,
+        "offline_board_ms": 1837,
+        "prediction_ms": {
+          "median": 0.3,
+          "p95": 1.5,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 141,
+          "p95": 337.5,
+          "taps": 20
+        },
+        "speech_start_ms": 629,
+        "page_turns": {
+          "fps": 57.2,
+          "longest_frame_ms": 145.3,
+          "frames": 120,
+          "turns": 12
+        },
+        "js_heap_mb": 16.3,
+        "dom_nodes": 3968
+      },
+      "notes": [],
+      "browser_version": "155.0.4283.62",
+      "screenshot": "compat-edge-lowend-phone.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "firefox-desktop",
+      "label": "Firefox, desktop 1280x900",
+      "engine": "firefox",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {},
+      "metrics": {},
+      "notes": [],
+      "browser_version": "155.0",
+      "status": "failed",
+      "error": "expect(locator).toBeEnabled() failed",
+      "page_errors": []
+    },
+    {
+      "id": "firefox-phone-size",
+      "label": "Firefox, 393x851 phone viewport",
+      "engine": "firefox",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 724,
+        "navigation": {
+          "dom_content_loaded_ms": 513,
+          "load_ms": 514,
+          "transferred_kb": 854
+        },
+        "warm_board_ms": 250,
+        "offline_board_ms": 450,
+        "prediction_ms": {
+          "median": 0,
+          "p95": 1,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 14,
+          "p95": 23,
+          "taps": 20
+        },
+        "speech_start_ms": 214,
+        "page_turns": {
+          "fps": 136.5,
+          "longest_frame_ms": 24.2,
+          "frames": 273,
+          "turns": 27
+        }
+      },
+      "notes": [],
+      "browser_version": "155.0",
+      "screenshot": "compat-firefox-phone-size.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "webkit-ipad",
+      "label": "WebKit (Safari engine), iPad gen 7 profile",
+      "engine": "webkit",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": false
+      },
+      "metrics": {
+        "cold_board_ms": 587,
+        "navigation": {
+          "dom_content_loaded_ms": 163,
+          "load_ms": 164,
+          "transferred_kb": 1364
+        },
+        "warm_board_ms": 365,
+        "offline_board_ms": 802,
+        "prediction_ms": {
+          "median": 0,
+          "p95": 1,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 239,
+          "p95": 264,
+          "taps": 20
+        },
+        "page_turns": {
+          "fps": 25.2,
+          "longest_frame_ms": 326,
+          "frames": 49,
+          "turns": 5
+        }
+      },
+      "notes": [
+        "Audio did not start in this headless engine; the message stays and Erekana remains available."
+      ],
+      "browser_version": "26.6",
+      "screenshot": "compat-webkit-ipad.png",
+      "page_errors": [],
+      "status": "passed"
+    },
+    {
+      "id": "webkit-iphone",
+      "label": "WebKit (Safari engine), iPhone 13 profile",
+      "engine": "webkit",
+      "cpu_slowdown": 1,
+      "network": "unthrottled",
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": false
+      },
+      "metrics": {
+        "cold_board_ms": 510,
+        "navigation": {
+          "dom_content_loaded_ms": 137,
+          "load_ms": 138,
+          "transferred_kb": 883
+        },
+        "warm_board_ms": 344,
+        "offline_board_ms": 457,
+        "prediction_ms": {
+          "median": 0,
+          "p95": 1,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 142,
+          "p95": 171,
+          "taps": 20
+        },
+        "page_turns": {
+          "fps": 34.1,
+          "longest_frame_ms": 96,
+          "frames": 67,
+          "turns": 6
+        }
+      },
+      "notes": [
+        "Audio did not start in this headless engine; the message stays and Erekana remains available."
+      ],
+      "browser_version": "26.6",
+      "screenshot": "compat-webkit-iphone.png",
+      "page_errors": [],
+      "status": "passed"
+    }
+  ]
+}
