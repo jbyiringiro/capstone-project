@@ -39,6 +39,7 @@ COME,kuza,come,actions,32669,/symbols/COME.png
 COUNT,kubara,count,actions,2714,/symbols/COUNT.png
 COW,inka,cow,animals,2609,/symbols/COW.png
 CRY,kurira,cry,feelings,7147,/symbols/CRY.png
+CUP,igikombe,cup,things,2582,/symbols/CUP.png
 DAD,papa,dad,people,2497,/symbols/DAD.png
 DANCE,kubyina,dance,actions,6052,/symbols/DANCE.png
 DAY,umunsi,day,things,26799,/symbols/DAY.png
@@ -87,6 +88,7 @@ HUNGRY,gushonja,hungry,feelings,4962,/symbols/HUNGRY.png
 HURRY,kwihuta,hurry,actions,6465,/symbols/HURRY.png
 HURT,kubabara,hurt,feelings,2367,/symbols/HURT.png
 I,njye,i,core,6632,/symbols/I.png
+JUICE,umutobe,juice,food_drink,11461,/symbols/JUICE.png
 JUMP,gusimbuka,jump,actions,6607,/symbols/JUMP.png
 KNOW,kumenya,know,actions,16885,/symbols/KNOW.png
 LAUGH,guseka,laugh,feelings,13354,/symbols/LAUGH.png
@@ -96,6 +98,7 @@ LIKE,gukunda,like,actions,7124,/symbols/LIKE.png
 LOOK,kureba,look,actions,6564,/symbols/LOOK.png
 MANY,byinshi,many,describe,7168,/symbols/MANY.png
 MEAT,inyama,meat,food_drink,2316,/symbols/MEAT.png
+MEDICINE,umuti,medicine,things,8163,/symbols/MEDICINE.png
 MILK,amata,milk,food_drink,2445,/symbols/MILK.png
 MORNING,igitondo,morning,time_place,25704,/symbols/MORNING.png
 MOUTH,umunwa,mouth,body,2663,/symbols/MOUTH.png
@@ -114,8 +117,10 @@ OPEN,gufungura,open,actions,24825,/symbols/OPEN.png
 PEN,ikaramu,pen,things,10313,/symbols/PEN.png
 PERSON,umuntu,person,people,34558,/symbols/PERSON.png
 PHONE,telefoni,phone,things,26479,/symbols/PHONE.png
+PLATE,isahani,plate,things,2532,/symbols/PLATE.png
 PLAY,gukina,play,actions,6537,/symbols/PLAY.png
 PLAYGROUND,ikibuga,playground,places,2859,/symbols/PLAYGROUND.png
+PORRIDGE,igikoma,porridge,food_drink,2573,/symbols/PORRIDGE.png
 POTATOES,ibirayi,potatoes,food_drink,2503,/symbols/POTATOES.png
 PROBLEM,ikibazo,problem,core,5556,/symbols/PROBLEM.png
 PUT,gushyira,put,actions,5447,/symbols/PUT.png
@@ -139,7 +144,9 @@ SIT,kwicara,sit,actions,6611,/symbols/SIT.png
 SLEEP,kuryama,sleep,actions,6479,/symbols/SLEEP.png
 SLOWLY,buhoro,slowly,describe,4676,/symbols/SLOWLY.png
 SMALL,gito,small,describe,4716,/symbols/SMALL.png
+SOAP,isabune,soap,things,2964,/symbols/SOAP.png
 SONG,indirimbo,song,things,24791,/symbols/SONG.png
+SPOON,ikiyiko,spoon,things,2362,/symbols/SPOON.png
 STAND,guhagarara,stand,actions,13370,/symbols/STAND.png
 START,gutangira,start,actions,5431,/symbols/START.png
 STOMACH,inda,stomach,body,2786,/symbols/STOMACH.png
