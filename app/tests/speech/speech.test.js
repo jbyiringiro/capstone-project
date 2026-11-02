@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { kinyarwandaVoice, loadVoices, playSpeechPart, prepareSpeech } from '../src/speech.js'
+import { kinyarwandaVoice, loadVoices, playSpeechPart, prepareSpeech } from '../../src/speech/index.js'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
@@ -66,7 +66,7 @@ describe('Available audio and playback', () => {
     vi.stubGlobal('fetch', fetch)
     vi.stubGlobal('speechSynthesis', { getVoices: () => [] })
     const parts = await prepareSpeech(['WATER'], { WATER: { label_rw: 'amazi', label_en: 'water' } }, local)
-    expect(fetch.mock.calls.map(([path]) => path)).toEqual(['/audio/WATER.wav', '/audio/rw/WATER.wav'])
+    expect(fetch.mock.calls.map(([path]) => path)).toEqual(['/audio/installed.json', '/audio/rw/WATER.wav'])
     expect(local).toHaveBeenCalledWith('WATER')
     expect(await parts[0].blob.text()).toBe('kinyarwanda-audio')
   })

@@ -1,66 +1,8 @@
-import { localizedError } from './errors-rw.js'
+import { localizedError } from '../shared/errors-rw.js'
+import { stopped } from './voices.js'
 
-const stopped = () => localizedError('Ijwi ryahagaritswe. Ubutumwa bwawe buracyahari.')
-
-export function kinyarwandaVoice(voices) {
-  return voices.find(voice => /^rw(?:[-_]|$)/i.test(voice.lang)) ?? null
-}
-
-// Browsers can return an empty list until their voice service has loaded.
-export function loadVoices(signal, timeout = 1000) {
-  const synth = globalThis.speechSynthesis
-  if (signal?.aborted) return Promise.reject(stopped())
-  if (!synth) return Promise.resolve([])
-  const available = synth.getVoices()
-  if (available.length) return Promise.resolve(available)
-  return new Promise((resolve, reject) => {
-    let timer
-    const clean = () => { clearTimeout(timer); synth.removeEventListener?.('voiceschanged', changed); signal?.removeEventListener('abort', cancel) }
-    const finish = voices => { clean(); resolve(voices) }
-    const changed = () => { const voices = synth.getVoices(); if (voices.length) finish(voices) }
-    const cancel = () => { clean(); reject(stopped()) }
-    synth.addEventListener?.('voiceschanged', changed)
-    signal?.addEventListener('abort', cancel, { once: true })
-    timer = setTimeout(() => finish(synth.getVoices()), timeout)
-    changed()
-  })
-}
-
-export async function prepareSpeech(keys, byKey, getRecording, signal) {
-  const checkStopped = () => {
-    if (signal?.aborted) throw stopped()
-  }
-  checkStopped()
-  let voices
-  const parts = []
-  for (const key of keys) {
-    let blob = await getRecording(key)
-    checkStopped()
-    if (!blob) {
-      // Explicitly installed/recorded words take precedence over synthetic clips.
-      for (const path of [`/audio/${encodeURIComponent(key)}.wav`, `/audio/rw/${encodeURIComponent(key)}.wav`]) {
-        try {
-          const response = await fetch(path, { signal })
-          if (response.ok && response.headers.get('content-type')?.startsWith('audio/')) blob = await response.blob()
-        } catch { checkStopped() }
-        checkStopped()
-        if (blob?.size) break
-      }
-    }
-    checkStopped()
-    if (blob?.size) parts.push({ blob })
-    else {
-      voices ??= await loadVoices(signal)
-      checkStopped()
-      const voice = kinyarwandaVoice(voices)
-      const text = byKey[key]?.label_rw
-      if (voice && text) parts.push({ text, voice })
-      else throw localizedError(`Ijwi ry’Ikinyarwanda rya “${byKey[key]?.label_rw ?? 'iri jambo'}” ntiribonetse. Fungura igenamiterere ry’umurezi, ujye mu majwi, wongeremo ijwi. Ubutumwa bwawe buracyahari.`)
-    }
-  }
-  return parts
-}
-
+// Plays one prepared part and settles only when it has finished, failed or been stopped, always
+// releasing the media element, the object URL and the abort listener.
 export function playSpeechPart(part, signal) {
   return new Promise((resolve, reject) => {
     let audio, utterance, url, timer, settled = false
