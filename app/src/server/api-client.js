@@ -15,10 +15,11 @@ export async function getLinkedAccount() { return (await db.settings.get('accoun
 export const waitText = seconds => (seconds < 90 ? `amasegonda ${Math.max(1, Math.round(seconds))}` : `iminota ${Math.ceil(seconds / 60)}`)
 
 // A request's own messages, by status, come before the general ones; a function receives the
-// server's reply.
+// server's reply, which the error also carries as `reply`.
 async function req(path, { method = 'GET', body, form, auth = true, errors = {} } = {}) {
   const headers = {}
-  if (auth) { const t = await getToken(); if (t) headers.Authorization = `Bearer ${t}` }
+  const token = auth ? await getToken() : null
+  if (token) headers.Authorization = `Bearer ${token}`
   let payload
   if (form) { payload = new URLSearchParams(form); headers['Content-Type'] = 'application/x-www-form-urlencoded' }
   else if (body !== undefined) { payload = JSON.stringify(body); headers['Content-Type'] = 'application/json' }
@@ -26,6 +27,9 @@ async function req(path, { method = 'GET', body, form, auth = true, errors = {} 
   try { r = await fetch(`${API_BASE}${path}`, { method, headers, body: payload }) }
   catch { throw localizedError('Ntibyashobotse guhuza na seriveri. Reba niba ufite interineti, wongere ugerageze.') }
   if (!r.ok) {
+    const reply = await r.json().catch(() => ({}))
+    // The server refused the session: it expired, or the PIN changed on another device.
+    if (r.status === 401 && token) await setToken(null)
     const messages = {
       401: 'Ntiwemerewe gukomeza. Ongera winjire ukoresheje nimero yawe n’umubare w’ibanga.',
       403: 'Iyi konti ntiyemerewe kubona aya makuru.',
@@ -36,8 +40,9 @@ async function req(path, { method = 'GET', body, form, auth = true, errors = {} 
       ...errors
     }
     const message = messages[r.status] ?? 'Seriveri ntiyabashije kwakira icyifuzo. Ongera ugerageze nyuma.'
-    const error = localizedError(typeof message === 'function' ? message(await r.json().catch(() => ({}))) : message)
+    const error = localizedError(typeof message === 'function' ? message(reply) : message)
     error.status = r.status
+    error.reply = reply
     throw error
   }
   return r.status === 204 ? null : r.json()
@@ -65,7 +70,14 @@ export const api = {
   }),
   register: (phone, code, pin, name = '', role = 'teacher') => req('/auth/register', { method: 'POST', body: { name, phone, code, pin, role }, auth: false, errors: { 400: WRONG_CODE, 409: NUMBER_TAKEN } }),
   resetPin: (phone, code, pin) => req('/auth/reset-pin', { method: 'POST', body: { phone, code, pin }, auth: false, errors: { 400: WRONG_CODE, 404: NO_ACCOUNT } }),
-  changePin: (phone, pin, newPin) => req('/auth/change-pin', { method: 'POST', body: { phone, pin, new_pin: newPin }, auth: false, errors: { 401: WRONG_PIN, 429: PIN_LOCKED } }),
+  // A new PIN ends every session opened with the old one, this device's too, so a device that was
+  // signed in signs in again with the new PIN.
+  changePin: async (phone, pin, newPin) => {
+    const signedIn = !!(await getToken())
+    await req('/auth/change-pin', { method: 'POST', body: { phone, pin, new_pin: newPin }, auth: false, errors: { 401: WRONG_PIN, 429: PIN_LOCKED } })
+    if (signedIn) await api.login(phone, newPin).catch(() => setToken(null))
+    return null
+  },
   login: async (phone, pin) => {
     const number = normalisePhone(phone) ?? String(phone ?? '').trim()
     const t = await req('/auth/login', { method: 'POST', form: { username: number, password: pin }, auth: false, errors: { 401: WRONG_PIN, 429: PIN_LOCKED } })
@@ -83,7 +95,12 @@ export const api = {
   health: () => req('/health', { auth: false }),
   backupStatus: () => req('/backup/status'),
   loadBackup: () => req('/backup'),
-  saveBackup: snapshot => req('/backup', { method: 'PUT', body: snapshot })
+  // `base_revision` is the account copy this device last saved or received; a newer one (409)
+  // means another device saved in between, and the caregiver chooses in Ohereza.
+  saveBackup: (snapshot, base_revision) => req('/backup', {
+    method: 'PUT', body: { ...snapshot, base_revision },
+    errors: { 409: 'Konti yawe ifite ibyahinduwe ku kindi gikoresho. Hitamo ibyo ugumana muri «Ohereza».' }
+  })
 }
 
 // After the caregiver opens the caregiver area with the PIN, the linked account signs in again with

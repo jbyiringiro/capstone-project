@@ -108,9 +108,9 @@ const Cooldown = ({ form }) => !!form.remaining && <p role="status" className="p
 async function connectBackup(onDeviceRestored) {
   try {
     const result = await connectAccount()
-    if (result.action === 'restored') {
+    if (result.action === 'restored' || result.action === 'updated') {
       await onDeviceRestored?.()
-      return `Ibyo wabitse kuri konti byagarutse kuri iki gikoresho: igenamiterere ry’ikibaho, imyirondoro ${result.profiles}, amagambo mashya ${result.words}, amajwi ${result.recordings}.`
+      return `Ibyo wabitse kuri konti byagarutse kuri iki gikoresho: ${result.profiles ? `imyirondoro ${result.profiles} n’igenamiterere ryayo` : 'igenamiterere ry’ikibaho'}.`
     }
     if (result.action === 'saved') return 'Ibyo washyizeho kuri iki gikoresho byabitswe kuri konti yawe.'
     if (result.action === 'choose') return 'Konti yawe n’iki gikoresho byombi bifite ibyo mwashyizeho: hitamo ibyo ugumana muri «Ohereza».'

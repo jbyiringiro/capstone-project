@@ -1,6 +1,6 @@
 // Caregiver voice recordings, one per word, shared by every profile on this device. They are never in
-// the messages export or the message sync; a signed-in caregiver's account backup keeps them
-// (storage/backup.js).
+// the messages export, the message sync or the account backup (storage/backup.js): no child media
+// goes to the server (NFR4).
 import { db } from './db.js'
 import { localizedError } from '../shared/errors-rw.js'
 

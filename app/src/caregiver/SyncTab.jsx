@@ -13,8 +13,22 @@ import { Heading, clearValidation, requiredCode } from './components.jsx'
 
 // Data leaves the device only when the adult chooses: a JSON download, an upload of completed
 // messages of server profiles owned by the signed-in account (FR7), or, once signed in, the
-// account backup that brings everything set up here to a new phone or tablet.
+// account backup that brings children's boards set up here to a new phone or tablet.
 const when = iso => new Date(iso).toLocaleString('rw-RW', { dateStyle: 'medium', timeStyle: 'short' })
+const brought = result => (result.profiles ? `imyirondoro ${result.profiles} n’igenamiterere ryayo` : 'igenamiterere ry’ikibaho')
+const restoredText = (result, updated) => `${updated ? 'Ibyo wahinduye ku kindi gikoresho byazanywe kuri iki gikoresho' : 'Ibyo wabitse kuri konti byagarutse kuri iki gikoresho'}: ${brought(result)}.`
+
+// How this device and the account's copy differ, by child code, before the caregiver chooses.
+function Differences({ value }) {
+  if (!value) return null
+  const rows = [
+    value.onlyAccount.length && `Abana bari kuri konti gusa: ${value.onlyAccount.join(', ')}`,
+    value.onlyHere.length && `Abana bari kuri iki gikoresho gusa: ${value.onlyHere.join(', ')}`,
+    value.changed.length && `Abana bafite amashusho cyangwa igenamiterere bitandukanye: ${value.changed.join(', ')}`,
+    value.device && 'Igenamiterere rusange riratandukanye: uburyo bw’ikibaho, umwana ufunguye, ijwi cyangwa ikibaho cy’igerageza.'
+  ].filter(Boolean)
+  return <ul className="account-backup-differences" aria-label="Ibitandukanye">{rows.map(row => <li key={row}>{row}</li>)}</ul>
+}
 
 // The Vuga account this device is linked to, by the number given at the first setup or in Kwinjira.
 // Signed out, the caregiver signs in again with the PIN. When the account's PIN was changed on
@@ -56,33 +70,36 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
   const [busy, setBusy] = useState(false)
   const [serverCode, setServerCode] = useState('')
   // The account copy: when it was last saved, and whether this device keeps it up to date or must
-  // first choose between the account's set-up and its own.
+  // first choose between the account's set-up and its own (`differences`).
   const [backup, setBackup] = useState(null)
   const [backupMessage, setBackupMessage] = useState('')
   const count = () => countPendingUploads().then(setPending).catch(e => setError(userError(e)))
   useEffect(() => {
     getToken().then(async token => {
       setAuthed(!!token)
-      const state = token ? await accountBackupState() : null
+      if (!token) return
+      const state = await accountBackupState()
       if (state) setBackup({ saved_at: state.saved_at, choose: false })
-      else if (token && navigator.onLine) await withBusy(connect)
+      // Online, the account says whether another device saved since. If the server cannot be
+      // reached, a device that keeps the copy just shows its last save.
+      if (navigator.onLine) await withBusy(connect, { quietIfUnreachable: !!state })
     }).catch(e => setError(userError(e)))
     count()
   }, [])
 
   async function connect() {
     const result = await connectAccount()
-    if (result.action === 'restored') {
+    if (result.action === 'restored' || result.action === 'updated') {
       await onDeviceRestored?.()
-      setBackupMessage(`Ibyo wabitse kuri konti byagarutse kuri iki gikoresho: igenamiterere ry’ikibaho, imyirondoro ${result.profiles}, amagambo mashya ${result.words}, amajwi ${result.recordings}.`)
+      setBackupMessage(restoredText(result, result.action === 'updated'))
     } else if (result.action === 'saved') setBackupMessage('Ibyo washyizeho kuri iki gikoresho byabitswe kuri konti yawe.')
-    setBackup({ saved_at: result.saved_at, choose: result.action === 'choose' })
+    setBackup({ saved_at: result.saved_at, choose: result.action === 'choose', differences: result.differences })
   }
   const restore = () => withBusy(async () => {
     const result = await restoreFromAccount()
     await onDeviceRestored?.()
     setBackup({ saved_at: result.saved_at, choose: false })
-    setBackupMessage(`Ibyo kuri konti byagaruwe kuri iki gikoresho: igenamiterere ry’ikibaho, imyirondoro ${result.profiles}, amagambo mashya ${result.words}, amajwi ${result.recordings}.`)
+    setBackupMessage(`Ibyo kuri konti byagaruwe kuri iki gikoresho: ${brought(result)}.`)
   })
   const replace = () => {
     if (!window.confirm('Ibyo wabitse kuri konti bizasimburwa n’ibyo kuri iki gikoresho. Urabyemeza?')) return
@@ -95,8 +112,13 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
   const saveNow = () => withBusy(async () => {
     const status = await saveToAccount()
     if (!status) { setBackupMessage('Ntibyabitswe. Reba ko ufite interineti kandi winjiye kuri konti.'); return }
+    if (status.conflict) {
+      await connect()
+      setBackupMessage('Ntibyabitswe: konti yawe ifite ibyahinduwe ku kindi gikoresho. Hitamo ibyo ugumana.')
+      return
+    }
     setBackup({ saved_at: status.saved_at, choose: false })
-    setBackupMessage(status?.unchanged ? 'Nta gishya cyo kubika: konti ifite ibiri kuri iki gikoresho.' : 'Byabitswe kuri konti yawe.')
+    setBackupMessage(status.unchanged ? 'Nta gishya cyo kubika: konti ifite ibiri kuri iki gikoresho.' : 'Byabitswe kuri konti yawe.')
   })
 
   async function importProfiles() {
@@ -110,9 +132,14 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
     await saveServerProfiles(profiles)
     setMessage(`Imyirondoro ${profiles.length} ya seriveri iraboneka mu gice cy’Abana. Amashusho yari yaratoranyijwe kuri iki gikoresho yagumishijweho.`)
   }
-  async function withBusy(task) {
+  async function withBusy(task, { quietIfUnreachable = false } = {}) {
     setBusy(true); setError('')
-    try { await task() } catch (e) { setError(userError(e)) } finally { setBusy(false) }
+    try { await task() } catch (e) {
+      // The server ended the session (the PIN changed, or it expired): sign in again below.
+      if (e.status === 401) { setAuthed(false); setBackup(null) }
+      // A request that never reached the server has no status.
+      if (!(quietIfUnreachable && !e.status)) setError(userError(e))
+    } finally { setBusy(false) }
   }
   const fetchProfiles = () => withBusy(importProfiles)
   const createServerProfile = event => {
@@ -152,11 +179,13 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
         <button className="ghost" disabled={busy} onClick={async () => { try { await api.logout(); setAuthed(false); setBackup(null); setBackupMessage('') } catch (e) { setError(userError(e)) } }}>Sohoka</button>
         <section className="account-backup" aria-label="Ibibitswe kuri konti">
           <h3>Ibibitswe kuri konti</h3>
-          <p className="muted">Abana, amashusho yabo, igenamiterere ry’ikibaho, aho umwana ari, amagambo akurikira, uburyo bw’umwana, amagambo mashya n’amafoto yayo, n’amajwi yafashwe bibikwa kuri konti yawe igihe usubiye ku kibaho. Winjiye kuri iyi konti kuri telefoni cyangwa tablet nshya, byose biragaruka. Umubare w’ibanga n’ubutumwa ntibijyamo.</p>
+          <p className="muted">Abana bafite kode nka P-01, amashusho yabo, igenamiterere ry’ikibaho, aho umwana ari, amagambo akurikira n’uburyo bw’umwana bibikwa kuri konti yawe igihe usubiye ku kibaho. Winjiye kuri iyi konti kuri telefoni cyangwa tablet nshya, biragaruka. Amazina y’abana, amagambo mashya n’amafoto yayo, amajwi yafashwe, ubutumwa n’umubare w’ibanga ntibijyamo: biguma kuri iki gikoresho.</p>
           {backup?.choose ? <>
             <p className="account-backup-when">Konti yawe ifite ibyo wabitse ku wa {when(backup.saved_at)}, kandi iki gikoresho na cyo gifite ibyacyo. Hitamo ibyo ugumana.</p>
+            <Differences value={backup.differences} />
             <button className="primary" disabled={busy || !online} onClick={restore}>Garura ibyo kuri konti</button>
             <button className="ghost" disabled={busy || !online} onClick={replace}>Bika ibyo kuri iki gikoresho kuri konti</button>
+            <p className="muted">«Garura ibyo kuri konti»: ibyo kuri konti bisimbura ibyo kuri iki gikoresho ku bana bari kuri byombi, abandi bana bakagumaho. «Bika ibyo kuri iki gikoresho kuri konti»: konti isigarana ibyo kuri iki gikoresho gusa.</p>
           </> : <>
             <p className="account-backup-when">{backup?.saved_at ? `Byabitswe bwa nyuma: ${when(backup.saved_at)}` : 'Ntibirabikwa kuri konti.'}</p>
             <button className="primary" disabled={busy || !online || !backup} onClick={saveNow}>Bika ubu</button>

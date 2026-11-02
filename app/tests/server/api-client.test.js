@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../src/storage/db.js'
-import { api, getLinkedAccount, signInQuietly, waitText } from '../../src/server/api-client.js'
+import { api, getLinkedAccount, getToken, signInQuietly, waitText } from '../../src/server/api-client.js'
 
 // A stand-in for the Vuga API: `replies` answers each path, and every request is kept.
 function fakeServer(replies) {
@@ -36,6 +36,25 @@ describe('accounts by mobile number and one PIN', () => {
     expect(await api.changePin('+250788123456', '1357', '9753')).toBeNull()
     expect(requests[0]).toMatchObject({ path: '/auth/reset-pin', method: 'POST', body: { phone: '+250788123456', code: '654321', pin: '1357' } })
     expect(requests[1]).toMatchObject({ path: '/auth/change-pin', body: { phone: '+250788123456', pin: '1357', new_pin: '9753' } })
+  })
+  it('signs a signed-in device in again after a PIN change, which ends the sessions opened with the old PIN', async () => {
+    await db.settings.put({ key: 'token', value: 'opened-with-1357' })
+    const requests = fakeServer({ '/auth/change-pin': [204, null], '/auth/login': [200, { access_token: 'opened-with-9753' }] })
+    await api.changePin('+250788123456', '1357', '9753')
+    expect(requests.map(request => request.path)).toEqual(['/auth/change-pin', '/auth/login'])
+    expect(requests[1].body).toEqual({ username: '+250788123456', password: '9753' })
+    expect(await getToken()).toBe('opened-with-9753')
+  })
+  it('ends the session on this device when the server refuses it, as after a PIN change elsewhere', async () => {
+    await db.settings.put({ key: 'token', value: 'opened-with-1357' })
+    fakeServer({ '/backup/status': [401, { detail: 'invalid or expired token' }] })
+    await expect(api.backupStatus()).rejects.toMatchObject({ status: 401, message: expect.stringContaining('Ongera winjire') })
+    expect(await getToken()).toBeNull()
+    // A wrong PIN at sign-in is not a refused session: the device keeps its own until then.
+    await db.settings.put({ key: 'token', value: 'opened-with-1357' })
+    fakeServer({ '/auth/login': [401, { detail: 'wrong phone or PIN' }] })
+    await expect(api.login('0788123456', '1111')).rejects.toMatchObject({ status: 401 })
+    expect(await getToken()).toBe('opened-with-1357')
   })
   it('says in Kinyarwanda what went wrong with a code or a PIN, and how long to wait', async () => {
     fakeServer({ '/auth/code': [429, { detail: 'wait', retry_after: 42 }], '/auth/register': [400, { detail: 'wrong or expired code' }] })

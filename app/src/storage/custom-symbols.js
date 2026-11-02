@@ -1,6 +1,6 @@
 // Words a caregiver adds for one child's life (FR3): a picture taken on the device, a Kinyarwanda
-// label and a category. They live on this device, and in the caregiver's account backup once
-// they sign in (storage/backup.js), like caregiver recordings.
+// label and a category. They live on this device only, like caregiver recordings: the account
+// backup leaves them out (storage/backup.js), because no child media goes to the server (NFR4).
 import { db } from './db.js'
 import { localizedError } from '../shared/errors-rw.js'
 import { CATEGORIES } from '../symbols/categories.js'
