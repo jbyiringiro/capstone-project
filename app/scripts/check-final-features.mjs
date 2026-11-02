@@ -18,12 +18,30 @@ const clip = fileURLToPath(new URL('../public/audio/rw/WATER.wav', import.meta.u
 await mkdir(output, { recursive: true })
 const vocabFile = name => readFile(fileURLToPath(new URL(`../../vocab/${name}`, import.meta.url)), 'utf8')
 const reviewWords = (await vocabFile('review_words.csv')).trim().split(/\r?\n/).slice(1)
+// Clip lengths from the audio manifests, to tell which clips played.
+const manifest = async path => JSON.parse(await readFile(fileURLToPath(new URL(`../public/audio/rw/${path}`, import.meta.url)), 'utf8')).clips
+const seconds = Object.fromEntries([...await manifest('manifest.json'), ...(await manifest('forms/manifest.json')).map(clip => ({ ...clip, file: `forms/${clip.file}` }))]
+  .map(clip => [clip.file, clip.duration_seconds]))
 const labels = Object.fromEntries((await vocabFile('symbols.csv')).trim().split(/\r?\n/).slice(1).map(row => row.split(',').slice(0, 2)))
 
 const browser = await chromium.launch({ channel, headless: true })
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 } })
 await context.addInitScript(() => {
   if ('speechSynthesis' in window) Object.defineProperty(window.speechSynthesis, 'getVoices', { configurable: true, value: () => [] })
+  // What actually plays, with its length, and when Vuga was pressed. The board reads a message's
+  // clips while it is composed, so requested files no longer show what Vuga said.
+  window.__plays = []
+  window.__vugaAt = 0
+  addEventListener('click', event => { if (event.target.closest?.('.speak-button')) window.__vugaAt = performance.now() }, true)
+  const play = HTMLMediaElement.prototype.play
+  HTMLMediaElement.prototype.play = function (...args) {
+    this.addEventListener('playing', () => {
+      const entry = { start: performance.now(), duration: this.duration, ended: false }
+      window.__plays.push(entry)
+      this.addEventListener('ended', () => { entry.ended = true }, { once: true })
+    }, { once: true })
+    return play.apply(this, args)
+  }
 })
 const page = await context.newPage()
 page.setDefaultTimeout(15000)
@@ -104,6 +122,14 @@ async function touchTap(target) {
   await touch('touchStart', [[box.x + box.width / 2, box.y + box.height / 2]])
   await touch('touchEnd', [])
 }
+// The clips played since Vuga was last pressed, checked by length against the manifests. An MP3
+// plays up to about 0.1 s longer than its manifest length (encoder padding); a WAV plays exactly.
+async function expectSpoken(files) {
+  const played = await page.evaluate(() => window.__plays.filter(play => play.start >= window.__vugaAt && play.ended).map(play => play.duration))
+  expect(played).toHaveLength(files.length)
+  files.forEach((file, index) => expect(Math.abs(played[index] - seconds[file]), `${file}: played ${played[index]} s`).toBeLessThan(file.endsWith('.mp3') ? 0.12 : 0.02))
+}
+const playCount = () => page.evaluate(() => window.__plays.length)
 async function speakAndWait() {
   const before = (await stored()).messages.filter(m => m.spoken_at).length
   await board.getByRole('button', { name: 'Vuga ubutumwa', exact: true }).click()
@@ -378,13 +404,12 @@ try {
       await expect(shown.locator('.display-sentence')).toHaveText('Ndashaka amazi.')
       await screenshot('board-erekana-sentence')
       await shown.getByRole('button', { name: 'Subira ku kibaho', exact: true }).click()
-      // Each tap already said its own word; count only the message's audio.
+      // Each tap already said its own word; Vuga says the sentence: ndashaka, then amazi, and
+      // never gushaka (WANT.wav) word by word.
       await expect.poll(() => audio).toContain('/audio/rw/WATER.wav')
-      audio.length = 0
       await speakAndWait()
       expect(audio).toContain('/audio/rw/forms/ndashaka.mp3')
-      expect(audio).toContain('/audio/rw/WATER.wav')
-      expect(audio).not.toContain('/audio/rw/WANT.wav')
+      await expectSpoken(['forms/ndashaka.mp3', 'WATER.wav'])
       // a picture on its own is its own word: no "I" is added
       audio.length = 0
       await board.locator('.symbol-grid [data-symbol="WANT"]').click()
@@ -392,7 +417,7 @@ try {
       await expect(shown.locator('.display-sentence')).toHaveText('Gushaka.')
       await shown.getByRole('button', { name: 'Subira ku kibaho', exact: true }).click()
       await speakAndWait()
-      expect(audio).toContain('/audio/rw/WANT.wav')
+      await expectSpoken(['WANT.wav'])
       expect(audio.filter(path => path.includes('/forms/'))).toEqual([])
     } finally { page.off('request', listen) }
   })
@@ -410,6 +435,7 @@ try {
       await speakAndWait()
       expect(audio).toEqual(expect.arrayContaining(['/audio/rw/I.wav', '/audio/rw/WANT.wav', '/audio/rw/WATER.wav']))
       expect(audio.filter(path => path.startsWith('/audio/rw/forms/'))).toEqual([])
+      await expectSpoken(['I.wav', 'WANT.wav', 'WATER.wav'])
     } finally { page.off('request', listen) }
     await caregiver()
     await tab('Ikibaho')
@@ -514,8 +540,10 @@ try {
     const listen = request => { const path = new URL(request.url()).pathname; if (path.startsWith('/audio/')) audio.push(path) }
     page.on('request', listen)
     try {
+      const before = await playCount()
       await board.locator('.symbol-grid [data-symbol="HELP"]').click()
       await expect.poll(() => audio).toContain('/audio/rw/HELP.wav')
+      await expect.poll(playCount).toBe(before + 1)
       await expect(chips()).toHaveCount(1)
       await board.getByRole('button', { name: 'Siba ubutumwa bwose', exact: true }).click()
       await caregiver()
@@ -523,11 +551,12 @@ try {
       await expect(page.getByRole('switch', { name: 'Vuga buri shusho ikimara gukandwaho', exact: true })).toBeChecked()
       await setSwitch('Vuga buri shusho ikimara gukandwaho', false)
       await back()
-      audio.length = 0
+      // Off, a tap says nothing (the board may still read the clip, ready for Vuga).
+      const quiet = await playCount()
       await board.locator('.symbol-grid [data-symbol="HELP"]').click()
       await expect(chips()).toHaveCount(1)
       await page.waitForTimeout(1000)
-      expect(audio).toEqual([])
+      expect(await playCount()).toBe(quiet)
     } finally { page.off('request', listen) }
     await board.getByRole('button', { name: 'Siba ubutumwa bwose', exact: true }).click()
     await caregiver()

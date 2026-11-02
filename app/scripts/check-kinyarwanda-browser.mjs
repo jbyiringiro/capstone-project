@@ -463,12 +463,18 @@ try {
 
   await check('“Ndashaka amazi” plays as two Kinyarwanda clips (ndashaka, amazi) through native media before exactly one Speak completion', async () => {
     await quiet()
-    const baseline = await endedCount(), requestsBefore = requests.length
+    const baseline = await endedCount(), eventsBefore = (await mediaEvents()).length
     await rwPlay().click()
     await expect.poll(endedCount, { timeout: 30000 }).toBe(baseline + 2)
-    const played = requests.slice(requestsBefore).map(url => new URL(url).pathname).filter(path => path.startsWith('/audio/rw/'))
-    expect(played).toEqual(expect.arrayContaining(['/audio/rw/forms/ndashaka.mp3', '/audio/rw/WATER.wav']))
-    expect(played).not.toContain('/audio/rw/WANT.wav')
+    // The board reads the sentence's clips while the message is composed, before Vuga, so what
+    // played is told apart by length (manifests): ndashaka.mp3 1.216 s, which plays up to about
+    // 0.1 s longer (MP3 padding), WATER.wav 1.072 s, and not WANT.wav (0.928 s), which word-by-word
+    // speech would have played first.
+    const ended = (await mediaEvents()).slice(eventsBefore).filter(event => event.type === 'ended').map(event => event.duration)
+    expect(ended).toHaveLength(2)
+    expect(Math.abs(ended[0] - 1.216)).toBeLessThan(0.12)
+    expect(ended[1]).toBeCloseTo(1.072, 2)
+    expect(requests.map(url => new URL(url).pathname)).toEqual(expect.arrayContaining(['/audio/rw/forms/ndashaka.mp3', '/audio/rw/WATER.wav']))
     await expect(chips()).toHaveCount(0)
     await expectCompletions(++completedMessages)
     const data = await storage()
@@ -549,9 +555,11 @@ try {
   })
 
   await check('Saved word recording overrides the bundled clip and finalizes one message after playback', async () => {
+    // Counted from before the tap: the tapped word and the prepared message both use the recording.
+    const requestsBefore = requests.length
     await back(); await tile('I').click()
     await quiet()
-    const baseline = await endedCount(), requestsBefore = requests.length
+    const baseline = await endedCount()
     await rwPlay().click()
     await expect.poll(endedCount).toBe(baseline + 1)
     await expect(chips()).toHaveCount(0)

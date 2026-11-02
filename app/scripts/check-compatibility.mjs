@@ -14,6 +14,11 @@ import { preview } from 'vite'
 // Low-end hardware is emulated in Chromium with CPU throttling (4x and 6x, the factors Lighthouse
 // uses for mid- and low-tier phones) and a Fast 3G network for the cold load.
 //
+// A run passes only when every check passes and the page logged no error; anything else fails it
+// and the script exits with an error. Headless WebKit on Windows has no audio output, so there a
+// run whose speech cannot start is partial, not passed, provided the message stays and Erekana is
+// offered; its speech start is not measured.
+//
 //   npm run build && node scripts/check-compatibility.mjs [--only <id,id>]
 const output = process.env.VUGA_EVIDENCE_DIR || fileURLToPath(new URL('../../docs/screenshots/final-2026-10-22/', import.meta.url))
 const evidence = fileURLToPath(new URL('../../docs/evidence/compatibility.json', import.meta.url))
@@ -21,6 +26,7 @@ const appRoot = fileURLToPath(new URL('..', import.meta.url))
 const FAST_3G = { offline: false, latency: 562.5, downloadThroughput: 180_000, uploadThroughput: 84_375 }
 const ENGINES = { chromium, firefox, webkit }
 const desktop = { viewport: { width: 1280, height: 900 } }
+const NO_AUDIO = process.platform === 'win32' // headless WebKit's media output on Windows
 const MATRIX = [
   { id: 'edge-desktop', engine: 'chromium', channel: 'msedge', label: 'Microsoft Edge, desktop 1280x900', context: desktop },
   { id: 'edge-android-tablet', engine: 'chromium', channel: 'msedge', label: 'Edge (Chromium), Galaxy Tab S4 profile', context: devices['Galaxy Tab S4'] },
@@ -29,9 +35,10 @@ const MATRIX = [
   { id: 'edge-lowend-phone', engine: 'chromium', channel: 'msedge', label: 'Edge (Chromium), Pixel 5, 6x CPU slowdown, Fast 3G', context: devices['Pixel 5'], cpu: 6, network: FAST_3G },
   { id: 'firefox-desktop', engine: 'firefox', label: 'Firefox, desktop 1280x900', context: desktop },
   { id: 'firefox-phone-size', engine: 'firefox', label: 'Firefox, 393x851 phone viewport', context: { viewport: { width: 393, height: 851 } } },
-  { id: 'webkit-ipad', engine: 'webkit', label: 'WebKit (Safari engine), iPad gen 7 profile', context: devices['iPad (gen 7)'] },
-  { id: 'webkit-iphone', engine: 'webkit', label: 'WebKit (Safari engine), iPhone 13 profile', context: devices['iPhone 13'] }
+  { id: 'webkit-ipad', engine: 'webkit', label: 'WebKit (Safari engine), iPad gen 7 profile', context: devices['iPad (gen 7)'], noAudio: NO_AUDIO },
+  { id: 'webkit-iphone', engine: 'webkit', label: 'WebKit (Safari engine), iPhone 13 profile', context: devices['iPhone 13'], noAudio: NO_AUDIO }
 ]
+const REQUIRED = ['board_renders', 'service_worker', 'offline_reload', 'suggestions']
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1].split(',') : null
 await mkdir(output, { recursive: true })
 
@@ -72,6 +79,11 @@ async function run(entry, port) {
   const context = await browser.newContext(options)
   await context.addInitScript(() => {
     window.__firstPlaying = null
+    // Speech is timed from the moment the press reaches the page, as a child's tap would: what
+    // Playwright does before it (finding the button by name, checking it can be pressed) took
+    // 30 ms at full speed and 240-460 ms under 6x CPU emulation, and is not the app's delay.
+    window.__speakPressed = null
+    addEventListener('click', event => { if (event.target.closest?.('.speak-button')) window.__speakPressed ??= performance.now() }, true)
     const play = HTMLMediaElement.prototype.play
     HTMLMediaElement.prototype.play = function (...args) {
       this.addEventListener('playing', () => { window.__firstPlaying ??= performance.now() }, { once: true })
@@ -170,17 +182,25 @@ async function run(entry, port) {
     await board.locator('.symbol-grid [data-symbol="WATER"]').click()
     // The tapped word is said at once; let it finish so only the message's own audio is timed.
     await page.waitForTimeout(1500)
-    const speakAt = await page.evaluate(() => { window.__firstPlaying = null; return performance.now() })
+    const speakAt = await page.evaluate(() => { window.__firstPlaying = null; window.__speakPressed = null; return performance.now() })
     await board.getByRole('button', { name: 'Vuga ubutumwa', exact: true }).click()
     try {
       await page.waitForFunction(() => window.__firstPlaying !== null, null, { timeout: 15000 })
-      result.metrics.speech_start_ms = Math.round(await page.evaluate(() => window.__firstPlaying) - speakAt)
+      const { pressed, playing } = await page.evaluate(() => ({ pressed: window.__speakPressed, playing: window.__firstPlaying }))
+      result.metrics.speech_start_ms = Math.round(playing - pressed)
+      result.metrics.speech_driver_ms = Math.round(pressed - speakAt)
       await expect(board.locator('.message-chip')).toHaveCount(0, { timeout: 15000 })
       result.checks.speech = true
     } catch {
       result.checks.speech = false
-      result.notes.push('Audio did not start in this headless engine; the message stays and Erekana remains available.')
-      if (await page.getByRole('dialog', { name: 'Erekana ubutumwa bwawe.' }).isVisible()) await page.keyboard.press('Escape')
+      // Without audio the board must keep the message and offer Erekana instead. A clip that
+      // never starts is given up after the player's 30 s limit (speech/player.js).
+      const fallback = page.getByRole('dialog', { name: 'Erekana ubutumwa bwawe.' })
+      await fallback.waitFor({ state: 'visible', timeout: 35000 }).catch(() => {})
+      result.checks.speech_fallback = await fallback.isVisible() && await fallback.getByRole('button', { name: 'Erekana', exact: true }).isVisible()
+        && await board.locator('.message-chip').count() > 0
+      result.notes.push(`Audio did not start in this headless engine${result.checks.speech_fallback ? '; the message stayed and Erekana was offered' : ''}. Speech start not measured.`)
+      if (await fallback.isVisible()) await page.keyboard.press('Escape')
       if (await board.locator('.message-chip').count()) await board.getByRole('button', { name: 'Siba ubutumwa bwose', exact: true }).click()
     }
 
@@ -230,7 +250,12 @@ async function run(entry, port) {
     await page.screenshot({ path: `${output}/compat-${entry.id}.png`, animations: 'disabled' })
     result.screenshot = `compat-${entry.id}.png`
     result.page_errors = errors
-    result.status = errors.length ? 'errors' : 'passed'
+    const failed = REQUIRED.filter(name => result.checks[name] !== true)
+    const audioMissing = !result.checks.speech
+    if (audioMissing && !(entry.noAudio && result.checks.speech_fallback)) failed.push('speech')
+    result.failed_checks = failed
+    result.status = errors.length || failed.length ? 'failed' : audioMissing ? 'partial' : 'passed'
+    if (result.status === 'partial') result.coverage = 'partial: no audio output in headless WebKit on Windows; speech start not measured'
   } catch (error) {
     result.status = 'failed'
     result.error = error.message.split('\n')[0]
@@ -250,12 +275,15 @@ for (const [index, entry] of MATRIX.filter(e => !only || only.includes(e.id)).en
   const m = result.metrics
   console.log(`${result.status.toUpperCase()} ${entry.id}: cold ${m.cold_board_ms} ms, warm ${m.warm_board_ms ?? '-'} ms, offline ${m.offline_board_ms ?? '-'} ms, prediction p95 ${m.prediction_ms?.p95 ?? '-'} ms, tap p95 ${m.tap_to_frame_ms?.p95 ?? '-'} ms, speech ${m.speech_start_ms ?? '-'} ms, ${m.page_turns?.fps ?? '-'} fps${result.error ? ` | ${result.error}` : ''}`)
 }
+const summary = Object.fromEntries(['passed', 'partial', 'failed', 'skipped'].map(status => [status, results.filter(r => r.status === status).length]))
 const report = {
   generated_at: new Date().toISOString(), server: 'vite preview of app/dist, one per run, stopped for the offline phase',
   host: { os: `${os.type()} ${os.release()}`, cpu: os.cpus()[0]?.model, cores: os.cpus().length, memory_gb: Math.round(os.totalmem() / 2 ** 30) },
   note: 'Headless runs on one laptop. CPU slowdown and network profiles emulate low-end hardware; they are not measurements on a physical tablet.',
+  summary,
   results
 }
 await writeFile(evidence, JSON.stringify(report, null, 2) + '\n')
-console.log(`Wrote ${results.length} runs to ${evidence}`)
-if (results.some(r => r.status === 'failed')) process.exitCode = 1
+console.log(`Wrote ${results.length} runs to ${evidence}: ${Object.entries(summary).map(([status, count]) => `${count} ${status}`).join(', ')}`)
+// Partial coverage is reported, not hidden; a failed or skipped configuration fails the matrix.
+if (results.some(r => r.status !== 'passed' && r.status !== 'partial')) process.exitCode = 1

@@ -1,3 +1,4 @@
+import json
 import math
 
 import pytest
@@ -96,15 +97,32 @@ def test_metrics_and_bootstrap_shape():
     assert agg["perplexity"] > 1
 
 
-def test_simulated_ksr_counts_speak_and_navigation():
-    layout = BoardLayout({"needs": ["WANT", "WATER", "EAT"], "feelings": ["FEEL", "BAD"]}, ["I", "MUM"])
-    # static: I (home,1) WANT (cat 2) WATER (same cat,1) + speak = 5
+def test_simulated_ksr_counts_section_tabs_page_turns_and_speak(tmp_path):
+    # As on the board: it opens at the first section, a tab opens a section at its first page in
+    # one tap, each page turn is a tap, a hidden word keeps its slot and an empty page is skipped.
+    sections = {"core": ["I", "WANT", None, None, "HELP", "MUM"],
+                "food": ["EAT", "WATER", "MILK", "BREAD", "TEA", "I"]}
+    layout = BoardLayout(sections, page_size=2)
+    # core: [I, WANT] [HELP, MUM]; food: [EAT, WATER] [MILK, BREAD] [TEA, I]
+    assert layout.places["HELP"] == [("core", 1)] and layout.places["I"] == [("core", 0), ("food", 2)]
+    # static: I (1), WANT (1), WATER (its tab, the word: 2), Speak (1)
     assert simulate_message(None, layout, ("I", "WANT", "WATER")) == 5
+    # MILK: the tab, a page turn and the word (3); TEA: a page turn and the word (2); Speak
+    assert simulate_message(None, layout, ("MILK", "TEA")) == 6
+    # MUM from the food section: the tab back to core's first page, a page turn, the word
+    assert simulate_message(None, layout, ("WATER", "MUM")) == 2 + 3 + 1
+    # After TEA, I is on the same page, so no tab back to core is needed
+    assert simulate_message(None, layout, ("TEA", "I")) == 4 + 1 + 1
     kn = KneserNeyTrigram(); kn.fit([("I", "WANT", "WATER")] * 10)
-    # predictive: I (1) WANT suggested (1) WATER suggested (1) + speak = 4
+    # predictive: each word is suggested, one tap that leaves the section and page as they were
     assert simulate_message(kn, layout, ("I", "WANT", "WATER")) == 4
     r = simulated_ksr(kn, layout, [("I", "WANT", "WATER")])
     assert r["ksr"] == pytest.approx(0.2)
+    # The app's own sections come from app/scripts/export-board-layout.mjs.
+    (tmp_path / "layout.json").write_text(json.dumps({"sections": sections}), encoding="utf-8")
+    assert BoardLayout.from_json(tmp_path / "layout.json", page_size=2).places == layout.places
+    with pytest.raises(KeyError):
+        simulate_message(None, layout, ("CAT",))
 
 
 def test_reranker_prefers_personal_history():

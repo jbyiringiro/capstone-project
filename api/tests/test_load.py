@@ -1,8 +1,10 @@
-"""Stress test from docs/testing_plan.md: 20 tablets each syncing 200 completed messages.
+"""Sequential batch test (the load test planned in docs/testing_plan.md): 20 tablets' backlogs of
+200 completed messages each, synced in turn.
 
 Uploads go through the real HTTP stack (TestClient -> routers -> SyncService -> SQLite file) in
-the 50-message sessions a tablet would send, one request at a time. Timings are written to
-docs/evidence/api_load.json for the report.
+the 50-message sessions a tablet would send, one request at a time, so it measures how fast
+batches are validated and stored, not how the API behaves under concurrent requests. Timings are
+written to docs/evidence/api_load.json for the report.
 """
 import json
 import os

@@ -3,14 +3,17 @@
   * top-k accuracy: the next symbol is among the k suggestions (k = 1, 3, 5).
   * perplexity: exp(mean negative log probability of the true next symbol, incl. EOS).
   * simulated KSR: 1 - predictive_actions / static_actions over the same messages, using a
-    board layout simulator that reproduces category navigation and suggestion selection.
+    board layout simulator that reproduces the board's section tabs, its fixed pages and
+    suggestion selection.
   * paired bootstrap of complete test sentences for accuracy-difference intervals.
 """
 from __future__ import annotations
 
+import json
 import math
 import random
 from dataclasses import dataclass
+from pathlib import Path
 
 from . import EOS
 from .models.base import Predictor
@@ -72,42 +75,69 @@ def paired_bootstrap(a: list[SequenceScore], b: list[SequenceScore], k: int = 3,
 
 
 # ---- simulated keystroke savings -----------------------------------------------------------
+Place = tuple[str, int]  # (section, page) on the board
+
+
 @dataclass
 class BoardLayout:
-    """Category -> ordered symbol list. Home board shows categories plus any home symbols."""
-    categories: dict[str, list[str]]
-    home_symbols: list[str]
+    """The child's board as the app draws it (app/src/board/): section tabs above a grid of fixed
+    pages of `page_size` keys. A tab opens its section at the first page with one tap, from any
+    section, and each page arrow or swipe turns one page. A hidden word keeps its slot (None) and
+    a page with nothing to show is skipped, as in grid-pages.js. The board opens at the first
+    section, and Speak takes it back there. app/scripts/export-board-layout.mjs writes the app's
+    own sections for `from_json`."""
 
-    def actions_to_select(self, symbol: str, current_category: str | None) -> tuple[int, str | None]:
-        """Actions needed on a static board: (taps, category after selection)."""
-        if symbol in self.home_symbols:
-            back = 1 if current_category is not None else 0  # return home first
-            return back + 1, None
-        for cat, syms in self.categories.items():
-            if symbol in syms:
-                if current_category == cat:
-                    return 1, cat
-                back = 1 if current_category is not None else 0
-                return back + 2, cat  # home -> category -> symbol
-        raise KeyError(symbol)
+    sections: dict[str, list[str | None]]
+    page_size: int = 20  # columns x rows: 4 to 40 keys (NFR3)
+
+    def __post_init__(self) -> None:
+        self.start: Place = (next(iter(self.sections)), 0)
+        self.places: dict[str, list[Place]] = {}
+        for section, slots in self.sections.items():
+            pages = [slots[i:i + self.page_size] for i in range(0, len(slots), self.page_size)]
+            shown = [page for page in pages if any(key is not None for key in page)]
+            for number, page in enumerate(shown):
+                for key in page:
+                    if key is not None:
+                        self.places.setdefault(key, []).append((section, number))
+
+    @classmethod
+    def from_json(cls, path: str | Path, page_size: int = 20) -> BoardLayout:
+        return cls(json.loads(Path(path).read_text(encoding="utf-8"))["sections"], page_size)
+
+    def moves(self, symbol: str, at: Place) -> list[tuple[int, Place]]:
+        """Each way to select `symbol` with the board at `at`: (taps, where the board is after)."""
+        if symbol not in self.places:
+            raise KeyError(symbol)
+
+        def taps(place: Place) -> int:
+            section, page = place
+            if section == at[0]:
+                return abs(page - at[1]) + 1  # page turns, then the word
+            return 1 + page + 1  # the tab, page turns from its first page, the word
+        return [(taps(place), place) for place in self.places[symbol]]
 
 
 def simulate_message(model: Predictor | None, layout: BoardLayout, seq: tuple[str, ...],
                      k: int = 3, allowed: set[str] | None = None) -> int:
-    """Count all-action taps to compose `seq` and press Speak.
+    """Fewest all-action taps to compose `seq` and press Speak, from the board's first section.
 
-    Static board: model is None. Predictive board: a suggestion in the top-k is selected with one
-    tap and does not change the current category (it bypasses navigation, proposal 3.2.3).
+    Static board: model is None. Predictive board: a word in the top-k suggestions can be selected
+    with one tap that leaves the open section and page as they were (it bypasses navigation,
+    proposal 3.2.3); going to the word stays possible. A word on several sections may be reached
+    from any of them, so the fewest taps are kept for each section page the board can be on
+    (dynamic programming), as app/scripts/study-message-sets.mjs does for the study's messages.
     """
-    taps = 0
-    cat: str | None = None
+    states: dict[Place, int] = {layout.start: 0}
     for i, sym in enumerate(seq):
-        if model is not None and sym in model.top_k(tuple(seq[:i]), k, allowed):
-            taps += 1
-            continue
-        t, cat = layout.actions_to_select(sym, cat)
-        taps += t
-    return taps + 1  # Speak
+        suggested = model is not None and sym in model.top_k(tuple(seq[:i]), k, allowed)
+        reached: dict[Place, int] = {}
+        for at, taps in states.items():
+            for cost, place in layout.moves(sym, at) + ([(1, at)] if suggested else []):
+                if taps + cost < reached.get(place, math.inf):
+                    reached[place] = taps + cost
+        states = reached
+    return min(states.values()) + 1  # Speak
 
 
 def simulated_ksr(model: Predictor, layout: BoardLayout, seqs: list[tuple[str, ...]],

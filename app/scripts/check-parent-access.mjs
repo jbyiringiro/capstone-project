@@ -22,12 +22,14 @@ const field = name => gate.getByLabel(name, { exact: true })
 const CODE = /^[A-HJ-NP-Z2-9]{4}(-[A-HJ-NP-Z2-9]{4}){3}$/
 let recovery = ''
 // The Vuga API, faked in the browser: accounts by mobile number with one PIN, the codes it texts,
-// a lock after five wrong PINs, and each account's device backup. It starts with one account,
-// 0780000001, whose PIN 8642 differs from the first device's. It answers the app on port 8000 or
-// 8001, whichever the build uses.
+// a lock after five wrong PINs, sessions that a new PIN ends, and each account's device backup,
+// saved only on its latest revision. It starts with one account, 0780000001, whose PIN 8642
+// differs from the first device's. It answers the app on port 8000 or 8001, whichever the build uses.
 const API = /^http:\/\/(localhost|127\.0\.0\.1):800[01]\//
 const accounts = new Map([['+250780000001', '8642']]), texts = [], copies = new Map(), wrongPins = new Map()
-const FIRST = 'token-+250780000001'
+const sessions = new Map(), uploads = []
+const FIRST = '+250780000001'
+const newPin = (phone, pin) => { accounts.set(phone, pin); sessions.set(phone, (sessions.get(phone) ?? 0) + 1) }
 let accountCopy = null
 async function fakeApi(route) {
   const request = route.request(), path = new URL(request.url()).pathname
@@ -61,7 +63,7 @@ async function fakeApi(route) {
     const body = request.postDataJSON()
     if (!accounts.has(body.phone)) return reply(404, { detail: 'no account for this number' })
     if (!texted(body, 'reset')) return reply(400, { detail: 'wrong or expired code' })
-    accounts.set(body.phone, body.pin)
+    newPin(body.phone, body.pin)
     wrongPins.delete(body.phone)
     return route.fulfill({ status: 204, headers })
   }
@@ -69,21 +71,28 @@ async function fakeApi(route) {
     const body = request.postDataJSON(), phone = `+250${body.phone.replace(/\D/g, '').slice(-9)}`
     const refused = signIn(phone, body.pin)
     if (refused) return refused
-    accounts.set(phone, body.new_pin)
+    newPin(phone, body.new_pin)
     return route.fulfill({ status: 204, headers })
   }
   if (path === '/auth/login') {
-    const form = new URLSearchParams(request.postData())
-    return signIn(form.get('username'), form.get('password')) ?? reply(200, { access_token: `token-${form.get('username')}`, token_type: 'bearer' })
+    const phone = new URLSearchParams(request.postData()).get('username')
+    return signIn(phone, new URLSearchParams(request.postData()).get('password'))
+      ?? reply(200, { access_token: `token-${phone}-${sessions.get(phone) ?? 0}`, token_type: 'bearer' })
   }
-  const token = (await request.allHeaders()).authorization?.replace('Bearer ', '')
+  // A session opened before the account's PIN last changed is refused.
+  const [, phone, session] = /^Bearer token-(\+\d+)-(\d+)$/.exec((await request.allHeaders()).authorization ?? '') ?? []
+  if (!phone || Number(session) !== (sessions.get(phone) ?? 0)) return reply(401, { detail: 'invalid or expired token' })
   if (path === '/profiles') return reply(200, [])
-  const copy = copies.get(token)
-  if (path === '/backup/status') return reply(200, copy ? { saved_at: copy.saved_at, size: 10 } : { saved_at: null, size: 0 })
+  const copy = copies.get(phone)
+  const status = () => (copy ? { saved_at: copy.saved_at, size: 10, revision: copy.revision } : { saved_at: null, size: 0, revision: 0 })
+  if (path === '/backup/status') return reply(200, status())
   if (path === '/backup' && request.method() === 'PUT') {
-    copies.set(token, { ...request.postDataJSON(), saved_at: new Date().toISOString() })
+    const { base_revision, ...snapshot } = request.postDataJSON()
+    if (base_revision !== (copy?.revision ?? 0)) return reply(409, { detail: 'the account copy changed on another device', revision: status().revision, saved_at: status().saved_at })
+    copies.set(phone, { ...snapshot, revision: base_revision + 1, saved_at: new Date().toISOString() })
+    uploads.push({ phone, revision: base_revision + 1 })
     accountCopy = copies.get(FIRST) ?? null
-    return reply(200, { saved_at: copies.get(token).saved_at, size: request.postData().length })
+    return reply(200, { saved_at: copies.get(phone).saved_at, size: request.postData().length, revision: base_revision + 1 })
   }
   if (path === '/backup') return copy ? reply(200, copy) : reply(404, { detail: 'no backup on this account' })
   return reply(404, {})
@@ -289,7 +298,9 @@ try {
     await account.getByRole('button', { name: 'Injira', exact: true }).click()
     await expect(account.locator('.parent-recovery-code')).toHaveText(CODE)
     await expect(account.getByRole('status')).toContainText('byabitswe kuri konti')
-    expect(accountCopy?.format).toBe('vuga-account-backup-v1')
+    expect(accountCopy?.format).toBe('vuga-account-backup-v2')
+    // Children by code, their words and settings only: no names, photos or voices go to the account.
+    expect(Object.keys(accountCopy.data).sort()).toEqual(['profiles', 'settings', 'vocabulary'])
     await account.getByRole('button', { name: 'Nayibitse', exact: true }).click()
     await expect(account).toContainText('0780 000 001')
     await back()
@@ -443,7 +454,7 @@ try {
       // The account is signed in and keeps this device's copy.
       await tablet.getByRole('navigation', { name: 'Ibyiciro by’umurezi' }).getByRole('button', { name: 'Ohereza', exact: true }).click()
       await expect(tablet.locator('.card').filter({ hasText: 'Winjiye kuri iki gikoresho' })).toBeVisible()
-      expect(copies.get('token-+250788123456')?.format).toBe('vuga-account-backup-v1')
+      expect(copies.get('+250788123456')?.format).toBe('vuga-account-backup-v2')
       // Back on the board, the PIN opens the caregiver area again, on this device and without internet.
       await tablet.getByRole('button', { name: 'Subira ku kibaho', exact: true }).first().click()
       await device.setOffline(true)
@@ -498,6 +509,66 @@ try {
       await signIn.getByLabel('Umubare w’ibanga', { exact: true }).fill('3579')
       await signIn.getByRole('button', { name: 'Injira', exact: true }).click()
       await expect(phone.locator('.card').filter({ hasText: 'Winjiye kuri iki gikoresho' })).toBeVisible()
+    })
+    // Added on 3 November: the tablet above still holds the first copy and the session it opened
+    // before the phone set a new PIN.
+    await check('A device with an older account copy never replaces the newer one: it signs in again with the new PIN, sees what differs and keeps the account’s', async () => {
+      const [tablet] = device.pages(), [phone] = other.pages()
+      const tabs = tab => tab.getByRole('navigation', { name: 'Ibyiciro by’umurezi' })
+      const setting = (tab, key) => tab.evaluate(async name => {
+        const database = await new Promise((resolve, reject) => { const request = indexedDB.open('vuga'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error) })
+        try { return await new Promise((resolve, reject) => { const request = database.transaction('settings').objectStore('settings').get(name); request.onsuccess = () => resolve(request.result?.value ?? null); request.onerror = () => reject(request.error) }) }
+        finally { database.close() }
+      }, key)
+      const openCaregiver = async (tab, pin) => {
+        await tab.locator('.board:visible').getByRole('button', { name: "Igenamiterere ry'umurezi", exact: true }).focus()
+        await tab.keyboard.press('Enter')
+        await tab.locator('.parent-access').getByLabel('Umubare w’ibanga', { exact: true }).fill(pin)
+        await tab.locator('.parent-access').getByRole('button', { name: 'Injira', exact: true }).click()
+        await expect(tab.locator('.dash')).toBeVisible()
+      }
+      const choosePlace = async (tab, name, pin) => {
+        // The caregiver area may have locked itself while the other device was in use.
+        if (!(await tab.locator('.dash').isVisible())) await openCaregiver(tab, pin)
+        await tabs(tab).getByRole('button', { name: 'Aho umwana ari', exact: true }).click()
+        await tab.getByRole('button', { name: new RegExp(`^${name}`) }).click()
+        await expect(tab.locator('.dash-save-note')).toContainText(name)
+        await tab.getByRole('button', { name: 'Subira ku kibaho', exact: true }).first().click()
+        await expect(tab.locator('.board:visible .place-status')).toHaveText(name)
+      }
+      const copy = () => copies.get('+250788123456')
+      const first = copy().revision
+      // The phone, signed in, saves a new place for the board.
+      await choosePlace(phone, 'Igihe cyo kurya', '3579')
+      await expect.poll(() => copy().revision).toBe(first + 1)
+      // The tablet chooses another place; its save is refused because its session ended, and the
+      // account keeps the phone's copy.
+      await choosePlace(tablet, 'Ku ishuri', '975310')
+      await expect.poll(() => setting(tablet, 'token')).toBeNull()
+      expect(copy().revision).toBe(first + 1)
+      expect(JSON.stringify(copy().data)).toContain('"environment":"meal"')
+      // The tablet's own PIN still opens its caregiver area; the account then asks for its new PIN.
+      await openCaregiver(tablet, '975310')
+      await expect.poll(async () => (await setting(tablet, 'account'))?.stale).toBe(true)
+      await tabs(tablet).getByRole('button', { name: 'Ohereza', exact: true }).click()
+      const signIn = tablet.locator('form.card').filter({ hasText: 'Konti ya 0788 123 456' })
+      await expect(signIn).toContainText('wahinduwe ku kindi gikoresho')
+      await signIn.getByLabel('Umubare w’ibanga', { exact: true }).fill('3579')
+      await signIn.getByRole('button', { name: 'Injira', exact: true }).click()
+      await tablet.getByRole('button', { name: 'Nayibitse', exact: true }).click()
+      // Both changed since the tablet's copy: it lists what differs, and nothing is replaced yet.
+      const backup = tablet.getByRole('region', { name: 'Ibibitswe kuri konti', exact: true })
+      await expect(backup.getByRole('list', { name: 'Ibitandukanye', exact: true })).toContainText('Igenamiterere rusange riratandukanye')
+      await expect(backup.getByRole('button', { name: 'Bika ibyo kuri iki gikoresho kuri konti', exact: true })).toBeVisible()
+      expect(copy().revision).toBe(first + 1)
+      await tablet.locator('.card').filter({ has: backup }).screenshot({ path: `${output}/account-backup-choose.png`, animations: 'disabled' })
+      screenshots.push('account-backup-choose.png')
+      await backup.getByRole('button', { name: 'Garura ibyo kuri konti', exact: true }).click()
+      await expect(backup.getByRole('status')).toContainText('byagaruwe kuri iki gikoresho')
+      await tablet.getByRole('button', { name: 'Subira ku kibaho', exact: true }).first().click()
+      await expect(tablet.locator('.board:visible .place-status')).toHaveText('Igihe cyo kurya')
+      expect(JSON.stringify(copy().data)).toContain('"environment":"meal"')
+      expect(JSON.stringify(copy().data)).not.toContain('"environment":"school"')
     })
   } finally { await device.close(); await other.close() }
   expect(errors).toEqual([])

@@ -1,15 +1,18 @@
 // Checks that the adult study's two message sets are matched (proposal 3.2.3): same number of
 // words and the same navigation demand on the static board, with the predictive-board cost shown
-// for information. Costs follow the app exactly: the category rail is always visible, every
-// message starts on the home page (Ingenzi), a word not on the current page costs one category tap
-// plus the word, a suggestion costs one tap without navigation, and Vuga is one more tap.
+// for information. Costs follow the app's board: the section tabs are always visible and every
+// message starts on the first page of Ingenzi; a tab opens its section at the first page (one
+// tap), each page arrow turns one page (one tap), a word is one tap, a suggestion is one tap
+// without navigation, and Vuga is one more. Pages hold --grid keys (20 by default, 5 x 4), cut
+// from the board's own section lists; ml/vuga_ml/metrics.py simulates the same rules.
 //
-//   node scripts/study-message-sets.mjs [--out ../docs/study/message_sets.json]
+//   node scripts/study-message-sets.mjs [--grid 20] [--out ../docs/study/message_sets.json]
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { sectionKeys } from '../src/board/sections.js'
 import { KneserNeyTrigram } from '../src/prediction/index.js'
-import { HOME_KEYS } from '../src/symbols/categories.js'
+import { CATEGORY_ORDER } from '../src/symbols/categories.js'
 import { parseSymbols } from '../src/symbols/catalogue.js'
 
 const read = file => readFileSync(new URL(file, import.meta.url), 'utf-8')
@@ -59,20 +62,31 @@ export const SENTENCES = {
   'THANK_YOU MUM': ['Murakoze, mama.', 'Thank you, Mum.']
 }
 
-const home = new Set([...HOME_KEYS, ...symbols.filter(s => s.category === 'core').map(s => s.symbol_id)])
-const visible = (key, page) => (page === 'core' ? home.has(key) : byKey[key].category === page)
-const pagesWith = key => [...new Set(['core', byKey[key].category])].filter(page => visible(key, page))
+const gridIndex = process.argv.indexOf('--grid')
+const PAGE = gridIndex > 0 ? Number(process.argv[gridIndex + 1]) : 20
+// Every section page a word is on, as [section, page]; every word is enabled, so no page is empty.
+const places = new Map()
+for (const section of CATEGORY_ORDER) {
+  const keys = sectionKeys(section, symbols).filter(key => byKey[key])
+  keys.forEach((key, index) => places.set(key, [...(places.get(key) ?? []), [section, Math.floor(index / PAGE)]]))
+}
 
-// Fewest actions to compose `message` and press Vuga, by dynamic programming over the page shown.
+// Fewest actions to compose `message` and press Vuga, by dynamic programming over the section
+// page shown: in the open section a word costs its page turns, elsewhere its tab and the turns
+// from the first page, and then the word itself.
 function cost(message, predictive) {
-  let states = new Map([['core', 0]])
+  let states = new Map([['core:0', 0]])
   message.forEach((key, i) => {
     const suggested = predictive && model.topK(message.slice(0, i), 3, allowed).includes(key)
     const next = new Map()
-    const keep = (page, actions) => { if (!next.has(page) || actions < next.get(page)) next.set(page, actions) }
-    for (const [page, actions] of states) {
-      if (suggested || visible(key, page)) keep(page, actions + 1)
-      for (const target of pagesWith(key)) if (target !== page) keep(target, actions + 2)
+    const keep = (state, actions) => { if (!next.has(state) || actions < next.get(state)) next.set(state, actions) }
+    for (const [state, actions] of states) {
+      const [section, page] = state.split(':')
+      if (suggested) keep(state, actions + 1)
+      for (const [target, targetPage] of places.get(key)) {
+        const turns = target === section ? Math.abs(targetPage - Number(page)) : 1 + targetPage
+        keep(`${target}:${targetPage}`, actions + turns + 1)
+      }
     }
     states = next
   })
@@ -92,12 +106,14 @@ function describe(messages) {
 
 for (const key of [...PRACTICE, ...SETS.A, ...SETS.B].flat()) if (!byKey[key]) throw new Error(`unknown symbol ${key}`)
 for (const message of [...PRACTICE, ...SETS.A, ...SETS.B]) if (!SENTENCES[message.join(' ')]) throw new Error(`no sentence for ${message.join(' ')}`)
-const report = { practice: describe(PRACTICE), A: describe(SETS.A), B: describe(SETS.B) }
+const report = { page_keys: PAGE, practice: describe(PRACTICE), A: describe(SETS.A), B: describe(SETS.B) }
+report.matched = report.A.words === report.B.words && report.A.static_actions === report.B.static_actions
 for (const name of ['A', 'B']) {
   const set = report[name]
   console.log(`Set ${name}: ${set.words} words, static ${set.static_actions} actions, predictive ${set.predictive_actions}`)
   for (const row of set.rows) console.log(`  ${row.kinyarwanda.padEnd(32)} ${row.english.padEnd(28)} words ${row.words}  static ${row.static_actions}  predictive ${row.predictive_actions}`)
 }
+if (!report.matched) console.warn(`Not matched on ${PAGE}-key pages: set A needs ${report.A.static_actions} static actions, set B ${report.B.static_actions}.`)
 const outIndex = process.argv.indexOf('--out')
 if (outIndex > 0) {
   const out = fileURLToPath(new URL(process.argv[outIndex + 1], `file://${process.cwd().replaceAll('\\', '/')}/`))
