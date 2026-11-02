@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "checked_at": "2026-10-28T17:11:27.045Z",
+  "checked_at": "2026-11-02T17:05:43.139Z",
   "passed_checks": 25,
   "browser": "Headless msedge",
   "base_url": "http://127.0.0.1:4175/",
@@ -12,7 +12,8 @@
       "status": "passed",
       "evidence": {
         "documentLanguage": "rw",
-        "sectionTabs": 0,
+        "sectionTabs": 14,
+        "wordSuggestions": 3,
         "installedVoicesAvailableToTest": 0
       }
     },
@@ -402,92 +403,92 @@
   "language_audits": [
     {
       "screen": "board",
-      "visibleCharacters": 1804,
+      "visibleCharacters": 1370,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "profile dialog",
-      "visibleCharacters": 2297,
+      "visibleCharacters": 2308,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "Abana",
-      "visibleCharacters": 1996,
+      "visibleCharacters": 1913,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "Amashusho",
-      "visibleCharacters": 1445,
+      "visibleCharacters": 8453,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "Ikibaho",
-      "visibleCharacters": 4210,
+      "visibleCharacters": 4282,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "Incamake",
-      "visibleCharacters": 1079,
+      "visibleCharacters": 1515,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "Ohereza",
-      "visibleCharacters": 1921,
+      "visibleCharacters": 1883,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "show dialog",
-      "visibleCharacters": 2029,
+      "visibleCharacters": 1551,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "stopped speech notice",
-      "visibleCharacters": 1965,
+      "visibleCharacters": 1510,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "voice and recording settings",
-      "visibleCharacters": 6791,
+      "visibleCharacters": 6719,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "silent upload error",
-      "visibleCharacters": 3033,
+      "visibleCharacters": 2961,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "corrupt upload error",
-      "visibleCharacters": 3038,
+      "visibleCharacters": 2966,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "saved recording",
-      "visibleCharacters": 3100,
+      "visibleCharacters": 3020,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "completed message summary",
-      "visibleCharacters": 1846,
+      "visibleCharacters": 1794,
       "obsoleteEnglishMatches": 0
     },
     {
-      "screen": "account registration",
-      "visibleCharacters": 1944,
+      "screen": "account by mobile number",
+      "visibleCharacters": 2043,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "delete recording confirmation",
-      "visibleCharacters": 2680,
+      "visibleCharacters": 2608,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "missing audio notice",
-      "visibleCharacters": 1245,
+      "visibleCharacters": 1582,
       "obsoleteEnglishMatches": 0
     },
     {
       "screen": "offline board",
-      "visibleCharacters": 803,
+      "visibleCharacters": 1140,
       "obsoleteEnglishMatches": 0
     }
   ],

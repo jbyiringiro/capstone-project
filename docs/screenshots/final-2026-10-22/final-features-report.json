@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-28T17:13:30.339Z",
+  "generated_at": "2026-11-02T17:06:46.824Z",
   "browser": "Headless msedge",
   "base_url": "http://127.0.0.1:4175/",
-  "total": 20,
+  "total": 21,
   "status": "passed",
   "checks": [
     {
@@ -74,7 +74,7 @@
       "status": "passed"
     },
     {
-      "name": "The child’s board has no section tabs: the caregiver picks the section, or every picture in pages, and can bring the tabs back",
+      "name": "With the section tabs turned off, the caregiver picks the section, or every picture in pages, and can bring the tabs back",
       "status": "passed"
     },
     {
@@ -83,6 +83,10 @@
     },
     {
       "name": "The final-feature workflow raised no uncaught page errors",
+      "status": "passed"
+    },
+    {
+      "name": "A sideways swipe turns the page without choosing a picture, a tap straight after still chooses, and a caregiver can switch swiping off",
       "status": "passed"
     }
   ],

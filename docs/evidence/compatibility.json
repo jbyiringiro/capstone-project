@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-26T14:35:54.644Z",
+  "generated_at": "2026-11-02T17:15:20.953Z",
   "server": "vite preview of app/dist, one per run, stopped for the offline phase",
   "host": {
     "os": "Windows_NT 10.0.26200",
@@ -23,33 +23,33 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 303,
+        "cold_board_ms": 417,
         "navigation": {
-          "dom_content_loaded_ms": 106,
-          "load_ms": 108,
-          "transferred_kb": 755
+          "dom_content_loaded_ms": 125,
+          "load_ms": 125,
+          "transferred_kb": 1101
         },
-        "warm_board_ms": 286,
-        "offline_board_ms": 261,
+        "warm_board_ms": 291,
+        "offline_board_ms": 381,
         "prediction_ms": {
           "median": 0.1,
-          "p95": 0.2,
+          "p95": 0.3,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 13,
-          "p95": 28.3,
+          "median": 14.9,
+          "p95": 48.3,
           "taps": 20
         },
-        "speech_start_ms": 108,
+        "speech_start_ms": 95,
         "page_turns": {
-          "fps": 145,
-          "longest_frame_ms": 30.2,
-          "frames": 282,
-          "turns": 28
+          "fps": 120.1,
+          "longest_frame_ms": 54.4,
+          "frames": 241,
+          "turns": 24
         },
-        "js_heap_mb": 9.1,
-        "dom_nodes": 2196
+        "js_heap_mb": 10.5,
+        "dom_nodes": 9432
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
@@ -71,33 +71,33 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 416,
+        "cold_board_ms": 510,
         "navigation": {
-          "dom_content_loaded_ms": 122,
-          "load_ms": 122,
-          "transferred_kb": 1100
+          "dom_content_loaded_ms": 214,
+          "load_ms": 214,
+          "transferred_kb": 780
         },
-        "warm_board_ms": 279,
-        "offline_board_ms": 260,
+        "warm_board_ms": 285,
+        "offline_board_ms": 350,
         "prediction_ms": {
           "median": 0.1,
           "p95": 0.2,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 14.1,
-          "p95": 60.2,
+          "median": 9.6,
+          "p95": 45.5,
           "taps": 20
         },
-        "speech_start_ms": 138,
+        "speech_start_ms": 86,
         "page_turns": {
-          "fps": 144.8,
-          "longest_frame_ms": 24.4,
-          "frames": 290,
-          "turns": 29
+          "fps": 129.4,
+          "longest_frame_ms": 54.7,
+          "frames": 260,
+          "turns": 26
         },
-        "js_heap_mb": 9.7,
-        "dom_nodes": 2530
+        "js_heap_mb": 13.3,
+        "dom_nodes": 6239
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
@@ -119,33 +119,33 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 296,
+        "cold_board_ms": 448,
         "navigation": {
-          "dom_content_loaded_ms": 113,
-          "load_ms": 113,
-          "transferred_kb": 797
+          "dom_content_loaded_ms": 216,
+          "load_ms": 216,
+          "transferred_kb": 396
         },
-        "warm_board_ms": 229,
-        "offline_board_ms": 367,
+        "warm_board_ms": 259,
+        "offline_board_ms": 407,
         "prediction_ms": {
           "median": 0.1,
           "p95": 0.2,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 9.3,
-          "p95": 19.9,
+          "median": 10.6,
+          "p95": 40.1,
           "taps": 20
         },
-        "speech_start_ms": 134,
+        "speech_start_ms": 86,
         "page_turns": {
-          "fps": 160,
+          "fps": 154.5,
           "longest_frame_ms": 24.2,
-          "frames": 320,
-          "turns": 32
+          "frames": 310,
+          "turns": 31
         },
-        "js_heap_mb": 16.7,
-        "dom_nodes": 5180
+        "js_heap_mb": 7.6,
+        "dom_nodes": 391
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
@@ -167,33 +167,33 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 2976,
+        "cold_board_ms": 3142,
         "navigation": {
-          "dom_content_loaded_ms": 2266,
-          "load_ms": 2268,
-          "transferred_kb": 153
+          "dom_content_loaded_ms": 2334,
+          "load_ms": 2338,
+          "transferred_kb": 160
         },
-        "warm_board_ms": 1473,
-        "offline_board_ms": 1465,
+        "warm_board_ms": 1471,
+        "offline_board_ms": 2315,
         "prediction_ms": {
-          "median": 0.5,
+          "median": 0.9,
           "p95": 1.7,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 168.7,
-          "p95": 310.9,
+          "median": 94.7,
+          "p95": 160.7,
           "taps": 20
         },
-        "speech_start_ms": 404,
+        "speech_start_ms": 479,
         "page_turns": {
-          "fps": 40.9,
-          "longest_frame_ms": 230.3,
-          "frames": 82,
-          "turns": 8
+          "fps": 19.4,
+          "longest_frame_ms": 321,
+          "frames": 39,
+          "turns": 4
         },
-        "js_heap_mb": 8.1,
-        "dom_nodes": 1288
+        "js_heap_mb": 17.4,
+        "dom_nodes": 4685
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
@@ -215,33 +215,33 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 3841,
+        "cold_board_ms": 5371,
         "navigation": {
-          "dom_content_loaded_ms": 2414,
-          "load_ms": 2415,
-          "transferred_kb": 173
+          "dom_content_loaded_ms": 2646,
+          "load_ms": 2660,
+          "transferred_kb": 206
         },
-        "warm_board_ms": 1372,
-        "offline_board_ms": 1837,
+        "warm_board_ms": 3536,
+        "offline_board_ms": 2991,
         "prediction_ms": {
-          "median": 0.3,
-          "p95": 1.5,
+          "median": 2.2,
+          "p95": 4.4,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 141,
-          "p95": 337.5,
+          "median": 325.6,
+          "p95": 481.4,
           "taps": 20
         },
-        "speech_start_ms": 629,
+        "speech_start_ms": 778,
         "page_turns": {
-          "fps": 57.2,
-          "longest_frame_ms": 145.3,
-          "frames": 120,
-          "turns": 12
+          "fps": 21.9,
+          "longest_frame_ms": 284.8,
+          "frames": 44,
+          "turns": 4
         },
-        "js_heap_mb": 16.3,
-        "dom_nodes": 3968
+        "js_heap_mb": 15.1,
+        "dom_nodes": 3514
       },
       "notes": [],
       "browser_version": "155.0.4283.62",
@@ -255,13 +255,45 @@
       "engine": "firefox",
       "cpu_slowdown": 1,
       "network": "unthrottled",
-      "checks": {},
-      "metrics": {},
+      "checks": {
+        "board_renders": true,
+        "service_worker": true,
+        "offline_reload": true,
+        "suggestions": true,
+        "speech": true
+      },
+      "metrics": {
+        "cold_board_ms": 798,
+        "navigation": {
+          "dom_content_loaded_ms": 547,
+          "load_ms": 548,
+          "transferred_kb": 159
+        },
+        "warm_board_ms": 260,
+        "offline_board_ms": 269,
+        "prediction_ms": {
+          "median": 0,
+          "p95": 1,
+          "calls": 300
+        },
+        "tap_to_frame_ms": {
+          "median": 12,
+          "p95": 17,
+          "taps": 20
+        },
+        "speech_start_ms": 87,
+        "page_turns": {
+          "fps": 109.5,
+          "longest_frame_ms": 54.6,
+          "frames": 221,
+          "turns": 22
+        }
+      },
       "notes": [],
       "browser_version": "155.0",
-      "status": "failed",
-      "error": "expect(locator).toBeEnabled() failed",
-      "page_errors": []
+      "screenshot": "compat-firefox-desktop.png",
+      "page_errors": [],
+      "status": "passed"
     },
     {
       "id": "firefox-phone-size",
@@ -277,30 +309,30 @@
         "speech": true
       },
       "metrics": {
-        "cold_board_ms": 724,
+        "cold_board_ms": 1050,
         "navigation": {
-          "dom_content_loaded_ms": 513,
-          "load_ms": 514,
-          "transferred_kb": 854
+          "dom_content_loaded_ms": 715,
+          "load_ms": 716,
+          "transferred_kb": 180
         },
-        "warm_board_ms": 250,
-        "offline_board_ms": 450,
+        "warm_board_ms": 337,
+        "offline_board_ms": 279,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 14,
-          "p95": 23,
+          "median": 11,
+          "p95": 14,
           "taps": 20
         },
-        "speech_start_ms": 214,
+        "speech_start_ms": 78,
         "page_turns": {
-          "fps": 136.5,
-          "longest_frame_ms": 24.2,
-          "frames": 273,
-          "turns": 27
+          "fps": 144.6,
+          "longest_frame_ms": 30.3,
+          "frames": 291,
+          "turns": 29
         }
       },
       "notes": [],
@@ -323,29 +355,29 @@
         "speech": false
       },
       "metrics": {
-        "cold_board_ms": 587,
+        "cold_board_ms": 533,
         "navigation": {
-          "dom_content_loaded_ms": 163,
-          "load_ms": 164,
-          "transferred_kb": 1364
+          "dom_content_loaded_ms": 149,
+          "load_ms": 151,
+          "transferred_kb": 1721
         },
-        "warm_board_ms": 365,
-        "offline_board_ms": 802,
+        "warm_board_ms": 360,
+        "offline_board_ms": 788,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 239,
-          "p95": 264,
+          "median": 154,
+          "p95": 190,
           "taps": 20
         },
         "page_turns": {
-          "fps": 25.2,
-          "longest_frame_ms": 326,
-          "frames": 49,
-          "turns": 5
+          "fps": 13,
+          "longest_frame_ms": 532,
+          "frames": 31,
+          "turns": 3
         }
       },
       "notes": [
@@ -370,29 +402,29 @@
         "speech": false
       },
       "metrics": {
-        "cold_board_ms": 510,
+        "cold_board_ms": 467,
         "navigation": {
-          "dom_content_loaded_ms": 137,
-          "load_ms": 138,
-          "transferred_kb": 883
+          "dom_content_loaded_ms": 168,
+          "load_ms": 169,
+          "transferred_kb": 1082
         },
-        "warm_board_ms": 344,
-        "offline_board_ms": 457,
+        "warm_board_ms": 284,
+        "offline_board_ms": 560,
         "prediction_ms": {
           "median": 0,
           "p95": 1,
           "calls": 300
         },
         "tap_to_frame_ms": {
-          "median": 142,
-          "p95": 171,
+          "median": 166,
+          "p95": 269,
           "taps": 20
         },
         "page_turns": {
-          "fps": 34.1,
-          "longest_frame_ms": 96,
-          "frames": 67,
-          "turns": 6
+          "fps": 24.6,
+          "longest_frame_ms": 266,
+          "frames": 49,
+          "turns": 5
         }
       },
       "notes": [

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-28T17:11:47.180Z",
+  "generated_at": "2026-11-02T17:06:01.805Z",
   "baseURL": "http://127.0.0.1:4175/",
   "checks": [
     {
@@ -39,7 +39,7 @@
       "status": "passed"
     },
     {
-      "name": "After signing in, the linked Vuga account can reset a forgotten PIN; a wrong password cannot",
+      "name": "Kwinjira links the device to the caregiver’s number and takes the account’s PIN; a forgotten PIN is then replaced with a texted code",
       "status": "passed"
     },
     {
@@ -49,6 +49,14 @@
     {
       "name": "Alternate adult entries require a PIN, mobile gate fits, and damaged storage fails closed",
       "status": "passed"
+    },
+    {
+      "name": "A caregiver opens an account at the first setup with the code texted to their number and the PIN they choose",
+      "status": "passed"
+    },
+    {
+      "name": "On another new device the number signs in with its PIN; wrong PINs lock it, and a texted code sets a new PIN",
+      "status": "passed"
     }
   ],
   "screenshots": [
@@ -57,10 +65,12 @@
     "parent-unlock.png",
     "parent-forgot-account.png",
     "parent-new-device-restored.png",
-    "parent-unlock-mobile.png"
+    "parent-unlock-mobile.png",
+    "account-register-code.png",
+    "parent-forgot-account-sms.png"
   ],
   "pageErrors": [],
-  "total": 12,
+  "total": 14,
   "status": "passed",
   "note": "Isolated test context; test PINs are disposable. Background event is simulated; idle clock is advanced. This local gate does not authenticate an adult identity or protect against browser-storage access."
 }
