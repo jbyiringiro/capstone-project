@@ -1,11 +1,11 @@
 """Adult accounts (FR1): a mobile number confirmed by SMS and one PIN, which signs in here and opens
 the caregiver area on each device. A forgotten PIN is replaced with a new code texted to the number,
-and five wrong PINs lock the number for a while."""
+five wrong PINs lock the number for a while, and a new PIN ends every session opened with the old."""
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import insert, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -18,6 +18,8 @@ from .sms import SmsSender
 
 MAX_TRIES = 5
 LOCK_FOR = timedelta(minutes=15)
+
+_TRIES = models.LoginAttempt
 
 
 class AccountService:
@@ -61,17 +63,20 @@ class AccountService:
         if user is None:
             raise NotFound("no account for this number")
         self.codes.use(body.phone, "reset", body.code)
-        user.password_hash = hash_password(body.pin)
+        self._new_pin(user, body.pin)
         # Holding the number is proof enough to lift a lock left by wrong PINs.
-        attempts = self.db.get(models.LoginAttempt, body.phone)
-        if attempts:
-            attempts.failures, attempts.locked_until = 0, None
+        self._clear_tries(body.phone)
         self.db.commit()
 
     def change_pin(self, body: schemas.PinChange) -> None:
         user = self.authenticate(body.phone, body.pin)
-        user.password_hash = hash_password(body.new_pin)
+        self._new_pin(user, body.new_pin)
         self.db.commit()
+
+    def _new_pin(self, user: models.User, pin: str) -> None:
+        user.password_hash = hash_password(pin)
+        # Raised in the database, so two changes at once both count; older tokens stop working.
+        user.token_version = models.User.token_version + 1
 
     def authenticate(self, phone: str, pin: str) -> models.User:
         try:
@@ -81,27 +86,52 @@ class AccountService:
         user = self._by_phone(phone)
         if user is None:
             raise InvalidCredentials("wrong phone or PIN")
-        now = codes._now()
-        attempts = self.db.get(models.LoginAttempt, phone)
-        if attempts and attempts.locked_until and now < attempts.locked_until:
-            raise TooManyTries("too many wrong PINs", codes._seconds(attempts.locked_until - now))
-        if verify_password(pin, user.password_hash):
-            if attempts and (attempts.failures or attempts.locked_until):
-                attempts.failures, attempts.locked_until = 0, None
-                self.db.commit()
-            return user
-        if attempts is None:
-            attempts = models.LoginAttempt(phone=phone, failures=0)
-            self.db.add(attempts)
-        attempts.failures += 1
-        locked = attempts.failures >= MAX_TRIES
-        if locked:
-            attempts.failures, attempts.locked_until = 0, now + LOCK_FOR
-        try:
+        digest, now = user.password_hash, codes._now()
+        # Each try is counted before its PIN is checked, so tries sent at the same moment cannot
+        # all be checked before any of them is counted: at most five are checked per lock.
+        tries = self._count_try(phone, now)
+        if tries is None:
+            raise TooManyTries("too many wrong PINs", self._locked_for(phone, now))
+        if tries > MAX_TRIES:
+            raise TooManyTries("too many wrong PINs", self._lock(phone, now))
+        if verify_password(pin, digest):
+            self._clear_tries(phone)
             self.db.commit()
-        except IntegrityError:
-            # Another wrong PIN for this number was counted at the same moment.
-            self.db.rollback()
-        if locked:
-            raise TooManyTries("too many wrong PINs", codes._seconds(LOCK_FOR))
+            return user
+        if tries == MAX_TRIES:
+            raise TooManyTries("too many wrong PINs", self._lock(phone, now))
         raise InvalidCredentials("wrong phone or PIN")
+
+    def _count_try(self, phone: str, now: datetime) -> int | None:
+        """The number's tries so far, this one included, raised in one statement; None while the
+        number is locked."""
+        count = (update(_TRIES)
+                 .where(_TRIES.phone == phone, or_(_TRIES.locked_until.is_(None), _TRIES.locked_until <= now))
+                 .values(failures=_TRIES.failures + 1, locked_until=None)
+                 .returning(_TRIES.failures))
+        tries = self.db.scalar(count)
+        if tries is None and self.db.scalar(select(_TRIES.phone).where(_TRIES.phone == phone)) is None:
+            # The number's first try: it has no row yet.
+            try:
+                self.db.execute(insert(_TRIES).values(phone=phone, failures=1))
+                self.db.commit()
+                return 1
+            except IntegrityError:
+                # Another try for this number added the row first; count this one on it.
+                self.db.rollback()
+                tries = self.db.scalar(count)
+        self.db.commit()
+        return tries
+
+    def _lock(self, phone: str, now: datetime) -> int:
+        """Locks the number, counts its tries afresh after the lock, and returns the wait in seconds."""
+        self.db.execute(update(_TRIES).where(_TRIES.phone == phone).values(failures=0, locked_until=now + LOCK_FOR))
+        self.db.commit()
+        return codes._seconds(LOCK_FOR)
+
+    def _locked_for(self, phone: str, now: datetime) -> int:
+        until = self.db.scalar(select(_TRIES.locked_until).where(_TRIES.phone == phone))
+        return codes._seconds(until - now) if until and until > now else 1
+
+    def _clear_tries(self, phone: str) -> None:
+        self.db.execute(update(_TRIES).where(_TRIES.phone == phone).values(failures=0, locked_until=None))

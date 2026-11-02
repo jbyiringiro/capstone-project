@@ -41,4 +41,7 @@ def load_backup(user: CurrentUser, db: DbSession):
 @router.put("", response_model=schemas.BackupStatus)
 def save_backup(user: CurrentUser, db: DbSession,
                 body: Annotated[schemas.BackupIn, Depends(snapshot_body)]):
+    """Replaces the account copy if `base_revision` is still its revision (0 before the first
+    copy). Otherwise another device saved in between: 409 with that copy's `revision` and
+    `saved_at`, and nothing changes. Names, photos and recordings are refused (422)."""
     return BackupService(db, user).save(body)

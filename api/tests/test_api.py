@@ -1,6 +1,8 @@
 import os
 import re
+import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -18,7 +20,7 @@ from app.db import Base, SessionLocal, engine
 from app.dependencies import get_sms
 from app.main import app
 from app.schemas import normalise_phone
-from app.services import SmsFailed, codes
+from app.services import SmsFailed, accounts, codes
 
 
 class Outbox:
@@ -243,41 +245,96 @@ def test_sync_rejects_cross_profile_upload_and_foreign_device(client):
     assert client.post("/sync", json={"messages": [own], "device_id": "owned-device"}, headers=headers).status_code == 200
 
 
-def _snapshot(words=1):
-    return {"format": "vuga-account-backup-v1", "data": {
-        "profiles": [{"profile_id": "local-1", "code": "P-01"}],
-        "settings": [{"key": "appearance:local-1", "value": {"environment": "meal"}}],
-        "custom_symbols": [{"symbol_id": f"CUSTOM-{n}", "label_rw": "nyogokuru",
-                            "image": {"type": "image/webp", "base64": "AAAA"}} for n in range(words)]}}
+BACKUP = "vuga-account-backup-v2"
+
+
+def _snapshot(base=0, place="meal", words=("I", "WANT", "WATER")):
+    """A device's account copy: one child by code, its word list, its board place and the open child."""
+    return {"format": BACKUP, "base_revision": base, "data": {
+        "profiles": [{"profile_id": "local-1", "code": "P-01", "age_band": None, "access_method": "touch",
+                      "local_only": True}],
+        "vocabulary": [{"profile_id": "local-1", "key": key} for key in words],
+        "settings": [{"key": "appearance:local-1", "value": {"environment": place}},
+                     {"key": "vocabulary:local-1", "value": True},
+                     {"key": "profile", "value": {"profile_id": "local-1", "code": "P-01"}}]}}
 
 
 def test_backup_brings_a_caregivers_device_back_and_only_to_their_account(client):
     h = _auth(client)
-    assert client.get("/backup/status", headers=h).json() == {"saved_at": None, "size": 0}
+    assert client.get("/backup/status", headers=h).json() == {"saved_at": None, "size": 0, "revision": 0}
     assert client.get("/backup", headers=h).status_code == 404
     r = client.put("/backup", json=_snapshot(), headers=h)
     assert r.status_code == 200, r.text
-    assert r.json()["size"] > 0 and r.json()["saved_at"]
+    assert r.json()["size"] > 0 and r.json()["saved_at"] and r.json()["revision"] == 1
     back = client.get("/backup", headers=h).json()
-    assert back["format"] == "vuga-account-backup-v1"
+    assert back["format"] == BACKUP and back["revision"] == 1
     assert back["data"] == _snapshot()["data"]
-    # A later save replaces the earlier one; another account sees nothing.
-    client.put("/backup", json={"format": "vuga-account-backup-v1", "data": {"profiles": []}}, headers=h)
-    assert client.get("/backup", headers=h).json()["data"] == {"profiles": []}
+    # A later save on that copy replaces it; another account sees nothing.
+    assert client.put("/backup", json=_snapshot(base=1, place="school"), headers=h).json()["revision"] == 2
+    assert client.get("/backup", headers=h).json()["data"] == _snapshot(place="school")["data"]
     other = _auth(client, phone="0780000002")
     assert client.get("/backup", headers=other).status_code == 404
     assert client.get("/backup/status", headers=other).json()["saved_at"] is None
+
+
+def test_a_device_with_an_older_copy_never_replaces_a_newer_one(client):
+    h = _auth(client)
+    save = lambda base, place: client.put("/backup", json=_snapshot(base, place), headers=h)
+    # The tablet saves the first copy, which the phone receives (revision 1); the tablet then saves
+    # a change (revision 2).
+    assert save(0, "meal").json()["revision"] == 1
+    assert save(1, "school").json()["revision"] == 2
+    # The phone, still on revision 1, is refused and told which copy is newer; nothing changes.
+    stale = save(1, "home")
+    assert stale.status_code == 409
+    assert stale.json()["revision"] == 2 and stale.json()["saved_at"]
+    copy = client.get("/backup", headers=h).json()
+    assert copy["revision"] == 2 and copy["data"]["settings"][0]["value"] == {"environment": "school"}
+    assert save(0, "home").status_code == 409
+    # Once the caregiver has chosen, the phone saves on revision 2.
+    assert save(2, "home").json()["revision"] == 3
+    # Of several devices saving on the same copy at the same moment, one is kept and the rest refused.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        replies = list(pool.map(lambda n: save(3, f"place-{n}").status_code, range(8)))
+    assert sorted(replies) == [200] + [409] * 7
+    assert client.get("/backup/status", headers=h).json()["revision"] == 4
+
+
+def test_the_account_copy_refuses_childrens_names_photos_and_recordings(client):
+    h = _auth(client)
+    good = _snapshot()
+
+    def changed(edit):
+        snapshot = deepcopy(good)
+        edit(snapshot["data"])
+        return snapshot
+    refused = [
+        changed(lambda data: data["profiles"][0].update(code="Keza")),
+        changed(lambda data: data["settings"][2].update(value={"profile_id": "local-1", "code": "Keza"})),
+        changed(lambda data: data["profiles"][0].update(photo="AAAA")),
+        changed(lambda data: data.update(custom_symbols=[{"symbol_id": "CUSTOM-1", "label_rw": "nyogokuru",
+                                                          "image": {"type": "image/webp", "base64": "AAAA"}}])),
+        changed(lambda data: data.update(recordings=[{"key": "WATER", "blob": {"type": "audio/webm", "base64": "AAAA"}}])),
+        changed(lambda data: data["settings"].append({"key": "parent-access:v1", "value": {"digest": "x"}})),
+        {**good, "format": "vuga-account-backup-v1"},
+    ]
+    for snapshot in refused:
+        assert client.put("/backup", json=snapshot, headers=h).status_code == 422
+    assert client.get("/backup/status", headers=h).json()["saved_at"] is None
+    assert client.put("/backup", json=good, headers=h).status_code == 200
 
 
 def test_backup_needs_an_account_a_known_format_and_stays_under_its_size_limit(client, monkeypatch):
     assert client.get("/backup").status_code == 401
     assert client.put("/backup", json=_snapshot()).status_code == 401
     h = _auth(client)
-    assert client.put("/backup", json={"format": "other", "data": {}}, headers=h).status_code == 422
+    assert client.put("/backup", json={"format": "other", "base_revision": 0, "data": {}}, headers=h).status_code == 422
+    assert client.put("/backup", json={key: value for key, value in _snapshot().items() if key != "base_revision"},
+                      headers=h).status_code == 422
     bad = client.put("/backup", content=b"not json", headers={**h, "Content-Type": "application/json"})
     assert bad.status_code == 422
     monkeypatch.setattr(settings, "max_backup_bytes", 200)
-    assert client.put("/backup", json=_snapshot(words=10), headers=h).status_code == 413
+    assert client.put("/backup", json=_snapshot(words=[f"WORD_{n}" for n in range(20)]), headers=h).status_code == 413
     assert client.get("/backup/status", headers=h).json()["saved_at"] is None
 
 
@@ -417,3 +474,50 @@ def test_a_pin_is_changed_with_the_current_one(client):
     assert change("2468", "1357") == 204
     assert client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).status_code == 401
     assert client.post("/auth/login", data={"username": "0788123456", "password": "1357"}).status_code == 200
+
+
+def test_wrong_pins_sent_at_the_same_moment_are_all_counted(client, monkeypatch):
+    _auth(client, "0788123456")
+    checked, real_check = [], accounts.verify_password
+
+    def slow_check(pin, digest):
+        # A slow hash widens the moment in which tries sent together could all be checked.
+        checked.append(pin)
+        time.sleep(0.05)
+        return real_check(pin, digest)
+
+    monkeypatch.setattr(accounts, "verify_password", slow_check)
+    login = lambda pin: client.post("/auth/login", data={"username": "0788123456", "password": pin}).status_code
+    with ThreadPoolExecutor(max_workers=20) as pool:
+        replies = list(pool.map(login, ["0000"] * 20))
+    # However many arrive together, five PINs are checked and the number is then locked.
+    assert len(checked) == accounts.MAX_TRIES
+    assert sorted(replies) == [401] * (accounts.MAX_TRIES - 1) + [429] * (21 - accounts.MAX_TRIES)
+    assert login("2468") == 429 and len(checked) == accounts.MAX_TRIES
+
+
+def test_a_new_pin_ends_every_session_opened_with_the_old_one(client):
+    def session(pin):
+        r = client.post("/auth/login", data={"username": "0788123456", "password": pin})
+        assert r.status_code == 200, r.text
+        return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    _auth(client, "0788123456")
+    first, second = session("2468"), session("2468")
+    change = lambda pin, new_pin: client.post("/auth/change-pin", json={"phone": "0788123456", "pin": pin, "new_pin": new_pin}).status_code
+    # A refused change leaves the sessions as they were.
+    assert change("0000", "1357") == 401
+    assert client.get("/profiles", headers=first).status_code == 200
+    assert change("2468", "1357") == 204
+    for old in (first, second):
+        assert client.get("/profiles", headers=old).status_code == 401
+        assert client.get("/backup/status", headers=old).status_code == 401
+    changed = session("1357")
+    assert client.get("/profiles", headers=changed).status_code == 200
+    # A PIN replaced with a texted code ends the sessions too, including one opened after the change.
+    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "reset"}).status_code == 202
+    reset = {"phone": "0788123456", "code": client.sms.code("0788123456"), "pin": "9753"}
+    assert client.post("/auth/reset-pin", json=reset).status_code == 204
+    for old in (first, changed):
+        assert client.get("/profiles", headers=old).status_code == 401
+    assert client.get("/profiles", headers=session("9753")).status_code == 200

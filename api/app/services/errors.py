@@ -4,6 +4,8 @@ Services stay free of HTTP concerns; `app.main` maps each subclass to a status c
 """
 from __future__ import annotations
 
+from datetime import datetime
+
 
 class ServiceError(Exception):
     def __init__(self, detail: str) -> None:
@@ -25,6 +27,16 @@ class NotFound(ServiceError):
 
 class Conflict(ServiceError):
     """An identifier is already taken (409)."""
+
+
+class StaleBackup(Conflict):
+    """Another device saved the account copy since this one last saved or received it (409). The
+    reply carries the newer copy's `revision` and `saved_at`, so the caregiver can choose."""
+
+    def __init__(self, detail: str, revision: int, saved_at: datetime | None) -> None:
+        super().__init__(detail)
+        self.revision = revision
+        self.saved_at = saved_at
 
 
 class InvalidInput(ServiceError):

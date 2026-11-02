@@ -23,6 +23,7 @@ from .services import (
     RetryLater,
     ServiceError,
     SmsFailed,
+    StaleBackup,
     SymbolCatalogue,
     TooLarge,
     TooManyCodes,
@@ -38,6 +39,7 @@ _STATUS_BY_ERROR = {
     NotOwned: status.HTTP_403_FORBIDDEN,
     NotFound: status.HTTP_404_NOT_FOUND,
     Conflict: status.HTTP_409_CONFLICT,
+    StaleBackup: status.HTTP_409_CONFLICT,
     InvalidInput: _UNPROCESSABLE,
     TooLarge: TOO_LARGE,
     TooManyCodes: status.HTTP_429_TOO_MANY_REQUESTS,
@@ -78,6 +80,10 @@ async def service_error(_: Request, error: ServiceError) -> JSONResponse:
         # In the body as well, because a browser app cannot read Retry-After across origins.
         return JSONResponse({"detail": error.detail, "retry_after": error.retry_after},
                             status_code=code, headers={"Retry-After": str(error.retry_after)})
+    if isinstance(error, StaleBackup):
+        return JSONResponse({"detail": error.detail, "revision": error.revision,
+                             "saved_at": error.saved_at.isoformat() if error.saved_at else None},
+                            status_code=code)
     return JSONResponse({"detail": error.detail}, status_code=code)
 
 

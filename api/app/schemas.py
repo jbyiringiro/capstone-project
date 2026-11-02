@@ -8,6 +8,7 @@ from pydantic import (
     AfterValidator,
     AwareDatetime,
     BaseModel,
+    ConfigDict,
     Field,
     field_validator,
     model_validator,
@@ -215,19 +216,71 @@ class PredictResponse(BaseModel):
     model: str
 
 
-class BackupIn(BaseModel):
-    """A caregiver's device snapshot, written by the app and returned to it unchanged."""
+# The account copy of a device (NFR4: no child names or media on the server). Unknown fields are
+# refused, so custom-word photos, voice recordings and messages cannot be stored with it, and a
+# child appears only by a pseudonymous code: a child the family calls by name stays on the device.
+PSEUDONYM = r"^[A-Z]-\d{2,3}$"
+BackupFormat = Literal["vuga-account-backup-v2"]
+_BACKED_UP_SETTING = re.compile(r"(appearance|vocabulary):[\w-]{1,64}|mode|profile|speech-mode")
 
-    format: Literal["vuga-account-backup-v1"]
-    data: dict[str, Any]
+
+class BackupProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    profile_id: str = Field(min_length=1, max_length=64)
+    code: str = Field(pattern=PSEUDONYM)
+    age_band: str | None = Field(default=None, max_length=16)
+    access_method: str | None = Field(default=None, max_length=16)
+    local_only: bool | None = None
+
+
+class BackupWord(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    profile_id: str = Field(min_length=1, max_length=64)
+    key: str = Field(min_length=1, max_length=48)
+
+
+class BackupSetting(BaseModel):
+    """A board, place, next-word or child-mode setting, a word-list flag, the board mode, the open
+    child or the speech choice."""
+
+    model_config = ConfigDict(extra="forbid")
+    key: str = Field(max_length=80)
+    value: Any = None
+
+    @model_validator(mode="after")
+    def backed_up_and_pseudonymous(self):
+        if not _BACKED_UP_SETTING.fullmatch(self.key):
+            raise ValueError("this setting is not kept on the account")
+        code = self.value.get("code") if isinstance(self.value, dict) else None
+        if self.key == "profile" and self.value is not None and not re.fullmatch(PSEUDONYM, str(code)):
+            raise ValueError("the open child must go by a code such as P-01")
+        return self
+
+
+class BackupData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    profiles: list[BackupProfile] = Field(max_length=200)
+    vocabulary: list[BackupWord] = Field(max_length=20_000)
+    settings: list[BackupSetting] = Field(max_length=2_000)
+
+
+class BackupIn(BaseModel):
+    """A caregiver's device set-up, written by the app and returned to it unchanged."""
+
+    format: BackupFormat
+    # The revision of the account copy this device last saved or received; 0 before the first.
+    base_revision: int = Field(ge=0)
+    data: BackupData
 
 
 class BackupStatus(BaseModel):
     saved_at: AwareDatetime | None
     size: int = 0
+    revision: int = 0  # saves so far; 0 while the account has no copy
 
 
 class BackupOut(BaseModel):
-    format: Literal["vuga-account-backup-v1"]
+    format: BackupFormat
     saved_at: AwareDatetime
-    data: dict[str, Any]
+    revision: int
+    data: BackupData

@@ -27,7 +27,8 @@ def verify_password(p: str, h: str) -> bool:
 
 def create_token(user: User) -> str:
     exp = datetime.now(UTC) + timedelta(minutes=settings.jwt_expire_minutes)
-    return jwt.encode({"sub": user.user_id, "role": user.role, "exp": exp},
+    # `ver` ties the session to the PIN it was opened with (User.token_version).
+    return jwt.encode({"sub": user.user_id, "role": user.role, "ver": user.token_version, "exp": exp},
                       settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -39,7 +40,8 @@ def current_user(token: Annotated[str, Depends(oauth2)],
         user = db.get(User, subject) if isinstance(subject, str) and subject else None
     except JWTError:
         user = None
-    if user is None:
+    # A session opened before the PIN last changed is over.
+    if user is None or payload.get("ver") != user.token_version:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token")
     return user
 

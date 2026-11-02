@@ -3,9 +3,9 @@ caregiver's account backup, the SMS codes that confirm mobile numbers and the co
 added in the final version.
 
 Privacy rules from NFR4 are enforced at the schema level: child_profiles carries a pseudonymous
-`code` and age band only, never a name, photo or date of birth. The account backup is the
-exception the caregiver opts into by signing in: it holds their custom-word photos and
-familiar-voice recordings, readable only through their own account.
+`code` and age band only, never a name, photo or date of birth. The account backup follows the
+same rule (schemas.BackupData): children by code, their word lists and settings, but no names,
+custom-word photos, voice recordings or messages, which stay on the device.
 """
 from __future__ import annotations
 
@@ -30,6 +30,9 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(16))  # teacher | caregiver | administrator
     # The caregiver's PIN, which also opens the caregiver area on each device signed in to it.
     password_hash: Mapped[str] = mapped_column(String(128))
+    # Each session token carries this number; changing or resetting the PIN raises it, which ends
+    # every session opened with the old PIN.
+    token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     profiles: Mapped[list[ChildProfile]] = relationship(back_populates="creator")
@@ -156,14 +159,16 @@ class ModelVersion(Base):
 
 
 class AccountBackup(Base):
-    """One caregiver's whole device as the app saved it: children, words, board settings,
-    custom-word photos and voice recordings. The server stores it and never reads inside it."""
+    """One caregiver's device set-up as the app saved it: children by code, their word lists and
+    board settings. `revision` counts the saves, so a device holding an older copy cannot replace
+    a newer one that another device saved."""
 
     __tablename__ = "account_backups"
     user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id"), primary_key=True)
-    data: Mapped[str] = mapped_column(Text)  # JSON
+    data: Mapped[str] = mapped_column(Text)  # JSON, checked by schemas.BackupData
     size: Mapped[int] = mapped_column(Integer)  # bytes of `data`
     saved_at: Mapped[datetime] = mapped_column(DateTime)
+    revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
 
 
 class PhoneCode(Base):
@@ -183,10 +188,11 @@ class PhoneCode(Base):
 
 
 class LoginAttempt(Base):
-    """Wrong PINs for an account's number. A short PIN is safe online only because five wrong
-    tries lock the number for a while."""
+    """Tries of the PIN for an account's number. A short PIN is safe online only because five
+    wrong tries lock the number for a while."""
 
     __tablename__ = "login_attempts"
     phone: Mapped[str] = mapped_column(String(32), primary_key=True)
-    failures: Mapped[int] = mapped_column(Integer, default=0)  # wrong PINs since the last lock
+    # Tries since the last right PIN or lock, each counted before its PIN is checked.
+    failures: Mapped[int] = mapped_column(Integer, default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime)

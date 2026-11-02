@@ -18,8 +18,9 @@ class Settings(BaseSettings):
     model_dir: str = "../ml/artifacts"
     default_model: str = "kn_trigram.json"
     cors_origins: list[str] = ["http://localhost:5173"]
-    # A caregiver's backup holds their custom-word photos and voice recordings.
-    max_backup_bytes: int = 25 * 1024 * 1024
+    # A caregiver's backup holds children's codes, word lists and settings, a few kilobytes; photos
+    # and recordings stay on the device (schemas.BackupData).
+    max_backup_bytes: int = 1024 * 1024
     # The codes that confirm a caregiver's mobile number go out through Africa's Talking once an
     # API key is set; the username "sandbox" uses their free sandbox and its phone simulator.
     # Without a key the API writes each code to its log, which is enough on a developer machine.
