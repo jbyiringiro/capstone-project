@@ -2,8 +2,8 @@ import { chromium, expect } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
-const baseURL = process.env.VUGA_PREVIEW_URL || 'http://127.0.0.1:4182/'
-const output = fileURLToPath(new URL('../../docs/screenshots/licensed-2026-10-10/', import.meta.url))
+const baseURL = process.env.VUGA_PREVIEW_URL || 'http://127.0.0.1:4175/'
+const output = process.env.VUGA_EVIDENCE_DIR || fileURLToPath(new URL('../../docs/screenshots/final-2026-10-22/', import.meta.url))
 await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ channel: process.env.VUGA_BROWSER_CHANNEL || 'msedge', headless: true })
 // SW blocking makes the deliberate missing-audio route deterministic. The main
@@ -18,6 +18,36 @@ page.on('pageerror', error => errors.push(error.message))
 const board = page.locator('.board:visible'), gate = page.locator('.parent-access')
 const draft = () => board.locator('.message-chip')
 const pin = () => gate.getByLabel('Umubare w’ibanga', { exact: true })
+const field = name => gate.getByLabel(name, { exact: true })
+const CODE = /^[A-HJ-NP-Z2-9]{4}(-[A-HJ-NP-Z2-9]{4}){3}$/
+let recovery = ''
+// The Vuga API, faked in the browser: one account (0780000001 / secret1) and its device backup.
+let accountCopy = null
+async function fakeApi(route) {
+  const request = route.request(), path = new URL(request.url()).pathname
+  const headers = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' }
+  const reply = (status, body) => route.fulfill({ status, headers, contentType: 'application/json', body: JSON.stringify(body) })
+  if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers })
+  if (path === '/auth/login') {
+    const form = new URLSearchParams(request.postData())
+    return form.get('username') === '0780000001' && form.get('password') === 'secret1' ? reply(200, { access_token: 'token-1', token_type: 'bearer' }) : reply(401, { detail: 'wrong phone or password' })
+  }
+  if (path === '/profiles') return reply(200, [])
+  if (path === '/backup/status') return reply(200, accountCopy ? { saved_at: accountCopy.saved_at, size: 10 } : { saved_at: null, size: 0 })
+  if (path === '/backup' && request.method() === 'PUT') {
+    accountCopy = { ...request.postDataJSON(), saved_at: new Date().toISOString() }
+    return reply(200, { saved_at: accountCopy.saved_at, size: request.postData().length })
+  }
+  if (path === '/backup') return accountCopy ? reply(200, accountCopy) : reply(404, { detail: 'no backup on this account' })
+  return reply(404, {})
+}
+async function signIn(on) {
+  await on.getByRole('navigation', { name: 'Ibyiciro by’umurezi' }).getByRole('button', { name: 'Ohereza', exact: true }).click()
+  const account = on.locator('form.card').filter({ hasText: 'Konti yo kuri seriveri si ngombwa' })
+  await account.getByLabel('Telefoni').fill('0780000001')
+  await account.getByLabel('Ijambobanga').fill('secret1')
+  await account.getByRole('button', { name: 'Injira', exact: true }).click()
+}
 async function enterGate(mode = 'unlock') {
   await board.getByRole('button', { name: "Igenamiterere ry'umurezi", exact: true }).focus()
   await page.keyboard.press('Enter')
@@ -82,11 +112,18 @@ try {
     expect(await readCredential()).toBeUndefined()
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('482619')
     await gate.getByRole('button', { name: 'Bika kandi winjire', exact: true }).click()
+    await expect(gate).toHaveAttribute('data-mode', 'recovery-code')
+    await expect(page.locator('.dash')).toHaveCount(0)
+    recovery = (await gate.locator('.parent-recovery-code').textContent()).trim()
+    expect(recovery).toMatch(CODE)
+    await snapshot('parent-recovery-code')
+    await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
     await expect(page.locator('.dash')).toBeVisible()
-    await expect(page.getByRole('navigation', { name: 'Ibyiciro by’umurezi' }).getByRole('button')).toHaveCount(7)
+    await expect(page.getByRole('navigation', { name: 'Ibyiciro by’umurezi' }).getByRole('button')).toHaveCount(11)
     const credential = await readCredential()
     expect(credential.value.digest).toMatch(/^[a-f0-9]{64}$/)
     expect(JSON.stringify(credential)).not.toContain('482619')
+    expect(JSON.stringify(credential)).not.toContain(recovery.replaceAll('-', ''))
   })
   await check('Returning to the child board locks parent access and preserves the message draft', async () => {
     await back()
@@ -129,7 +166,7 @@ try {
   })
   await check('Parent-only PIN change requires current PIN and the new credential replaces the old one', async () => {
     await page.getByRole('navigation', { name: 'Ibyiciro by’umurezi' }).getByRole('button', { name: 'Kwinjira', exact: true }).click()
-    const form = page.locator('.parent-settings')
+    const form = page.locator('.parent-settings').getByRole('form', { name: 'Hindura umubare w’ibanga', exact: true })
     await form.getByLabel('Umubare w’ibanga usanzwe', { exact: true }).fill('0000')
     await form.getByLabel('Umubare w’ibanga mushya', { exact: true }).fill('2468')
     await form.getByLabel('Ongera wandike umubare w’ibanga mushya', { exact: true }).fill('2468')
@@ -163,6 +200,95 @@ try {
     await login('2468')
     await back()
     await context.setOffline(false)
+  })
+  await check('A forgotten PIN is replaced with the written-down recovery code; the child’s message stays', async () => {
+    await enterGate()
+    await gate.getByRole('button', { name: 'Nibagiwe umubare w’ibanga', exact: true }).click()
+    await expect(gate).toHaveAttribute('data-mode', 'forgot')
+    await expect(gate.locator('.parent-ways')).toHaveCount(0)
+    const recover = async code => {
+      await field('Kode yo kugarura').fill(code)
+      await field('Umubare w’ibanga mushya').fill('1357')
+      await field('Ongera wandike umubare w’ibanga mushya').fill('1357')
+      await gate.getByRole('button', { name: 'Shyiraho umubare mushya', exact: true }).click()
+    }
+    await recover('AAAA-BBBB-CCCC-DDDD')
+    await expect(gate.getByRole('alert')).toContainText('Kode yo kugarura si yo')
+    await recover(recovery.toLowerCase())
+    await expect(gate).toHaveAttribute('data-mode', 'recovery-code')
+    const next = (await gate.locator('.parent-recovery-code').textContent()).trim()
+    expect(next).toMatch(CODE)
+    expect(next).not.toBe(recovery)
+    await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
+    await expect(page.locator('.dash')).toBeVisible()
+    await back()
+    await expect(draft()).toHaveCount(1)
+    await enterGate()
+    await pin().fill('2468')
+    await gate.getByRole('button', { name: 'Injira', exact: true }).click()
+    await expect(gate.getByRole('alert')).toContainText('si wo')
+    await login('1357')
+    await back()
+  })
+  await check('After signing in, the linked Vuga account can reset a forgotten PIN; a wrong password cannot', async () => {
+    await context.route('http://localhost:8000/**', fakeApi)
+    await enterGate()
+    await login('1357')
+    await signIn(page)
+    await expect(page.locator('.account-backup [role="status"]')).toContainText('byabitswe kuri konti')
+    expect(accountCopy?.format).toBe('vuga-account-backup-v1')
+    await back()
+    await enterGate()
+    await gate.getByRole('button', { name: 'Nibagiwe umubare w’ibanga', exact: true }).click()
+    await gate.getByRole('button', { name: 'Konti ya Vuga', exact: true }).click()
+    await expect(gate).toContainText('•••••••001')
+    const reset = async password => {
+      await field('Ijambobanga rya konti').fill(password)
+      await field('Umubare w’ibanga mushya').fill('2468')
+      await field('Ongera wandike umubare w’ibanga mushya').fill('2468')
+      await gate.getByRole('button', { name: 'Shyiraho umubare mushya', exact: true }).click()
+    }
+    await reset('wrong-1')
+    await expect(gate.getByRole('alert')).toContainText('Ntiwemerewe')
+    await snapshot('parent-forgot-account')
+    await reset('secret1')
+    await expect(gate).toHaveAttribute('data-mode', 'recovery-code')
+    await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
+    await expect(page.locator('.dash')).toBeVisible()
+    await back()
+    await enterGate()
+    await login('2468')
+  })
+  await check('A new device that signs in to the account gets the caregiver’s settings back', async () => {
+    await page.getByRole('navigation', { name: 'Ibyiciro by’umurezi' }).getByRole('button', { name: 'Aho umwana ari', exact: true }).click()
+    await page.getByRole('button', { name: /^Igihe cyo kurya/ }).click()
+    await expect(page.locator('.dash-save-note')).toContainText('Igihe cyo kurya')
+    await back()
+    await expect.poll(() => JSON.stringify(accountCopy?.data ?? {})).toContain('"environment":"meal"')
+    const device = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
+    try {
+      await device.route('http://localhost:8000/**', fakeApi)
+      const phone = await device.newPage()
+      phone.on('pageerror', error => errors.push(error.message))
+      await phone.goto(baseURL)
+      const phoneBoard = phone.locator('.board:visible'), phoneGate = phone.locator('.parent-access')
+      await expect(phoneBoard.locator('.place-status')).toHaveCount(0)
+      await phoneBoard.getByRole('button', { name: "Igenamiterere ry'umurezi", exact: true }).focus()
+      await phone.keyboard.press('Enter')
+      await expect(phoneGate).toHaveAttribute('data-mode', 'setup')
+      await phoneGate.getByLabel('Umubare w’ibanga', { exact: true }).fill('864200')
+      await phoneGate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('864200')
+      await phoneGate.getByRole('button', { name: 'Bika kandi winjire', exact: true }).click()
+      await phoneGate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
+      await expect(phone.locator('.dash')).toBeVisible()
+      await signIn(phone)
+      await expect(phone.locator('.account-backup [role="status"]')).toContainText('byagarutse kuri iki gikoresho')
+      await phone.screenshot({ path: output + '/parent-new-device-restored.png', animations: 'disabled' })
+      screenshots.push('parent-new-device-restored.png')
+      await phone.getByRole('button', { name: 'Subira ku kibaho', exact: true }).first().click()
+      await expect(phoneBoard.locator('.place-status')).toHaveText('Igihe cyo kurya')
+      expect(await phoneBoard.locator('.symbol-grid .symbol-tile').first().getAttribute('data-symbol')).toBe('MUM')
+    } finally { await device.close() }
   })
   await check('Alternate adult entries require a PIN, mobile gate fits, and damaged storage fails closed', async () => {
     await writeSettings([{ key: 'profile', value: { profile_id: 'test-empty', code: 'P-99' } }, { key: 'vocabulary:test-empty', value: true }])

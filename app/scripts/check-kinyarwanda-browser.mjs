@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 // model inference and service-worker caching remain real. Installed system
 // voices are hidden to make file-based playback deterministic. The upload
 // fixture is an explicitly synthetic tone, never a pronunciation sample.
-const output = fileURLToPath(new URL('../../docs/screenshots/licensed-2026-10-10/', import.meta.url))
+const output = process.env.VUGA_EVIDENCE_DIR || fileURLToPath(new URL('../../docs/screenshots/final-2026-10-22/', import.meta.url))
 const baseURL = process.env.VUGA_PREVIEW_URL || 'http://127.0.0.1:4175/'
 const channel = process.env.VUGA_BROWSER_CHANNEL || 'msedge'
 const resultPath = `${output}/browser-report.json`
@@ -50,6 +50,19 @@ const profileCard = code => page.locator('.dash-profile-card').filter({ has: pag
 const mediaEvents = () => page.evaluate(() => window.__audioEvents)
 const endedCount = async () => (await mediaEvents()).filter(event => event.type === 'ended').length
 const playingCount = async () => (await mediaEvents()).filter(event => event.type === 'playing').length
+// Each picture is said as soon as it is tapped. Wait until no word is playing and nothing new has
+// started for a second, so only the message's own audio is counted.
+async function quiet() {
+  let previous = -1, stable = 0
+  await expect.poll(async () => {
+    const events = await mediaEvents()
+    const open = new Set()
+    for (const event of events) event.type === 'playing' ? open.add(event.id) : open.delete(event.id)
+    stable = !open.size && events.length === previous ? stable + 1 : 0
+    previous = events.length
+    return stable >= 2
+  }, { intervals: [500], timeout: 20000 }).toBe(true)
+}
 let completedMessages = 0
 const vocabulary = (await readFile(fileURLToPath(new URL('../../vocab/symbols.csv', import.meta.url)), 'utf8')).trim().split(/\r?\n/).slice(1).map(row => row.split(',')[0])
 
@@ -63,6 +76,7 @@ async function settings() {
   if (await gate.getAttribute('data-mode') === 'setup') {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('629418')
     await gate.getByRole('button', { name: 'Bika kandi winjire', exact: true }).click()
+    await gate.getByRole('button', { name: 'Nayanditse, komeza', exact: true }).click()
   } else await gate.getByRole('button', { name: 'Injira', exact: true }).click()
   await expect(page.locator('.dash')).toBeVisible()
 }
@@ -91,7 +105,7 @@ async function createProfile(code) {
   const dialog = page.getByRole('dialog', { name: 'Ongeramo umwirondoro', exact: true })
   await expect(dialog).toBeVisible()
   expect(await dialog.evaluate(element => element.contains(document.activeElement))).toBe(true)
-  await dialog.getByPlaceholder('P-01', { exact: true }).fill(code)
+  await dialog.getByPlaceholder('Keza cyangwa P-01', { exact: true }).fill(code)
   await dialog.getByRole('button', { name: 'Bika umwirondoro', exact: true }).click()
   await expect(dialog).not.toBeVisible()
   await expect(page.getByRole('checkbox', { name: /^Hitamo / }).first()).toBeVisible()
@@ -173,19 +187,10 @@ try {
     await expect(tile('I')).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'rw')
     await expect(rwPlay()).toBeVisible()
-    await expect(board.locator('.category-button')).toHaveCount(14)
+    // The child sees one section the caregiver chose, with no section tabs to manage.
+    await expect(board.locator('.category-bar, .category-button')).toHaveCount(0)
     for (const width of [1280, 1024, 768]) {
       await page.setViewportSize({ width, height: 900 })
-      const labels = await board.locator('.category-copy b').evaluateAll(elements => elements.map(element => {
-        const range = document.createRange(); range.selectNodeContents(element)
-        const text = range.getBoundingClientRect()
-        const button = element.closest('button').getBoundingClientRect()
-        return { text: element.textContent, lines: range.getClientRects().length, fits: text.left >= button.left && text.right <= button.right - 3 }
-      }))
-      for (const label of labels) {
-        expect(label.fits, `${width}px: ${label.text}`).toBe(true)
-        if (!label.text.includes(' ')) expect(label.lines, `${width}px: ${label.text}`).toBe(1)
-      }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
     }
     await page.setViewportSize({ width: 1280, height: 900 })
@@ -196,10 +201,10 @@ try {
     expect((await storage()).settings.find(setting => setting.key === 'speech-mode')?.value).toBe('kinyarwanda')
     await auditLanguage('board')
     await screenshot('board-desktop')
-    return { documentLanguage: 'rw', categories: 14, installedVoicesAvailableToTest: 0 }
+    return { documentLanguage: 'rw', sectionTabs: 0, installedVoicesAvailableToTest: 0 }
   })
 
-  await check('All 181 licensed online photos have attribution, are precached, match their manifest and decode at 480 square', async () => {
+  await check('All 188 licensed online photos have attribution, are precached, match their manifest and decode at 480 square', async () => {
     const audit = await page.evaluate(async () => {
       const manifest = await (await fetch('/photos/manifest.json')).json()
       const cachedPaths = new Set()
@@ -210,7 +215,7 @@ try {
       const creditsResponse = await fetch('/photos/credits.html')
       if (!creditsResponse.ok) throw new Error('Photo credits unavailable')
       const credits = new DOMParser().parseFromString(await creditsResponse.text(), 'text/html')
-      if (credits.documentElement.lang !== 'rw' || credits.querySelectorAll('article').length !== 181) throw new Error('Incomplete Kinyarwanda photo credits')
+      if (credits.documentElement.lang !== 'rw' || credits.querySelectorAll('article').length !== 188) throw new Error('Incomplete Kinyarwanda photo credits')
       const images = []
       for (const entry of manifest.images) {
         if (entry.synthetic !== false || !entry.creator || !entry.title || !entry.source_page?.startsWith('https://') || !entry.license || !entry.license_url?.startsWith('https://')) throw new Error(`Missing online licence or attribution: ${entry.symbol_id}`)
@@ -246,7 +251,7 @@ try {
       await expect.poll(() => water.locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true)
       await expect(water).toHaveAccessibleName('amazi')
       await water.click()
-      await expect(fallbackPage.locator('.message-chip img')).toHaveAttribute('src', '/symbols/WATER.png')
+      await expect(fallbackPage.locator('.message-chip')).toHaveText('amazi')
       await fallbackPage.getByRole('button', { name: 'Erekana ubutumwa', exact: true }).click()
       await expect(fallbackPage.locator('.message-dialog[open] .display-chip')).toContainText('amazi')
       await expect(fallbackPage.locator('.message-dialog[open] .display-chip img')).toHaveAttribute('src', '/symbols/WATER.png')
@@ -276,25 +281,25 @@ try {
     return { previousMode: 'english-demo', migratedMode: 'kinyarwanda' }
   })
 
-  await check('Profile dialog uses Kinyarwanda validation and creates a local profile with 181 choices', async () => {
+  await check('Profile dialog uses Kinyarwanda validation and creates a local profile with 188 choices', async () => {
     await settings()
     await page.getByRole('button', { name: /Ongeramo umwirondoro/ }).click()
     const dialog = page.getByRole('dialog', { name: 'Ongeramo umwirondoro', exact: true })
-    const code = dialog.getByPlaceholder('P-01', { exact: true })
+    const code = dialog.getByPlaceholder('Keza cyangwa P-01', { exact: true })
     await expect(code).toBeFocused()
     await dialog.getByRole('button', { name: 'Bika umwirondoro', exact: true }).click()
-    expect(await code.evaluate(input => input.validationMessage)).toContain('Andika inyuguti imwe')
+    expect(await code.evaluate(input => input.validationMessage)).toContain('Andika izina cyangwa kode')
     await code.fill('P-01')
     await auditLanguage('profile dialog')
     await screenshot('profile-dialog')
     await dialog.getByRole('button', { name: 'Bika umwirondoro', exact: true }).click()
     await expect(dialog).not.toBeVisible()
-    await expect(page.getByRole('checkbox', { name: /^Hitamo / })).toHaveCount(181)
+    await expect(page.getByRole('checkbox', { name: /^Hitamo / })).toHaveCount(188)
     expect((await storage()).profiles.some(profile => profile.code === 'P-01' && profile.local_only)).toBe(true)
-    return { localProfile: 'P-01', vocabularyChoices: 181, nativeValidationLanguage: 'rw' }
+    return { localProfile: 'P-01', vocabularyChoices: 188, nativeValidationLanguage: 'rw' }
   })
 
-  await check('Intentionally empty vocabulary survives reload and all 181 choices can be restored', async () => {
+  await check('Intentionally empty vocabulary survives reload and all 188 choices can be restored', async () => {
     await page.getByRole('button', { name: 'Kuraho yose', exact: true }).click()
     await expect(page.getByRole('checkbox', { name: /^Hitamo / }).first()).not.toBeChecked()
     await back()
@@ -305,10 +310,10 @@ try {
     expect((await storage()).settings.find(setting => setting.key === 'profile').value.code).toBe('P-01')
     await settings(); await tab('Amashusho')
     await page.getByRole('button', { name: 'Hitamo yose', exact: true }).click()
-    await expect.poll(() => page.getByRole('checkbox', { name: /^Hitamo / }).evaluateAll(inputs => inputs.filter(input => input.checked).length)).toBe(181)
+    await expect.poll(() => page.getByRole('checkbox', { name: /^Hitamo / }).evaluateAll(inputs => inputs.filter(input => input.checked).length)).toBe(188)
     await back()
     await expect(tile('I')).toBeVisible()
-    return { afterEmptyReload: 0, restoredChoices: 181 }
+    return { afterEmptyReload: 0, restoredChoices: 188 }
   })
 
   await check('Appearance settings affect the real board, persist and remain separate for each profile', async () => {
@@ -380,7 +385,7 @@ try {
     const initialPositions = await positions()
     for (const key of ['I', 'WANT', 'WATER']) await tile(key).click()
     await expect(chips()).toHaveCount(3)
-    expect(await chips().locator(':scope > span:last-child').allTextContents()).toEqual(['njye', 'gushaka', 'amazi'])
+    expect(await chips().allTextContents()).toEqual(['njye', 'gushaka', 'amazi'])
     expect(await positions()).toEqual(initialPositions)
     await settings()
     for (const [name, file] of [['Abana', 'caregiver-profiles'], ['Amashusho', 'caregiver-vocabulary'], ['Ikibaho', 'caregiver-preferences'], ['Incamake', null], ['Ohereza', null]]) {
@@ -390,7 +395,7 @@ try {
     }
     await back()
     await expect(chips()).toHaveCount(3)
-    expect(await chips().locator(':scope > span:last-child').allTextContents()).toEqual(['njye', 'gushaka', 'amazi'])
+    expect(await chips().allTextContents()).toEqual(['njye', 'gushaka', 'amazi'])
     return { literalWords: ['njye', 'gushaka', 'amazi'], gridPositionChanges: 0, retainedDuringCaregiverVisit: 3 }
   })
 
@@ -416,7 +421,7 @@ try {
     return { tabSteps: 6, browserChromeVisits: chromeVisits, backgroundControlsFocused: 0, successfulSpeechEvents: completedMessages }
   })
 
-  await check('Every one of the 181 bundled Kinyarwanda clips decodes to non-silent audio', async () => {
+  await check('Every one of the 188 bundled Kinyarwanda clips decodes to non-silent audio', async () => {
     const decoded = await page.evaluate(async keys => {
       const audio = new AudioContext()
       try {
@@ -433,7 +438,7 @@ try {
         return results
       } finally { await audio.close() }
     }, vocabulary)
-    expect(decoded).toHaveLength(181)
+    expect(decoded).toHaveLength(188)
     for (const clip of decoded) {
       expect(clip.duration, clip.key).toBeGreaterThan(0.1)
       expect(clip.peak, clip.key).toBeGreaterThan(0.02)
@@ -442,10 +447,14 @@ try {
     return { decodedClips: decoded.length, minimumDuration: Math.min(...decoded.map(clip => clip.duration)), maximumDuration: Math.max(...decoded.map(clip => clip.duration)), minimumRms: Math.min(...decoded.map(clip => clip.rms)), sampleClips: decoded.filter(clip => ['I', 'WANT', 'WATER'].includes(clip.key)), pronunciationReview: false }
   })
 
-  await check('Three Kinyarwanda clips finish through native media playback before exactly one Speak completion', async () => {
-    const baseline = await endedCount()
+  await check('“Ndashaka amazi” plays as two Kinyarwanda clips (ndashaka, amazi) through native media before exactly one Speak completion', async () => {
+    await quiet()
+    const baseline = await endedCount(), requestsBefore = requests.length
     await rwPlay().click()
-    await expect.poll(endedCount, { timeout: 30000 }).toBe(baseline + 3)
+    await expect.poll(endedCount, { timeout: 30000 }).toBe(baseline + 2)
+    const played = requests.slice(requestsBefore).map(url => new URL(url).pathname).filter(path => path.startsWith('/audio/rw/'))
+    expect(played).toEqual(expect.arrayContaining(['/audio/rw/forms/ndashaka.mp3', '/audio/rw/WATER.wav']))
+    expect(played).not.toContain('/audio/rw/WANT.wav')
     await expect(chips()).toHaveCount(0)
     await expectCompletions(++completedMessages)
     const data = await storage()
@@ -453,11 +462,12 @@ try {
     const events = data.tap_events.filter(event => event.message_id === completed.message_id).sort((a, b) => a.action_index - b.action_index)
     expect(events.filter(event => event.action_type === 'speak')).toHaveLength(1)
     expect(events.filter(event => event.action_type === 'select').slice(-3).map(event => event.symbol_key)).toEqual(['I', 'WANT', 'WATER'])
-    return { nativeMediaEnds: 3, totalCompletedMessages: completedMessages, finalWords: ['njye', 'gushaka', 'amazi'] }
+    return { nativeMediaEnds: 2, totalCompletedMessages: completedMessages, pictures: ['njye', 'gushaka', 'amazi'], spoken: 'Ndashaka amazi.' }
   })
 
   await check('Stop interrupts native audio, retains all selected symbols and adds no successful Speak event', async () => {
     await tile('I').evaluate(button => { for (let count = 0; count < 12; count++) button.click() })
+    await quiet()
     const baseline = await playingCount()
     await rwPlay().click()
     await expect.poll(playingCount).toBeGreaterThan(baseline)
@@ -526,6 +536,7 @@ try {
 
   await check('Saved word recording overrides the bundled clip and finalizes one message after playback', async () => {
     await back(); await tile('I').click()
+    await quiet()
     const baseline = await endedCount(), requestsBefore = requests.length
     await rwPlay().click()
     await expect.poll(endedCount).toBe(baseline + 1)
@@ -567,12 +578,14 @@ try {
     return { exportedProfiles: 2, exportedMessages: exported.messages.length, completedMessages, recordingOrAuthDataExported: false }
   })
 
-  await check('Phone board retains two readable columns, large touch controls and a wrapping long-message dialog', async () => {
+  await check('Phone board fits three readable columns on screen, large touch controls and a wrapping long-message dialog', async () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.evaluate(() => scrollTo(0, 0))
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-    expect(await board.locator('.symbol-grid').evaluate(grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length)).toBe(2)
-    expect(await tile('I').locator('.label').evaluate(label => parseFloat(getComputedStyle(label).fontSize))).toBeGreaterThanOrEqual(18)
+    expect(await board.locator('.symbol-grid').evaluate(grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length)).toBe(3)
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBe(true)
+    expect(await tile('I').locator('.label').evaluate(label => parseFloat(getComputedStyle(label).fontSize))).toBeGreaterThanOrEqual(16)
+    expect((await tile('I').boundingBox()).width).toBeGreaterThanOrEqual(76)
     const sizes = await board.locator('.edit-button,.show-button,.speak-button,.caregiver-button').evaluateAll(buttons => buttons.map(button => ({ label: button.getAttribute('aria-label'), height: button.getBoundingClientRect().height })))
     expect(sizes.every(control => control.height >= 48)).toBe(true)
     await tile('WATER').evaluate(button => { for (let count = 0; count < 12; count++) button.click() })
@@ -582,7 +595,7 @@ try {
     expect(await dialog.locator('.display-message').evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
     expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
     await page.keyboard.press('Escape'); await clear()
-    return { viewport: '390×844', columns: 2, messageSymbols: 12, controls: sizes }
+    return { viewport: '390×844', columns: 3, messageSymbols: 12, controls: sizes }
   })
 
   await check('Operating-system reduced motion disables chip animation even when gentle motion is enabled', async () => {
@@ -612,11 +625,13 @@ try {
       }
       return ids.length
     }, vocabulary)
-    expect(offlinePhotoCount).toBe(181)
+    expect(offlinePhotoCount).toBe(188)
     for (const key of ['WANT', 'WATER']) await tile(key).click()
     await screenshot('board-mobile-offline')
+    await quiet()
+    const baseline = await endedCount()
     await rwPlay().click()
-    await expect.poll(endedCount, { timeout: 30000 }).toBe(2)
+    await expect.poll(endedCount, { timeout: 30000 }).toBe(baseline + 2)
     await expect(chips()).toHaveCount(0)
     await expectCompletions(++completedMessages)
     return { online: false, decodedOfflinePhotos: offlinePhotoCount, actualBundledMediaEnds: 2, totalCompletedMessages: completedMessages }
@@ -625,6 +640,7 @@ try {
   await check('Saved recording still overrides speech offline and deletion restores the bundled Kinyarwanda clip', async () => {
     expect((await storage()).recordings.find(row => row.key === 'I').size).toBe(toneWav().length)
     await tile('I').click()
+    await quiet()
     const baseline = await endedCount()
     await rwPlay().click()
     await expect.poll(endedCount).toBe(baseline + 1)
@@ -641,6 +657,7 @@ try {
     await page.getByRole('button', { name: 'Siba ijwi', exact: true }).click()
     await expect.poll(async () => (await storage()).recordings.length).toBe(0)
     await back(); await tile('I').click()
+    await quiet()
     const beforeBundle = await endedCount()
     await rwPlay().click()
     await expect.poll(endedCount).toBe(beforeBundle + 1)
@@ -663,6 +680,7 @@ try {
     })
     expect(removed).toBeGreaterThan(0)
     await tile('WATER').click()
+    await quiet()
     const baseline = await playingCount()
     await rwPlay().click()
     const notice = page.locator('.audio-dialog[open]')
@@ -690,7 +708,7 @@ try {
     expect(cacheURLs.filter(url => /\/audio\/en(?:-demo)?\//.test(url))).toEqual([])
     const rwFiles = new Set(cacheURLs.filter(url => /\/audio\/rw\/[^/]+\.wav/.test(url)).map(url => new URL(url).pathname))
     // WATER was deliberately removed by the preceding missing-asset check.
-    expect(rwFiles.size).toBe(180)
+    expect(rwFiles.size).toBe(187)
     expect(pageErrors).toEqual([])
     expect(allMediaEvents.filter(event => event.type === 'error')).toEqual([])
     expect(screenshots).toHaveLength(10)
@@ -702,7 +720,7 @@ try {
     status: 'passed', checked_at: new Date().toISOString(), passed_checks: checks.length,
     browser: `Headless ${channel}`, base_url: baseURL,
     data: 'Isolated synthetic P-01 and P-02 profiles and generated tone upload; no participant data, microphone permission request or existing user browser data.',
-    observation: 'Original HTMLMediaElement.play executes unchanged; native playing/ended/pause/error events are observed. All 181 bundled WAV files are decoded and checked for nonzero samples. Installed system voices are hidden. One cached WATER file is deliberately deleted offline to exercise missing-file handling.',
+    observation: 'Original HTMLMediaElement.play executes unchanged; native playing/ended/pause/error events are observed. All 188 bundled WAV files are decoded and checked for nonzero samples. Installed system voices are hidden. One cached WATER file is deliberately deleted offline to exercise missing-file handling.',
     checks, screenshots, language_audits: audits, page_errors: pageErrors,
     limitations: ['Automated playback events do not establish physical speaker audibility.', 'Bundled synthetic Kinyarwanda pronunciation and translation still require native-speaker and intended-user review.', 'Generated upload tone validates recording transport and storage, not speech pronunciation.', 'Known prior English UI phrases are audited; this is not a comprehensive linguistic quality assessment.', 'No participant, target-tablet, microphone capture or screen-reader usability validation was performed.']
   }, null, 2) + '\n')

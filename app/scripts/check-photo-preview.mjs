@@ -36,7 +36,7 @@ try {
   await page.screenshot({ path: `${output}/photo-preview-desktop.png` })
   await tile('I').click()
   await tile('WATER').click()
-  await expect(page.locator('.message-chip .symbol-artwork--photo')).toHaveCount(2)
+  await expect(page.locator('.message-chip')).toHaveText(['njye', 'amazi'])
   await page.getByRole('button', { name: 'Erekana ubutumwa', exact: true }).click()
   await expect(page.locator('.message-dialog[open] .symbol-artwork--photo')).toHaveCount(2)
   await page.screenshot({ path: `${output}/photo-preview-message.png` })
@@ -73,7 +73,7 @@ try {
   await expect.poll(() => tile('WATER').locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true)
   await expect(tile('WATER')).toHaveAccessibleName('amazi')
   await tile('WATER').click()
-  await expect(page.locator('.message-chip img')).toHaveAttribute('src', '/symbols/WATER.png')
+  await expect(page.locator('.message-chip')).toHaveText('amazi')
   expect(errors).toEqual([])
   const report = { status: 'passed', checked_at: new Date().toISOString(), decoded_photos: decoded.length, available_photos: manifest.coverage.available, required_photos: manifest.coverage.expected, all_available_photos_480_square: true, desktop_and_phone_layout: true, photograph_preference_persists: true, deliberate_missing_photo_falls_back_to_pictogram: true, message_composition_survives_photo_failure: true, page_errors: errors, limitation: 'Preview checks only; full offline and speech workflow checks are separate.' }
   await writeFile(`${output}/photo-preview-report.json`, JSON.stringify(report, null, 2) + '\n')
