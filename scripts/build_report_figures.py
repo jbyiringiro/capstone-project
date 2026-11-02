@@ -1,11 +1,13 @@
-"""Draw the technical report's figures from the evidence JSON in docs/evidence/.
+"""Draw the compatibility figure from the evidence JSON in docs/evidence/.
 
-  docs/report/figures/compatibility.svg   load times and interaction latency per configuration
+  docs/report/figures/compatibility.svg   load times and interaction latency per configuration,
+                                          shown in docs/testing_report.md (section 6)
 
+The technical report itself is all black 12 pt text, so it gives these numbers as a table instead.
 Colours follow a validated categorical palette (blue, orange, aqua: all-pairs colour-vision
 separation above the ΔE 8 target); aqua is below 3:1 contrast on white, so every value is also
-printed in the report's table. Small multiples share the configuration axis instead of mixing
-units on one chart.
+printed in the testing report's table. Small multiples share the configuration axis instead of
+mixing units on one chart.
 
 Usage: python scripts/build_report_figures.py
 """
@@ -72,10 +74,11 @@ def main() -> None:
     style(load, "Time to a usable board", "seconds")
     load.legend(fontsize=6.5, frameon=False, loc="lower right", handlelength=1, handleheight=0.8)
 
+    # NFR2's 200 ms is the budget for a prediction (Table 1 in the report), not for a tap, so the
+    # tap panel has no target line.
     tap = axes[1]
     tap.barh(rows, [r["metrics"]["tap_to_frame_ms"]["p95"] for r in results], height=0.55, color=SERIES["cold"])
     style(tap, "Tap to next frame, p95", "milliseconds")
-    reference(tap, 200, "200 ms (NFR2)")
 
     speech = axes[2]
     speech_values = [r["metrics"].get("speech_start_ms") for r in results]
@@ -83,7 +86,7 @@ def main() -> None:
     for y, value in zip(rows, speech_values):
         if value is None:
             speech.text(8, y, "no audio (headless)", fontsize=6, color=MUTED, va="center")
-    style(speech, "Vuga to first audio", "milliseconds")
+    style(speech, "Vuga press to first audio", "milliseconds")
     reference(speech, 300, "300 ms (NFR2)")
 
     load.set_yticks(rows, names)

@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 // Renders docs/report/report.html to the submitted PDF with headless Edge and reports the page
-// count, which the brief limits to five. Rebuild the figure first:
-//   python scripts/build_report_figures.py && node app/scripts/render-report.mjs
+// count, which the brief limits to five:
+//   node app/scripts/render-report.mjs
 const source = fileURLToPath(new URL('../../docs/report/report.html', import.meta.url))
 const target = fileURLToPath(new URL('../../docs/report/Vuga_Final_Technical_Report.pdf', import.meta.url))
 const browser = await chromium.launch({ channel: process.env.VUGA_BROWSER_CHANNEL || 'msedge', headless: true })
@@ -14,7 +14,8 @@ try {
   await page.pdf({
     path: target, preferCSSPageSize: true, printBackground: true, displayHeaderFooter: true,
     headerTemplate: '<span></span>',
-    footerTemplate: '<div style="width:100%;font:7px Segoe UI,sans-serif;color:#7a8580;text-align:center">Vuga · final technical report · page <span class="pageNumber"></span> of <span class="totalPages"></span></div>'
+    // Black 12 pt, like the rest of the report.
+    footerTemplate: '<div style="width:100%;font:12pt Calibri,Arial,sans-serif;color:#000;text-align:center">Vuga · final technical report · page <span class="pageNumber"></span> of <span class="totalPages"></span></div>'
   })
 } finally {
   await browser.close()
