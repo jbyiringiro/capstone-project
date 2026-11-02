@@ -4,7 +4,7 @@ These photographs replace the earlier generated images. Each vocabulary entry ha
 
 The sources were selected from online photographic collections with explicit reuse permissions. Public-domain and Creative Commons images retain their recorded status; attribution and ShareAlike obligations apply where recorded. Related abstract words sometimes share a context photo, with notes in the manifest. Photographs depicting people do not identify them as disabled, as Vuga users or as project participants.
 
-The app serves local 480 × 480 WebPs, with the complete source image fitted onto a cream canvas. Changes are limited to resizing, padding and format conversion; no generative editing or cropping is used. The originals stay in `design/licensed-photo-sources/` outside the app and repository. Earlier generated originals remain historical design working files and are no longer runtime inputs.
+The app serves local 480 × 480 WebPs. Each source image is cropped to a square that fills the key, with no padding around it; the crop is centred unless the catalog record sets a `focus` point. Changes are limited to that crop, resizing and format conversion; no retouching or generative editing is used. The originals stay in `design/licensed-photo-sources/` outside the app and repository. Earlier generated originals remain historical design working files and are no longer runtime inputs.
 
 The same picture appears on cards, category shortcuts, suggestions, composed messages and parent views. **Umurezi → Ikibaho → Amafoto afatika** switches a profile to the existing ARASAAC pictograms, which have their own attribution and noncommercial licence. A missing photo also falls back automatically. The vocabulary labels and Kinyarwanda audio remain unchanged.
 

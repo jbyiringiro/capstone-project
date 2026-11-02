@@ -3,6 +3,8 @@
 Reads the two curated source catalogs; does not search or select images. All
 181 words must have explicit source/creator/licence metadata and verified local
 source bytes before any runtime image is replaced. Source photos remain intact.
+Each photo is cropped to fill a 480 x 480 square, so keys show no padding around
+it; a record's optional "focus" ([x, y] fractions) moves the crop off-centre.
 Run from the repository: .venv/Scripts/python.exe scripts/prepare_licensed_photos.py
 """
 from __future__ import annotations
@@ -22,7 +24,7 @@ REPO = Path(__file__).resolve().parents[1]
 WORKSPACE = REPO.parent
 SOURCE = WORKSPACE / "design/licensed-photo-sources"
 OUTPUT = REPO / "app/public/photos"
-DATE = "2026-10-10"
+DATE = "2026-10-28"
 
 
 def digest(data: bytes) -> str:
@@ -75,18 +77,17 @@ def main() -> None:
         assert digest(original) == record["source_sha256"], f"Source changed: {source.name}"
         with Image.open(io.BytesIO(original)) as opened:
             photo = ImageOps.exif_transpose(opened).convert("RGB")
-            photo = ImageOps.contain(photo, (480, 480), Image.Resampling.LANCZOS)
-            canvas = Image.new("RGB", (480, 480), "#f7f5ec")
-            canvas.paste(photo, ((480 - photo.width) // 2, (480 - photo.height) // 2))
+            focus = tuple(record.get("focus", (0.5, 0.5)))
+            photo = ImageOps.fit(photo, (480, 480), Image.Resampling.LANCZOS, centering=focus)
             buffer = io.BytesIO()
-            canvas.save(buffer, format="WEBP", quality=85, method=6)
+            photo.save(buffer, format="WEBP", quality=85, method=6)
         data = buffer.getvalue()
         metadata = {
             **record, "label_rw": symbol["label_rw"],
             "url": f"/photos/{symbol['symbol_id']}.webp",
             "width": 480, "height": 480, "format": "image/webp", "bytes": len(data),
             "sha256": digest(data), "source_original_sha256": digest(original),
-            "changes": "Resized to fit a 480 × 480 cream canvas and converted to WebP; no crop, retouching or generative edits.",
+            "changes": "Cropped to a square, resized to 480 × 480 and converted to WebP; no retouching or generative edits.",
         }
         prepared.append((metadata, data))
     OUTPUT.mkdir(exist_ok=True, parents=True)
@@ -96,7 +97,7 @@ def main() -> None:
     manifest = {
         "version": 2, "prepared_at": DATE, "language": "rw", "synthetic": False,
         "description": "Online photographs with per-image reuse licences, attribution and source records. Educational communication prototype; recognition has not been validated with learners.",
-        "optimisation": {"method": "Pillow contain and WebP encoding", "width": 480, "height": 480, "quality": 85, "crop": False},
+        "optimisation": {"method": "Pillow square crop (fit) and WebP encoding", "width": 480, "height": 480, "quality": 85, "crop": True},
         "coverage": {"expected": len(vocabulary), "available": len(images), "complete": True, "missing": [], "pending_provenance": []},
         "images": images,
     }
@@ -109,7 +110,7 @@ def main() -> None:
     credits = '''<!doctype html><html lang="rw"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vuga · Abafashe amafoto</title>
 <style>body{max-width:1000px;margin:auto;padding:28px;background:#f7f5ec;color:#173d37;font:18px/1.6 system-ui,sans-serif}a{color:#176b62}h1{line-height:1.2}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:16px}article{display:flex;gap:16px;background:white;padding:16px;border-radius:16px;overflow-wrap:anywhere}article img{width:100px;height:100px;object-fit:contain}h2,p{margin:0 0 8px}h2{font-size:21px}small{color:#5e706a}</style>
 <header><a href="/">← Subira ku kibaho</a><h1>Abafashe amafoto n’uburenganzira bwo kuyakoresha</h1>
-<p>Aya mafoto yaturutse kuri interineti. Buri foto ifite uwafashe ifoto, aho yaturutse n’uruhushya rwo kuyikoresha. Yagabanyijwe mu bunini, ishyirwa ku buso bwa kare kandi ibikwa mu buryo bwa WebP; nta gice cyayo cyaciwe.</p>
+<p>Aya mafoto yaturutse kuri interineti. Buri foto ifite uwafashe ifoto, aho yaturutse n’uruhushya rwo kuyikoresha. Yaciwe impande ngo ibe kare, igabanywa mu bunini kandi ibikwa mu buryo bwa WebP; nta kindi cyahinduwe ku ifoto.</p>
 <p>Amafoto arimo abantu ntiyemeza ko abo bantu bafite ubumuga cyangwa ko bakoresha Vuga. Amashusho n’amagambo biracyakeneye gusuzumwa n’abazabikoresha.</p>
 <p><a href="manifest.json">Amakuru yose y’amafoto</a></p></header><main>'''
     (OUTPUT / "credits.html").write_text(credits + "\n".join(cards) + "</main></html>\n", encoding="utf-8")
