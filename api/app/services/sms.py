@@ -1,7 +1,7 @@
 """Text messages to caregivers' phones: the codes that prove a caregiver holds a mobile number.
 
-Africa's Talking sends them once an API key is set. Without one, each message is written to the
-API's log instead, which is enough on a developer machine.
+Africa's Talking sends them once an API key is set. Local development may write messages to the
+API's log instead; public deployments disable that fallback.
 """
 from __future__ import annotations
 
@@ -25,6 +25,20 @@ class LogSms:
 
     def send(self, phone: str, text: str) -> None:
         log.warning("SMS to %s: %s", phone, text)
+
+
+class DisabledSms:
+    """Refuses delivery without exposing a caregiver's number or code in server logs."""
+
+    def send(self, phone: str, text: str) -> None:
+        raise SmsFailed("could not send the code")
+
+
+def create_sms_sender(*, username: str, api_key: str | None, log_enabled: bool,
+                      sender_id: str | None = None) -> SmsSender:
+    if api_key:
+        return AfricasTalkingSms(username, api_key, sender_id)
+    return LogSms() if log_enabled else DisabledSms()
 
 
 # A recipient's status codes for a message Africa's Talking took: processed, sent and queued.

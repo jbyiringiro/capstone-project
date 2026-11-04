@@ -10,6 +10,8 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    TypeAdapter,
+    ValidationError,
     field_validator,
     model_validator,
 )
@@ -93,10 +95,16 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+# An age or age band such as 7, 6-8 or 12+, and how the child reaches the screen. Neither can hold
+# a name, so a profile can go into the account copy as it is.
+AgeBand = Annotated[str, Field(pattern=r"^\d{1,2}(-\d{1,2}|\+)?$")]
+AccessMethod = Literal["touch", "switch", "keyboard", "eye-gaze"]
+
+
 class ProfileCreate(BaseModel):
     code: str = Field(pattern=r"^[A-Z]-\d{2,3}$", description="pseudonymous code such as P-07")
-    age_band: str | None = None
-    access_method: str = "touch"
+    age_band: AgeBand | None = None
+    access_method: AccessMethod = "touch"
 
 
 class ProfileOut(BaseModel):
@@ -216,44 +224,94 @@ class PredictResponse(BaseModel):
     model: str
 
 
-# The account copy of a device (NFR4: no child names or media on the server). Unknown fields are
-# refused, so custom-word photos, voice recordings and messages cannot be stored with it, and a
-# child appears only by a pseudonymous code: a child the family calls by name stays on the device.
+# The account copy of a device (NFR4: no child names or media on the server). Every field has the
+# shape the app writes (app/src/storage/backup.js) and nothing else: a child goes by a pseudonymous
+# code and a generated id, a word by its key, and a setting is a switch, a size, a short id or a list
+# of words. Unknown fields and free text are refused, so custom-word names and photos, voice
+# recordings, messages and a child the family calls by name stay on the device.
 PSEUDONYM = r"^[A-Z]-\d{2,3}$"
 BackupFormat = Literal["vuga-account-backup-v2"]
-_BACKED_UP_SETTING = re.compile(r"(appearance|vocabulary):[\w-]{1,64}|mode|profile|speech-mode")
+_UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+# A child on the account (its uuid) or on one device only (local- and a uuid).
+ProfileId = Annotated[str, Field(pattern=rf"^(local-)?{_UUID}$")]
+# A catalogue word (WANT, THANK_YOU) or a custom word's generated id (CUSTOM-1A2B3C4D).
+WordKey = Annotated[str, Field(pattern=r"^([A-Z][A-Z0-9_]{0,47}|CUSTOM-[0-9A-F]{8})$")]
+# A place, a section, a ready-made board or the speech choice: meal, food_drink, essentials.
+ChoiceId = Annotated[str, Field(pattern=r"^[a-z][a-z_]{0,31}$")]
+_BACKED_UP_SETTING = re.compile(rf"(appearance:((local-)?{_UUID}|demo)|vocabulary:(local-)?{_UUID}|mode|profile"
+                                r"|speech-mode)")
 
 
 class BackupProfile(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    profile_id: str = Field(min_length=1, max_length=64)
+    profile_id: ProfileId
     code: str = Field(pattern=PSEUDONYM)
-    age_band: str | None = Field(default=None, max_length=16)
-    access_method: str | None = Field(default=None, max_length=16)
+    age_band: AgeBand | None = None
+    access_method: AccessMethod | None = None
     local_only: bool | None = None
 
 
 class BackupWord(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    profile_id: str = Field(min_length=1, max_length=64)
-    key: str = Field(min_length=1, max_length=48)
+    profile_id: ProfileId
+    key: WordKey
+
+
+class BoardSettings(BaseModel):
+    """One child's board, place, next-word and child-mode settings (app/src/storage/
+    board-preferences.js). Strict: a switch is true or false, never "yes"."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    motion: bool | None = None
+    largeTiles: bool | None = None
+    realisticImages: bool | None = None
+    gridSize: Literal["auto", 4, 6, 9, 12, 20, 24, 40] | None = None
+    personalSuggestions: bool | None = None
+    sentenceSpeech: bool | None = None
+    childMode: bool | None = None
+    childPreset: ChoiceId | None = None
+    childBoard: list[WordKey] | None = Field(default=None, max_length=12)
+    relatedWords: bool | None = None
+    relatedLists: dict[WordKey, Annotated[list[WordKey], Field(max_length=24)]] | None = Field(
+        default=None, max_length=1_000)
+    speakOnTap: bool | None = None
+    environment: ChoiceId | None = None
+    environmentLists: dict[ChoiceId, Annotated[list[WordKey], Field(max_length=80)]] | None = Field(
+        default=None, max_length=32)
+    section: ChoiceId | None = None
+    sectionTabs: bool | None = None
+    showLabels: bool | None = None
+    swipePages: bool | None = None
+
+
+# Each kept setting's value, by the part of its key before the colon.
+_SETTING_VALUE = {
+    "appearance": TypeAdapter(BoardSettings),
+    "vocabulary": TypeAdapter(Literal[True]),  # the child's words were picked by hand
+    "mode": TypeAdapter(Literal["static", "predictive"]),
+    "profile": TypeAdapter(BackupProfile | None),  # the open child, if any
+    "speech-mode": TypeAdapter(ChoiceId),
+}
 
 
 class BackupSetting(BaseModel):
     """A board, place, next-word or child-mode setting, a word-list flag, the board mode, the open
-    child or the speech choice."""
+    child or the speech choice. The value is checked against its key's shape and kept as sent."""
 
     model_config = ConfigDict(extra="forbid")
     key: str = Field(max_length=80)
     value: Any = None
 
     @model_validator(mode="after")
-    def backed_up_and_pseudonymous(self):
+    def backed_up_in_its_shape(self):
         if not _BACKED_UP_SETTING.fullmatch(self.key):
             raise ValueError("this setting is not kept on the account")
-        code = self.value.get("code") if isinstance(self.value, dict) else None
-        if self.key == "profile" and self.value is not None and not re.fullmatch(PSEUDONYM, str(code)):
-            raise ValueError("the open child must go by a code such as P-01")
+        try:
+            _SETTING_VALUE[self.key.split(":")[0]].validate_python(self.value, strict=True)
+        except ValidationError as error:
+            problem = error.errors(include_url=False)[0]
+            where = ".".join(str(part) for part in problem["loc"])
+            raise ValueError(f"{self.key}{' ' + where if where else ''}: {problem['msg']}") from None
         return self
 
 

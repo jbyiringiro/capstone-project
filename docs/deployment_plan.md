@@ -1,5 +1,7 @@
 # Vuga AAC deployment plan
 
+**4 November 2026 update:** use the [Render + Neon hosting guide](hosting.md) and [render.yaml](../render.yaml) on branch `deploy/vuga-cloud`. They supersede the provider choices and rollout instructions below for the selected free deployment. Permanent hosting is not live yet.
+
 **Status, 2 November 2026.** Vuga currently runs only as a local production preview (`npm run preview`). Nothing is publicly hosted yet. This plan explains how each part would be deployed, in what order, and how each step would be checked.
 
 ## 1. What gets deployed

@@ -70,7 +70,16 @@ class AccountService:
 
     def change_pin(self, body: schemas.PinChange) -> None:
         user = self.authenticate(body.phone, body.pin)
-        self._new_pin(user, body.new_pin)
+        # Stored only while the PIN just checked is still the account's: a PIN replaced in between,
+        # with a texted code or by another change, stays as it is.
+        changed = self.db.execute(
+            update(models.User)
+            .where(models.User.user_id == user.user_id, models.User.token_version == user.token_version)
+            .values(password_hash=hash_password(body.new_pin), token_version=models.User.token_version + 1)
+            .execution_options(synchronize_session=False))
+        if changed.rowcount != 1:
+            self.db.rollback()
+            raise InvalidCredentials("wrong phone or PIN")
         self.db.commit()
 
     def _new_pin(self, user: models.User, pin: str) -> None:
@@ -86,7 +95,9 @@ class AccountService:
         user = self._by_phone(phone)
         if user is None:
             raise InvalidCredentials("wrong phone or PIN")
-        digest, now = user.password_hash, codes._now()
+        # The PIN and its version, read together: the PIN is checked against this digest, and the
+        # session must carry this version.
+        digest, version, now = user.password_hash, user.token_version, codes._now()
         # Each try is counted before its PIN is checked, so tries sent at the same moment cannot
         # all be checked before any of them is counted: at most five are checked per lock.
         tries = self._count_try(phone, now)
@@ -97,6 +108,11 @@ class AccountService:
         if verify_password(pin, digest):
             self._clear_tries(phone)
             self.db.commit()
+            # A PIN replaced while it was checked no longer signs in; its session would otherwise
+            # carry the new PIN's version. No commit follows, so the token gets the version checked.
+            self.db.refresh(user)
+            if user.token_version != version:
+                raise InvalidCredentials("wrong phone or PIN")
             return user
         if tries == MAX_TRIES:
             raise TooManyTries("too many wrong PINs", self._lock(phone, now))

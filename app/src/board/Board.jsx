@@ -4,9 +4,7 @@ import { environmentById, environmentWords } from '../symbols/environments.js'
 import { relatedWords } from '../symbols/related-words.js'
 import { DEFAULT_PREFERENCES, GRID_SIZES } from '../storage/board-preferences.js'
 import { finaliseMessage, logAction, startDraft } from '../storage/messages.js'
-import { getRecording } from '../storage/recordings.js'
-import { AudioWarmer, InstalledClipSource, playSpeechPart, prepareSpeech, whenIdle } from '../speech/index.js'
-import { sentenceBuilder, wordByWord } from '../grammar/sentence.js'
+import { sentenceBuilder } from '../grammar/sentence.js'
 import { Chevron, Icon, SymbolArtwork } from '../shared/ui.jsx'
 import { userError } from '../shared/errors-rw.js'
 import { useSwipe } from '../shared/use-swipe.js'
@@ -14,6 +12,7 @@ import { MessageSession } from './message-session.js'
 import { gridPage, gridShape } from './grid-pages.js'
 import { sectionKeys, sectionName } from './sections.js'
 import { useSuggestions } from './use-suggestions.js'
+import { useBoardSpeech } from './use-board-speech.js'
 import { ShowMessageDialog, SpeechFailedDialog } from './MessageDialogs.jsx'
 import HoldButton from './HoldButton.jsx'
 import SymbolCell from './SymbolCell.jsx'
@@ -66,15 +65,10 @@ export default function Board({
   // The next-words page open after a picture such as "kunywa", and the page it opened from.
   const [related, setRelated] = useState(null)
   const [message, setMessage] = useState([])
-  const [speaking, setSpeaking] = useState(false)
   const [notice, setNotice] = useState('')
   const [audioError, setAudioError] = useState('')
   const messageRef = useRef([])
-  const busy = useRef(false)
-  const controller = useRef(null)
-  const word = useRef(null)
   const session = useRef(null)
-  const warmer = useRef(null)
   const boardRef = useRef(null)
   const gridArea = useRef(null)
   const gridRef = useRef(null)
@@ -89,26 +83,16 @@ export default function Board({
   const realistic = preferences.realisticImages !== false
   const labels = preferences.showLabels !== false
   const sentences = preferences.sentenceSpeech !== false
-  const toSpeech = keys => (sentences ? sentenceBuilder.build(keys, byKey) : wordByWord(keys, byKey))
   const spoken = useMemo(() => (sentences && message.length ? sentenceBuilder.build(message, byKey).text : ''), [sentences, message, byKey])
   const { suggestions: suggestedKeys, recordSelection } = useSuggestions({
     predictor, personal: preferences.personalSuggestions, profileId, mode, message, allowed
   })
+  const speech = useBoardSpeech({ message, byKey, sentences, visible })
+  const { busy, speaking } = speech
 
-  // The message's speech, made ready while the child is still choosing: { id, parts } (see speak).
-  const prepared = useRef(null)
-  const installed = useRef(null)
   if (!session.current) session.current = new MessageSession(storage, profileId, mode)
-  if (!warmer.current) warmer.current = new AudioWarmer()
-  if (!installed.current) installed.current = new InstalledClipSource('/audio')
-  const plan = (parts, signal) => prepareSpeech(parts, byKey, getRecording, signal, { installed: installed.current })
-  const speechId = keys => `${sentences}:${keys.join(' ')}`
-  useEffect(() => () => { controller.current?.abort(); word.current?.abort(); warmer.current?.close() }, [])
-  useEffect(() => { if (visible) warmer.current.prepare() }, [visible])
   useEffect(() => {
     if (!visible) {
-      controller.current?.abort()
-      word.current?.abort()
       dialog.current?.close()
       audioDialog.current?.close()
     } else if (!wasVisible.current) caregiver.current?.focus({ preventScroll: true })
@@ -121,18 +105,6 @@ export default function Board({
   useEffect(() => {
     if (audioError && visible && !audioDialog.current?.open) audioDialog.current?.showModal()
   }, [audioError, visible])
-  // Vuga then only has to play: on an emulated low-end phone, finding and reading the clips after
-  // the press took most of the time to the first sound (NFR2: within 300 ms). Showing the board
-  // again (after the caregiver area, where voices may change) prepares it afresh.
-  useEffect(() => {
-    prepared.current = null
-    if (!visible || !message.length) return
-    const keys = [...message], preparing = new AbortController()
-    const cancel = whenIdle(() => {
-      prepared.current = { id: speechId(keys), parts: plan(toSpeech(keys).parts, preparing.signal).catch(() => null) }
-    }, 300)
-    return () => { cancel(); preparing.abort() }
-  }, [message, visible, sentences, byKey])
 
   const categories = useMemo(() => CATEGORY_ORDER.filter(c => c === 'core' || symbols.some(s => s.category === c && allowed.has(s.symbol_id))), [symbols, allowed])
   // Where the child is: that place's pictures lead the board, so a new place opens on its first page.
@@ -156,19 +128,6 @@ export default function Board({
   const persist = (type, extra) => session.current.record(type, extra)
     .catch(() => setNotice('Ubutumwa ntibwabashije kubikwa kuri iki gikoresho. Buracyagaragara. Banza urebe niba ububiko bukora.'))
   function updateMessage(next) { messageRef.current = next; setMessage(next) }
-  // Each picture is said as it is chosen, so the child hears the word. A new tap stops the word before.
-  async function sayWord(key) {
-    word.current?.abort()
-    const playback = new AbortController()
-    word.current = playback
-    try {
-      for (const part of await plan([key], playback.signal)) await playSpeechPart(part, playback.signal)
-    } catch {
-      // The word is still in the message; Vuga reports a missing voice when the message is spoken.
-    } finally {
-      if (word.current === playback) word.current = null
-    }
-  }
   function leaveRelated() {
     if (!related) return
     setPage(related.page)
@@ -177,11 +136,11 @@ export default function Board({
   function select(key, suggested = false) {
     if (busy.current || !visible || !allowed.has(key)) return
     setNotice('')
-    warmer.current.touch()
+    speech.touch()
     recordSelection(messageRef.current, key)
     updateMessage([...messageRef.current, key])
     persist('select', { symbol_key: key, was_suggested: suggested, context: related ? `related:${related.key}` : null })
-    if (preferences.speakOnTap) sayWord(key)
+    if (preferences.speakOnTap) speech.sayWord(key)
     // A next-words page is the second step of one choice, so opening it and returning from it
     // are part of the tap and are not logged as navigation.
     if (related) leaveRelated()
@@ -192,7 +151,7 @@ export default function Board({
   }
   function navigate(next) {
     if (busy.current || (next === category && !related)) return
-    warmer.current.touch()
+    speech.touch()
     setRelated(null)
     setCategory(next)
     setPage(0)
@@ -200,14 +159,14 @@ export default function Board({
   }
   function closeRelated() {
     if (busy.current || !related) return
-    warmer.current.touch()
+    speech.touch()
     leaveRelated()
     persist('navigate', { context: 'back' })
   }
   // Turning a page is a task action like changing category, so it counts towards taps.
   function turnPage(next) {
     if (busy.current || next === grid.page || next < 0 || next >= grid.pages) return false
-    warmer.current.touch()
+    speech.touch()
     setPage(next)
     persist('navigate', { context: `page:${next + 1}` })
     return true
@@ -253,40 +212,23 @@ export default function Board({
     if (!messageRef.current.length || busy.current) return
     const keys = [...messageRef.current]
     const tappedAt = new Date().toISOString()
-    const playback = new AbortController()
-    let played = false
-    busy.current = true
-    word.current?.abort()
-    controller.current = playback
-    // The board redraws as speaking once the sound has started: on a slow tablet, redrawing every
-    // key first held the sound back. Taps in between are ignored (busy).
-    let shown = false
-    const showSpeaking = () => {
-      if (shown) return
-      shown = true
-      setSpeaking(true); setNotice(''); setAudioError('')
-    }
-    try {
-      const ready = prepared.current?.id === speechId(keys) ? await prepared.current.parts : null
-      const parts = ready ?? await plan(toSpeech(keys).parts, playback.signal)
-      for (const part of parts) await playSpeechPart(part, playback.signal, showSpeaking)
-      played = true
-      await session.current.record('speak', { ts: tappedAt })
-      await session.current.finish()
-      updateMessage([])
-      setRelated(null)
-      setCategory(home)
-      setPage(0)
-      setNotice('Ubutumwa bwavuzwe kandi bubitswe kuri iki gikoresho.')
-    } catch (error) {
-      const text = userError(error, 'Ijwi ntiryabashije gukina. Ubutumwa bwawe buracyahari. Ushobora kubwerekana.')
-      setNotice(text)
-      if (!played && !playback.signal.aborted) setAudioError(text)
-    } finally {
-      busy.current = false
-      setSpeaking(false)
-      controller.current = null
-    }
+    const failure = await speech.speak(keys, {
+      onSound: () => { setNotice(''); setAudioError('') },
+      afterwards: async () => {
+        await session.current.record('speak', { ts: tappedAt })
+        await session.current.finish()
+        updateMessage([])
+        setRelated(null)
+        setCategory(home)
+        setPage(0)
+        setNotice('Ubutumwa bwavuzwe kandi bubitswe kuri iki gikoresho.')
+      }
+    })
+    if (!failure) return
+    const text = userError(failure.error, 'Ijwi ntiryabashije gukina. Ubutumwa bwawe buracyahari. Ushobora kubwerekana.')
+    setNotice(text)
+    // The dialog is for sound that never played; a stopped message, or one played but not saved, gets the notice only.
+    if (!failure.played && !failure.stopped) setAudioError(text)
   }
 
   const trigger = related ? byKey[related.key] : null
@@ -310,7 +252,7 @@ export default function Board({
             {labels && spoken && plain(spoken) !== plain(words) && <span className="message-sentence">{spoken}</span>}
           </div>
         </section>
-        <button className={`speak-button ctl speak ${speaking ? 'busy' : ''}`} onClick={speaking ? () => controller.current?.abort() : speak}
+        <button className={`speak-button ctl speak ${speaking ? 'busy' : ''}`} onClick={speaking ? speech.stop : speak}
           disabled={!message.length} aria-label={speaking ? 'Hagarika ijwi' : 'Vuga ubutumwa'}><Icon name={speaking ? 'stop' : 'speaker'} /><span>{speaking ? 'Hagarika' : 'Vuga'}</span></button>
         <button className="edit-button clear" onClick={clearAll} disabled={!message.length || speaking} aria-label="Siba ubutumwa bwose"><Icon name="trash" /><span>Siba byose</span></button>
         <button className="edit-button delete" onClick={correct} disabled={!message.length || speaking} aria-label="Siba ishusho ya nyuma"><DeleteMark /></button>

@@ -11,12 +11,10 @@ from .config import settings
 from .db import Base, SessionLocal, engine
 from .routers import auth, backup, health, predict, profiles, symbols, sync
 from .services import (
-    AfricasTalkingSms,
     Conflict,
     InvalidCode,
     InvalidCredentials,
     InvalidInput,
-    LogSms,
     ModelRegistry,
     NotFound,
     NotOwned,
@@ -28,6 +26,7 @@ from .services import (
     TooLarge,
     TooManyCodes,
     TooManyTries,
+    create_sms_sender,
 )
 
 # Starlette renamed the 422 and 413 constants; fall back for older releases.
@@ -48,9 +47,10 @@ _STATUS_BY_ERROR = {
 }
 
 model_registry = ModelRegistry(settings.model_dir, settings.default_model)
-sms = (AfricasTalkingSms(settings.africastalking_username, settings.africastalking_api_key,
-                         settings.africastalking_sender_id)
-       if settings.africastalking_api_key else LogSms())
+sms = create_sms_sender(username=settings.africastalking_username,
+                        api_key=settings.africastalking_api_key,
+                        sender_id=settings.africastalking_sender_id,
+                        log_enabled=settings.sms_log_enabled)
 
 
 def load_model():
