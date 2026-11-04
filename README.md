@@ -9,7 +9,9 @@
 | **Walkthrough video** | [Final product walkthrough (Google Drive)](https://drive.google.com/file/d/11ALnAjvop92pTYnx-89AKJn1B6W2rRHp/view?usp=drive_link) |
 | **Technical report (PDF, 4 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
 | **Testing and performance evidence** | [docs/testing_report.md](docs/testing_report.md) |
-| **Public hosting setup** | [Render + Neon deployment guide](docs/hosting.md), branch `deploy/vuga-cloud` (deployment pending) |
+| **Public app** | [Open Vuga](https://vuga-app.onrender.com) |
+| **Public API** | [API health](https://vuga-api.onrender.com/health); browser CORS and SMS setup pending |
+| **Public hosting setup** | [Render + Neon deployment guide](docs/hosting.md), branch `deploy/vuga-cloud` |
 | **GitHub repository** | https://github.com/jbyiringiro/capstone-project |
 | **Project** | A Kinyarwanda-First Predictive Picture-to-Speech Communication System for Minimally Verbal Children with Disabilities in Rwandan Special Schools: Design and Preliminary Adult-Task Evaluation |
 | **Evaluation** | Adults only (teachers, therapists, caregivers) in a preliminary usability and task study; no children take part. Approved by the ALU Research Ethics Committee on 2 November 2026 (approval code SEPT26-BSE-048) |

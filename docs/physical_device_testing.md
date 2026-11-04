@@ -24,6 +24,8 @@ From the repository root, `git rev-parse HEAD` and `git status --short` identify
 
 ## 2. Open the production build over HTTPS
 
+**Hosted test URL:** [https://vuga-app.onrender.com](https://vuga-app.onrender.com). Use this URL directly on both devices and continue at step 4; steps 1-3 are only needed for a local preview. The hosted app and API run independently of the development computer.
+
 1. On the computer, from `app/`, run `npm.cmd run build`, then `npm.cmd run preview -- --port 4187` (use `npm` on other shells). This test preview listens on `http://127.0.0.1:4187`; if it is already running, keep that terminal open instead of starting another copy.
 2. Use the prepared temporary HTTPS tunnel to that preview, or serve `app/dist/` at the root of an HTTPS static host. Once a temporary public link is authorised, the prepared helper can be started from the `CAPSTONE` folder in a second PowerShell terminal with `.\.device-tools\cloudflared.exe tunnel --url http://127.0.0.1:4187 --http-host-header localhost:4187`. Open the printed **HTTPS address** on the devices. Plain `http://192.168…` is not suitable for validating service workers or microphone access. The offline board needs no API.
 3. With a tunnel, keep the computer awake, the preview and tunnel processes running, and its internet connected while preparing the devices. Keep the **same URL** throughout a run; a replacement tunnel hostname is a different origin with separate stored data.
@@ -85,7 +87,7 @@ The proposal's speech-start budget is **300 ms after pressing Vuga**. Listening 
 
 ## 6. Optional server checks and final record
 
-**API/SMS checks: not run until an HTTPS backend is configured.** A static frontend or preview tunnel alone does not make the computer's `localhost:8000` reachable from a phone. Use a build with the intended HTTPS API URL and matching allowed origin. Only then test sign-in, real SMS delivery, PIN reset/session revocation, sync and backup conflict handling on the two devices. Record these separately; offline local tests do not validate them.
+**API/SMS device checks: not run.** The hosted API is `https://vuga-api.onrender.com`; browser CORS and live SMS setup remain pending (see [hosting status](hosting.md)). Complete that configuration before testing sign-in, real SMS delivery, PIN reset/session revocation, sync and backup conflict handling on the two devices. Record these separately; offline local tests do not validate them.
 
 | Defect | Device / check | Steps and actual result | Expected result | Evidence | Fix/build | Retest date and result |
 |---|---|---|---|---|---|---|

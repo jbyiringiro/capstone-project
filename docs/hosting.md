@@ -1,6 +1,12 @@
 # Free public hosting: Render + Neon
 
-**Prepared on 4 November 2026; not yet deployed.** This setup runs independently of the developer's computer. It replaces the temporary `trycloudflare.com` URL with a stable HTTPS app URL and a separate HTTPS API URL. Hosting account connections, the current source branch on GitHub, and successful cloud builds are still required.
+**Live on 4 November 2026:** [Vuga app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health), hosted on Render with Neon PostgreSQL. These public services run independently of the developer's computer.
+
+**Verified:** the frontend and install manifest are reachable, its bundle targets `https://vuga-api.onrender.com`, `/health` returns `status: "ok"` and `model_loaded: true`, and `/symbols` returns 188 symbols.
+
+**Desktop browser evidence, deployed commit `266dbfe`:** [hosted smoke-check results](evidence/hosted_smoke_2026-11-04.json) record the visible board, blocked browser API request and initial offline-cache progress. A fresh Edge context cached 91 files at 20 seconds and 450 at 180 seconds, with no observed download errors; installation was still in progress. Offline reload was not attempted, so this is not an offline pass or physical-device evidence. Keep the app online while its initial cache downloads, then verify a cold offline launch.
+
+**Still pending:** requests from the app's origin received no `Access-Control-Allow-Origin` header, and a browser fetch failed. Set the API's `VUGA_CORS_ORIGINS` to `["https://vuga-app.onrender.com"]` and redeploy, then repeat the browser check. Live SMS is not configured; phone registration and SMS PIN reset remain unavailable. Hosted offline readiness, physical-device and account-persistence checks below remain to be recorded.
 
 ## Services and limits
 
@@ -31,7 +37,7 @@ Render's free API sleeps after 15 minutes without traffic and can take about a m
 1. Create a Blueprint from the repository and intended branch, using `render.yaml` at the repository root. Inspect the proposed resources: `vuga-api` must use **Free**, and `vuga-app` must be a static site. Stop if the dashboard proposes paid resources.
 2. Set `VUGA_DATABASE_URL` to the Neon secret. For the initial `VUGA_CORS_ORIGINS`, use `[]`; this permits deployment without guessing the app's hostname. Cross-origin browser account requests will remain blocked until step 4.
 3. Render generates a persistent `VUGA_JWT_SECRET`. Retain it across deployments. The Docker process binds to Render's `PORT`, and startup creates/seeds the schema in the fresh database.
-4. After the static site receives its actual HTTPS URL, update the API's `VUGA_CORS_ORIGINS` to a JSON list containing that exact origin, for example `["https://vuga-app-example.onrender.com"]`. Use the actual URL, with no trailing slash, then redeploy the API. `sync: false` preserves this dashboard-managed value on later Blueprint syncs.
+4. Set the API's `VUGA_CORS_ORIGINS` to `["https://vuga-app.onrender.com"]`, with no trailing slash in the origin, then redeploy the API. If the app hostname changes, update this value too. `sync: false` preserves this dashboard-managed value on later Blueprint syncs.
 5. The frontend's `VITE_API_BASE` references the API's public `RENDER_EXTERNAL_URL`. If creating services manually, set it to the API's full HTTPS URL before building the frontend. Never use a private Render hostname or `localhost:8000`.
 6. Record both actual URLs and the deployed commit. Future releases are manual (`autoDeployTrigger: off`): run the checks and explicitly deploy the reviewed commit. A Blueprint sync can also apply configuration changes.
 
@@ -67,4 +73,4 @@ Use test data and record actual outcomes; this checklist is not a claim of passi
 
 The fresh database is initialized with `create_all()`; existing databases are not migrated automatically. Before changing a deployed schema, add an explicit migration and take a database export. Keep backups outside the repository and do not use the API container's local SQLite file for persistent hosting. The Docker context excludes local databases, secrets, raw corpora and large training artefacts.
 
-After successful deployment, update the README and deployment record with real URLs, deployed commit, date and observed results. Stop the temporary tunnel only after the permanent app has been verified.
+Record the deployed commit and remaining verification results alongside the URLs above. Stop the temporary tunnel only after the permanent app has been verified.

@@ -1,8 +1,8 @@
 # Vuga AAC deployment plan
 
-**4 November 2026 update:** use the [Render + Neon hosting guide](hosting.md) and [render.yaml](../render.yaml) on branch `deploy/vuga-cloud`. They supersede the provider choices and rollout instructions below for the selected free deployment. Permanent hosting is not live yet.
+**4 November 2026 update:** the [public app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health) are live on Render with Neon PostgreSQL. API health/model loading and the 188-symbol catalogue have been verified; browser CORS configuration and live SMS remain pending. Use the [hosting guide](hosting.md) and [render.yaml](../render.yaml) on branch `deploy/vuga-cloud`; they supersede the provider choices and rollout instructions below for the selected free deployment.
 
-**Status, 2 November 2026.** Vuga currently runs only as a local production preview (`npm run preview`). Nothing is publicly hosted yet. This plan explains how each part would be deployed, in what order, and how each step would be checked.
+**Historical status, 2 November 2026.** Vuga ran only as a local production preview (`npm run preview`), with no public hosting. The original plan below describes the proposed deployment and verification steps at that time.
 
 ## 1. What gets deployed
 
