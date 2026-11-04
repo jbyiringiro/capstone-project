@@ -13,14 +13,15 @@ os.environ["VUGA_DATABASE_URL"] = f"sqlite:///{Path(_test_directory.name) / 'tes
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event, select
 
-from app import models
+from app import models, schemas
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.dependencies import get_sms
 from app.main import app
 from app.schemas import normalise_phone
-from app.services import SmsFailed, accounts, codes
+from app.services import BackupService, SmsFailed, accounts, codes
 
 
 class Outbox:
@@ -246,17 +247,18 @@ def test_sync_rejects_cross_profile_upload_and_foreign_device(client):
 
 
 BACKUP = "vuga-account-backup-v2"
+CHILD = "local-3f6c1a2e-9b4d-4e7a-8c21-5d0f9a7b6e14"
 
 
 def _snapshot(base=0, place="meal", words=("I", "WANT", "WATER")):
     """A device's account copy: one child by code, its word list, its board place and the open child."""
     return {"format": BACKUP, "base_revision": base, "data": {
-        "profiles": [{"profile_id": "local-1", "code": "P-01", "age_band": None, "access_method": "touch",
+        "profiles": [{"profile_id": CHILD, "code": "P-01", "age_band": None, "access_method": "touch",
                       "local_only": True}],
-        "vocabulary": [{"profile_id": "local-1", "key": key} for key in words],
-        "settings": [{"key": "appearance:local-1", "value": {"environment": place}},
-                     {"key": "vocabulary:local-1", "value": True},
-                     {"key": "profile", "value": {"profile_id": "local-1", "code": "P-01"}}]}}
+        "vocabulary": [{"profile_id": CHILD, "key": key} for key in words],
+        "settings": [{"key": f"appearance:{CHILD}", "value": {"environment": place}},
+                     {"key": f"vocabulary:{CHILD}", "value": True},
+                     {"key": "profile", "value": {"profile_id": CHILD, "code": "P-01"}}]}}
 
 
 def test_backup_brings_a_caregivers_device_back_and_only_to_their_account(client):
@@ -295,9 +297,35 @@ def test_a_device_with_an_older_copy_never_replaces_a_newer_one(client):
     assert save(2, "home").json()["revision"] == 3
     # Of several devices saving on the same copy at the same moment, one is kept and the rest refused.
     with ThreadPoolExecutor(max_workers=8) as pool:
-        replies = list(pool.map(lambda n: save(3, f"place-{n}").status_code, range(8)))
+        replies = list(pool.map(lambda n: save(3, ("home", "school", "play", "clinic")[n % 4]).status_code, range(8)))
     assert sorted(replies) == [200] + [409] * 7
     assert client.get("/backup/status", headers=h).json()["revision"] == 4
+
+
+def test_a_save_is_told_the_revision_it_wrote_when_another_device_saves_right_after(client):
+    h = _auth(client)
+    assert client.put("/backup", json=_snapshot(), headers=h).json()["revision"] == 1
+    tablet = []
+
+    def tablet_saves(_session):
+        # The tablet's save on the phone's new copy lands before the phone hears back.
+        if tablet:
+            return
+        tablet.append(True)
+        with SessionLocal() as db:
+            user = db.scalar(select(models.User))
+            BackupService(db, user).save(schemas.BackupIn.model_validate(_snapshot(base=2, place="home")))
+
+    event.listen(SessionLocal, "after_commit", tablet_saves)
+    try:
+        phone = client.put("/backup", json=_snapshot(base=1, place="school"), headers=h)
+    finally:
+        event.remove(SessionLocal, "after_commit", tablet_saves)
+    assert tablet and phone.status_code == 200 and phone.json()["revision"] == 2
+    assert client.get("/backup/status", headers=h).json()["revision"] == 3
+    # So the phone's next save builds on its own copy and is refused, leaving the tablet's in place.
+    assert client.put("/backup", json=_snapshot(base=2, place="meal"), headers=h).status_code == 409
+    assert client.get("/backup", headers=h).json()["data"]["settings"][0]["value"] == {"environment": "home"}
 
 
 def test_the_account_copy_refuses_childrens_names_photos_and_recordings(client):
@@ -310,7 +338,7 @@ def test_the_account_copy_refuses_childrens_names_photos_and_recordings(client):
         return snapshot
     refused = [
         changed(lambda data: data["profiles"][0].update(code="Keza")),
-        changed(lambda data: data["settings"][2].update(value={"profile_id": "local-1", "code": "Keza"})),
+        changed(lambda data: data["settings"][2].update(value={"profile_id": CHILD, "code": "Keza"})),
         changed(lambda data: data["profiles"][0].update(photo="AAAA")),
         changed(lambda data: data.update(custom_symbols=[{"symbol_id": "CUSTOM-1", "label_rw": "nyogokuru",
                                                           "image": {"type": "image/webp", "base64": "AAAA"}}])),
@@ -322,6 +350,58 @@ def test_the_account_copy_refuses_childrens_names_photos_and_recordings(client):
         assert client.put("/backup", json=snapshot, headers=h).status_code == 422
     assert client.get("/backup/status", headers=h).json()["saved_at"] is None
     assert client.put("/backup", json=good, headers=h).status_code == 200
+
+
+# A child's full board settings as the app writes them (storage/board-preferences.js).
+BOARD = {"motion": True, "largeTiles": False, "realisticImages": True, "gridSize": "auto", "personalSuggestions": False,
+         "sentenceSpeech": True, "childMode": True, "childPreset": "custom", "childBoard": ["WATER", "CUSTOM-1A2B3C4D"],
+         "relatedWords": True, "relatedLists": {"DRINK": ["WATER", "MILK"], "CUSTOM-1A2B3C4D": ["EAT"]},
+         "speakOnTap": True, "environment": "meal", "environmentLists": {"meal": ["WATER", "BREAD"]},
+         "section": "food_drink", "sectionTabs": True, "showLabels": True, "swipePages": False}
+
+
+def test_the_account_copy_takes_settings_only_in_the_apps_own_shapes(client):
+    h = _auth(client)
+    good = _snapshot()
+    good["data"]["settings"][0]["value"] = BOARD
+    good["data"]["settings"] += [{"key": "appearance:demo", "value": {"gridSize": 12}}, {"key": "mode", "value": "static"},
+                                 {"key": "speech-mode", "value": "kinyarwanda"}]
+
+    def setting(index, value):
+        snapshot = deepcopy(good)
+        snapshot["data"]["settings"][index]["value"] = value
+        return snapshot
+
+    def renamed(edit):
+        snapshot = deepcopy(good)
+        edit(snapshot["data"])
+        return snapshot
+    refused = [
+        # Free text, a photo or anything else tucked inside a setting.
+        setting(0, {**BOARD, "note": "Keza likes milk"}),
+        setting(0, {**BOARD, "childBoard": ["WATER", "data:image/webp;base64,AAAA"]}),
+        setting(0, {**BOARD, "relatedLists": {"Keza's cup": ["CUP"]}}),
+        setting(0, {**BOARD, "environmentLists": {"Kwa Keza": ["HOME"]}}),
+        setting(0, {**BOARD, "environment": {"name": "Keza", "photo": "AAAA"}}),
+        setting(0, {**BOARD, "motion": "yes"}),
+        setting(0, {**BOARD, "gridSize": 1000}),
+        setting(0, {**BOARD, "childBoard": ["WATER"] * 13}),
+        setting(1, {"words": ["Keza"]}),
+        setting(2, {"profile_id": CHILD, "code": "P-01", "name": "Keza"}),
+        setting(4, "Keza"),
+        setting(5, {"voice": "AAAA"}),
+        # Names in the places that hold ids and words.
+        renamed(lambda data: data["profiles"][0].update(profile_id="Keza")),
+        renamed(lambda data: data["profiles"][0].update(age_band="Keza")),
+        renamed(lambda data: data["profiles"][0].update(access_method="Keza")),
+        renamed(lambda data: data["vocabulary"][0].update(key="Keza")),
+        renamed(lambda data: data["settings"][0].update(key="appearance:Keza")),
+    ]
+    for snapshot in refused:
+        assert client.put("/backup", json=snapshot, headers=h).status_code == 422, snapshot
+    assert client.get("/backup/status", headers=h).json()["saved_at"] is None
+    assert client.put("/backup", json=good, headers=h).status_code == 200
+    assert client.get("/backup", headers=h).json()["data"] == good["data"]
 
 
 def test_backup_needs_an_account_a_known_format_and_stays_under_its_size_limit(client, monkeypatch):
@@ -521,3 +601,38 @@ def test_a_new_pin_ends_every_session_opened_with_the_old_one(client):
     for old in (first, changed):
         assert client.get("/profiles", headers=old).status_code == 401
     assert client.get("/profiles", headers=session("9753")).status_code == 200
+
+
+def _reset_while(client, monkeypatch, name, trigger):
+    """Replaces the PIN with a texted code (to 1357) when accounts.`name` is first called with
+    `trigger`, as a caregiver could on another phone while this request is under way."""
+    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "reset"}).status_code == 202
+    code, real = client.sms.code("0788123456"), getattr(accounts, name)
+    done = []
+
+    def meanwhile(pin, *rest):
+        if pin == trigger and not done:
+            done.append(True)
+            with SessionLocal() as db:
+                accounts.AccountService(db).reset_pin(schemas.PinReset(phone="0788123456", code=code, pin="1357"))
+        return real(pin, *rest)
+
+    monkeypatch.setattr(accounts, name, meanwhile)
+    return done
+
+
+def test_a_pin_replaced_while_the_old_one_is_checked_opens_no_session(client, monkeypatch):
+    _auth(client, "0788123456")
+    done = _reset_while(client, monkeypatch, "verify_password", "2468")
+    old = client.post("/auth/login", data={"username": "0788123456", "password": "2468"})
+    assert done and old.status_code == 401
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "1357"}).status_code == 200
+
+
+def test_a_pin_replaced_while_a_change_with_the_old_one_is_stored_stays_replaced(client, monkeypatch):
+    _auth(client, "0788123456")
+    done = _reset_while(client, monkeypatch, "hash_password", "5555")
+    change = client.post("/auth/change-pin", json={"phone": "0788123456", "pin": "2468", "new_pin": "5555"})
+    assert done and change.status_code == 401
+    login = lambda pin: client.post("/auth/login", data={"username": "0788123456", "password": pin}).status_code
+    assert login("5555") == 401 and login("1357") == 200

@@ -1,10 +1,11 @@
 """A caregiver's device set-up kept on their account, so a new phone or tablet gets it back.
 
 The app writes the copy (children by code, their words, board, place, next-word and child-mode
-settings) and reads it back unchanged; schemas.BackupData refuses names, photos and recordings.
-Each account holds one copy, the latest, and other accounts never see it. Every save names the
-revision it builds on, and a save from a device whose copy is out of date is refused, so a newer
-copy saved from another device is never replaced without the caregiver choosing to.
+settings) and reads it back unchanged; schemas.BackupData takes only those shapes, so names, free
+text, photos and recordings are refused. Each account holds one copy, the latest, and other accounts
+never see it. Every save names the revision it builds on and is told the revision it wrote, and a
+save from a device whose copy is out of date is refused, so a newer copy saved from another device
+is never replaced without the caregiver choosing to.
 """
 from __future__ import annotations
 
@@ -56,6 +57,7 @@ class BackupService:
             except IntegrityError:
                 self.db.rollback()
                 raise self._stale() from None
+            revision = 1
         else:
             # Replaced only while it is still the revision this device last saved or received.
             replaced = self.db.execute(
@@ -66,7 +68,10 @@ class BackupService:
                 self.db.rollback()
                 raise self._stale()
             self.db.commit()
-        return self.status()
+            revision = body.base_revision + 1
+        # What this save wrote, not the copy as it is now: another device may already have saved on
+        # it, and this device's next save must build on its own copy to be refused.
+        return schemas.BackupStatus(saved_at=_aware(now), size=size, revision=revision)
 
     def _stale(self) -> StaleBackup:
         current = self.status()
