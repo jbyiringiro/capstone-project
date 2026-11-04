@@ -1,6 +1,6 @@
 # Testing, validation and performance report
 
-Final version, 22 October 2026; updated 23 October for the supervisor's proposal feedback, and on 2 November 2026 for the features added since (the dense grid with swiping, places, next words, the account backup and the caregiver account by mobile number), the new defaults (section tabs and suggestions on), and the review fixes made the same day: PIN tries counted atomically, sessions ended by a new PIN, account-copy revisions, no names or media in the account copy, speech prepared while the child composes, and corrected test and evaluation logic. Every number below comes from a command in this repository; the raw
+Final version, 22 October 2026; updated 23 October for the supervisor's proposal feedback, and on 2 November 2026 for the features added since (the dense grid with swiping, places, next words, the account backup and the caregiver account by mobile number), the new defaults (section tabs and suggestions on), and the review fixes made the same day: PIN tries counted atomically, sessions ended by a new PIN, account-copy revisions, no names or media in the account copy, speech prepared while the child composes, and corrected test and evaluation logic; and on 3 November for three server fixes found in review: a PIN replaced while a sign-in or PIN change checks it no longer opens a session or changes it, a backup save is told the revision it wrote, and the account copy takes settings only in the app's own shapes. Every number below comes from a command in this repository; the raw
 results are in [`docs/evidence/`](evidence/) and the browser screenshots in
 [`docs/screenshots/final-2026-10-22/`](screenshots/final-2026-10-22/). Nothing here involves
 children, caregivers or therapists: those evaluations have not happened yet (see
@@ -10,9 +10,9 @@ children, caregivers or therapists: those evaluations have not happened yet (see
 
 | Strategy | What it covers | Tool | Result | Command |
 |---|---|---|---|---|
-| Unit | Prediction, speech chain, storage, custom words, preferences, PIN, session ordering, CSV, picture cropping, child mode and the finding game, vocabulary review lists, sentence building, grid shape and pages, sections and places, next words, Erekana cards, device and account backup (revisions, differences, privacy), mobile numbers and the account client | Vitest + fake-indexeddb | **145 passed** (25 files) | `cd app && npm test` |
+| Unit | Prediction, speech chain, storage, custom words, preferences, PIN, session ordering, CSV, picture cropping, child mode and the finding game, vocabulary review lists, sentence building, grid shape and pages, sections and places, next words, Erekana cards, device and account backup (revisions, differences, privacy), mobile numbers and the account client | Vitest + fake-indexeddb | **146 passed** (25 files) | `cd app && npm test` |
 | Reference (parity) | Browser trigram and re-ranker give the same answers as the Python models | Vitest against fixtures exported by `ml/scripts` | Top-3 identical on 119 prefixes, probabilities within 1e-9 | `npm test` (`tests/prediction`) |
-| Unit and integration (Python) | Data pipeline, n-gram maths, metrics, keystroke-saving simulator, morphology, study analysis, vocabulary review analysis (RQ1), sentence grammar table, GRU + ONNX parity; API accounts by mobile number (SMS codes, PIN lock, PIN tries sent at once, sessions after a new PIN), ownership, vocabulary, sync, account backup (revisions, refused names and media), summary, prediction, Africa's Talking requests | pytest, FastAPI TestClient | **80 passed** (ML 41, API 39) | `python -m pytest ml/tests api/tests` |
+| Unit and integration (Python) | Data pipeline, n-gram maths, metrics, keystroke-saving simulator, morphology, study analysis, vocabulary review analysis (RQ1), sentence grammar table, GRU + ONNX parity; API accounts by mobile number (SMS codes, PIN lock, PIN tries sent at once, sessions after a new PIN, a PIN reset during a sign-in or PIN change), ownership, vocabulary, sync, account backup (revisions, the revision a save reports, refused names, free text and media), summary, prediction, Africa's Talking requests; hosting settings (PostgreSQL addresses kept intact, no SMS codes in a public host's log) | pytest, FastAPI TestClient | **98 passed** (ML 41, API 57) | `python -m pytest ml/tests api/tests` |
 | End-to-end functional | The real production build in a browser: board, speech, parent access and the caregiver account by mobile number, two devices sharing an account copy, caregiver tabs, offline, custom words, grid pages, swiping, places, next words, personal suggestions, child mode and its game, vocabulary review screen, sentence speech | Playwright + Microsoft Edge | **70 checks passed** (25 + 15 + 21 + 9) | `npm run build && npm run preview`, then `npm run test:browser` |
 | Sequential batch | 20 tablets' backlogs of 200 messages × 5 actions uploaded to the API one request at a time | pytest + TestClient | 4,000 messages, 20,000 events, idempotent resend | `python -m pytest api/tests/test_load.py` |
 | Performance | Prediction latency (Node and in-app), tap-to-frame, Vuga-to-audio, load times, frame rate, heap | `bench-predictor.mjs`, `check-compatibility.mjs` | Tables below | `npm run bench`, `npm run test:compat` |
@@ -36,7 +36,7 @@ vocabulary mask, and re-ranked probabilities within 1e-9. The bounded-heap `topK
 a full sort on 300 random distributions with ties. Browser-only APIs (audio, Web Audio, speech
 synthesis) are replaced by small fakes that record calls.
 
-**Results.** 145 tests pass in 25 files, up from 35 before this iteration. New coverage: the `Predictor`
+**Results.** 146 tests pass in 25 files, up from 35 before this iteration. New coverage: the `Predictor`
 interface, the personal re-ranker and history replay, the speech source chain, audio warm-up, custom
 words (validation, duplicates, deletion, device-only messages), grid-size preferences, CSV parsing
 and picture cropping; child-mode boards and layouts, the finding game (rounds, no repeated target, hint after two misses, practice weighting) and device-only child-mode logging; the vocabulary review word list (32 bundled words in sheet order) and the lists the review screen offers, which never include a family's custom words; the sentence builder, which must say all 23 study messages exactly as printed on their cards, keep every picture's own word when it is alone or has no person, fall back to word by word for anything it does not cover, and only ask for clips the generator makes; and generated-clip playback with its fallback to the pictures' own words. Added after 23 October: the dense grid's shape on each screen (never below 2 cm) and its pages, where a hidden word leaves an empty key; board sections and the words for each place; next words after a picture, including a caregiver's own list; Erekana card sizes; Rwandan mobile numbers in any usual spelling; and the account client: a texted code opens the account with the PIN, a forgotten PIN is replaced with a code, each refusal is explained in Kinyarwanda with the wait, and the quiet sign-in after an unlock stops once the account no longer takes the device's PIN. Added on 2 November: the account copy carries each child known by a code with their words and settings, but never a child the family calls by name, a custom word, a photo, a recording, the PIN or the sign-in, and a restore keeps this device's custom words in the child's list; copies are compared child by child; a newer copy saved from another device is taken when nothing changed here and never replaced otherwise, until the caregiver keeps one side; a PIN change signs the device in again, and a session the server refuses is ended on the device.
@@ -116,6 +116,7 @@ its length (from the audio manifests), which is closer to what a child hears.
 | Wrong PIN 5 times for an account | The number is locked for 15 minutes, with the wait in Kinyarwanda; a texted code lifts the lock | API tests, parent-access check 14 |
 | 20 wrong PINs for an account sent at the same moment | Only 5 are checked, then the number is locked (four 401 and sixteen 429 replies); the right PIN is refused until the lock ends | API test, smoke test against the real server |
 | A session opened before the PIN was changed or reset | Refused (401); the device then asks for the new PIN | API test, unit `api-client.test.js`, parent-access check 15 |
+| A PIN reset with a texted code while a sign-in or PIN change is checking the old PIN | The old PIN opens no session and changes nothing (401); the new PIN works | API tests (interleaving forced) |
 | Mobile number written as +250…, 250…, 0788 123 456 | Read as one number | unit `phone.test.js`, API tests |
 | Missing or non-Rwandan mobile number | Refused in Kinyarwanda before any text is sent | unit, API tests, browser check 19 |
 | Wrong, reused or expired SMS code | "Kode si yo cyangwa yararangiye"; a code works once, for 10 minutes and 5 tries | API tests, parent-access check 13 |
@@ -124,7 +125,8 @@ its length (from the audio manifests), which is closer to what a child hears.
 | SMS service refuses the text | Reported in Kinyarwanda; no code stored and no wait imposed | API tests, `test_services.py` |
 | An account-copy save from a device holding an older copy | Refused (409) with the newer copy's revision; nothing is replaced; the caregiver sees what differs and chooses | API test, unit `backup.test.js`, parent-access check 15 |
 | Several devices saving on the same copy at once | One save is kept, the rest are refused | API test |
-| A child's name, a photo, a recording or a PIN setting in an account-copy upload | Refused (422); the app never sends them | API test, unit `backup.test.js`, parent-access check 10 |
+| Another device saving on a copy just before its first saver hears back | The reply gives the revision this save wrote, so the first device's next save is refused (409) instead of replacing the other's | API test (interleaving forced) |
+| A child's name, free text, a photo, a recording or a PIN setting in an account-copy upload, including inside a setting's value or in place of an id or word key | Refused (422): every field must have the shape the app writes; the app never sends them, and sends settings an older version saved in their current shape | API tests, unit `backup.test.js`, parent-access check 10 |
 | PIN with letters, or confirmation mismatch | Kinyarwanda error, nothing stored | unit `parent-access.test.js` |
 | Custom word with an existing label (`Amazi`) | Refused: "risanzwe ku kibaho" | final-features check 2, unit |
 | Text file chosen as a photo | Refused: "JPG, PNG cyangwa WebP" | final-features check 2, unit |
@@ -152,7 +154,9 @@ uploads 4,000 completed messages (20,000 tap events) in 80 requests of 50 messag
 batch per tablet to check idempotency, and asserts the database counts. The requests are sent one at
 a time, round-robin across the tablets, so this measures how fast batches are validated and stored;
 it is not a test of concurrent load, which has not been measured. (Concurrency is tested separately
-where it matters for correctness: 20 parallel sign-ins and 8 parallel backup saves.)
+where it matters for correctness: 20 parallel sign-ins, 8 parallel backup saves and, with the
+interleaving forced, a PIN reset during a sign-in or PIN change and a backup save acknowledged
+just before another device's.)
 
 **Results** ([api_load.json](evidence/api_load.json), SQLite, one laptop, run on 2 November 2026; the
 sync code has not changed since): all 4,000 messages and 20,000 events stored exactly once; 776
@@ -312,6 +316,9 @@ engine, which is also closer to a real loss of connection.
   browser checks use a stand-in for the Vuga API. Runs against the real API server, with codes
   written to its log, opened an account on one device and restored it on a second, and (2 November)
   confirmed the lock under 20 parallel tries, sessions ended by a new PIN and refused stale backups.
+- The race tests force each interleaving by running the second request inside the first, on SQLite.
+  PostgreSQL, which hosting would use, has not been tested, and concurrent load has not been
+  measured.
 - The bundled speech is synthetic (Meta MMS-TTS) and has not been reviewed by a native speaker;
   playback events prove that audio played, not that it was understood.
 - Model metrics are validation results from the September pipeline (split v3); the transformer

@@ -7,8 +7,9 @@
 | | |
 |---|---|
 | **Walkthrough video** | [Final product walkthrough (Google Drive)](https://drive.google.com/file/d/11ALnAjvop92pTYnx-89AKJn1B6W2rRHp/view?usp=drive_link) |
-| **Technical report (PDF, 4 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
+| **Technical report (PDF, 5 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
 | **Testing and performance evidence** | [docs/testing_report.md](docs/testing_report.md) |
+| **Public hosting setup** | [Render + Neon deployment guide](docs/hosting.md) (prepared; deployment pending) |
 | **GitHub repository** | https://github.com/jbyiringiro/capstone-project |
 | **Project** | A Kinyarwanda-First Predictive Picture-to-Speech Communication System for Minimally Verbal Children with Disabilities in Rwandan Special Schools: Design and Preliminary Adult-Task Evaluation |
 | **Evaluation** | Adults only (teachers, therapists, caregivers) in a preliminary usability and task study; no children take part. Approved by the ALU Research Ethics Committee on 2 November 2026 (approval code SEPT26-BSE-048) |
@@ -50,7 +51,7 @@ Many disabled children cannot use speech to ask for help, make a choice, say "no
 
 **Optional server**: a FastAPI service for adult accounts (a mobile number confirmed by SMS, and the caregiver's PIN), child profiles, vocabulary, message sync, the caregiver's device backup, summaries and server-side prediction, with Swagger documentation.
 
-**Status.** The app is complete for this milestone and passes 295 automated tests and checks (145 unit, 80 Python, 70 in the browser) plus a 9-configuration compatibility matrix: 7 complete, and the 2 WebKit runs partial because headless WebKit on Windows has no audio output ([testing report](docs/testing_report.md)). Prediction accuracy is below the proposal's targets (45.8% top-3 for the shipped trigram against 60%, and a simulated 14.4% tap saving against 30%), and nothing has yet been checked on a physical Android tablet or with a text sent to a real phone. The vocabulary has 188 words with synthetic speech (Meta MMS-TTS) instead of the proposal's 300 to 500 words with human recordings: when the schedule slipped, this was the first item cut, as the revised proposal sets out (section 1.5), because the three research questions can still be answered with it. The words and speech await native-speaker and stakeholder review. The planned evaluation is a preliminary study with adults, not children. It received ethics approval on 2 November 2026 and is planned for 10–20 November; it has not run yet, so no participant findings are claimed.
+**Status.** The app is complete for this milestone and passes 314 automated tests and checks (146 unit, 98 Python, 70 in the browser) plus a 9-configuration compatibility matrix: 7 complete, and the 2 WebKit runs partial because headless WebKit on Windows has no audio output ([testing report](docs/testing_report.md)). Prediction accuracy is below the proposal's targets (45.8% top-3 for the shipped trigram against 60%, and a simulated 14.4% tap saving against 30%), and nothing has yet been checked on a physical Android tablet or with a text sent to a real phone. The vocabulary has 188 words with synthetic speech (Meta MMS-TTS) instead of the proposal's 300 to 500 words with human recordings: when the schedule slipped, this was the first item cut, as the revised proposal sets out (section 1.5), because the three research questions can still be answered with it. The words and speech await native-speaker and stakeholder review. The planned evaluation is a preliminary study with adults, not children. It received ethics approval on 2 November 2026 and is planned for 10–20 November; it has not run yet, so no participant findings are claimed.
 
 ## Technical requirements
 
@@ -79,7 +80,7 @@ cd capstone-project
 ```sh
 cd app
 npm ci
-npm test                 # 145 unit and reference tests
+npm test                 # 146 unit and reference tests
 npm run build            # production build with the offline service worker
 npm run preview          # http://127.0.0.1:4175
 ```
@@ -103,7 +104,7 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
 python -m pip install -e "./ml[dev,notebook]" -e "./api[dev]"
 
-python -m pytest ml/tests api/tests          # 80 tests, including the API's sequential batch test
+python -m pytest ml/tests api/tests          # 98 tests, including the API's sequential batch test
 python ml/notebooks/run_notebook.py          # re-run the model notebook
 python -m uvicorn app.main:app --app-dir api --host 127.0.0.1 --port 8000
 ```
@@ -156,7 +157,9 @@ ml/                          vuga_ml package (data pipeline, morphology and sent
 vocab/                       188-word Kinyarwanda vocabulary, lexicon, review-sheet word list,
                              decision log
 docs/                        testing report, technical report, evidence JSON, screenshots,
-                             deployment plan, project guide, dated verification records
+                             deployment plan, hosting guide, physical-device test procedure,
+                             project guide, results log
+  archive/                   superseded plans and dated implementation records
 design/                      Figma-importable mockups, tokens, icons
 hardware/, device/           keyguard and talker firmware drafts (not built)
 ```
@@ -191,7 +194,7 @@ All three are below the proposal's target of 60% top-3. The app ships the trigra
 
 ## Deployment
 
-The plan is in [docs/deployment_plan.md](docs/deployment_plan.md): the static PWA on Netlify or Cloudflare Pages over HTTPS (base directory `app`, publish directory `dist`), the optional API from `api/Dockerfile` on Render with managed PostgreSQL, and a pilot only after native-speaker and caregiver review.
+The plan is in [docs/deployment_plan.md](docs/deployment_plan.md): the static PWA on Netlify or Cloudflare Pages over HTTPS (base directory `app`, publish directory `dist`), the optional API from `api/Dockerfile` on Render with managed PostgreSQL, and a pilot only after native-speaker and caregiver review. The free setup chosen on 4 November is in [docs/hosting.md](docs/hosting.md): Render serves the PWA and the API from [render.yaml](render.yaml), with Neon PostgreSQL. It is prepared but not yet deployed. [docs/physical_device_testing.md](docs/physical_device_testing.md) sets out the tablet and phone checks, which have not been run yet.
 
 ## Licences
 
