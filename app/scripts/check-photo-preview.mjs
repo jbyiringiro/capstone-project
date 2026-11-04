@@ -2,7 +2,7 @@ import { chromium, expect } from '@playwright/test'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
-const output = fileURLToPath(new URL('../../docs/screenshots/photos-2026-10-06/', import.meta.url))
+const output = fileURLToPath(new URL('../../docs/archive/screenshots/photos-2026-10-06/', import.meta.url))
 const manifest = JSON.parse(await readFile(fileURLToPath(new URL('../public/photos/manifest.json', import.meta.url)), 'utf8'))
 await mkdir(output, { recursive: true })
 const browser = await chromium.launch({ channel: process.env.VUGA_BROWSER_CHANNEL || 'msedge', headless: true })

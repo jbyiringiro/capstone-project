@@ -4,7 +4,7 @@
 
 The communication board now uses realistic generated images instead of decorative communication icons. The same word keeps the same picture in the board, category navigation, predictions, message strip, full-message display, caregiver vocabulary and audio settings. All labels, controls and speech remain in Kinyarwanda.
 
-The picture set is stored in `app/public/photos/`, with one independently generated image for each of the 181 vocabulary symbols. These are synthetic photographs of fictional subjects, not pictures of research participants. The [image provenance and exact prompts](../app/public/photos/manifest.json) and [image README](../app/public/photos/README.md) accompany the app. The built-in image generation tool produced the original PNGs, preserved in the workspace's `design/photo-sources/`. Compact 480 × 480 WebP copies total 4,760,676 bytes and are packaged and cached offline.
+The picture set is stored in `app/public/photos/`, with one independently generated image for each of the 181 vocabulary symbols. These are synthetic photographs of fictional subjects, not pictures of research participants. The [image provenance and exact prompts](../../app/public/photos/manifest.json) and [image README](../../app/public/photos/README.md) accompany the app. The built-in image generation tool produced the original PNGs, preserved in the workspace's `design/photo-sources/`. Compact 480 × 480 WebP copies total 4,760,676 bytes and are packaged and cached offline.
 
 Larger picture areas preserve the full square image without cropping meaningful hands, faces or objects. The phone board retains two columns and the existing touch controls. Functional control icons such as Speak, Back and Settings remain alongside Kinyarwanda labels.
 
@@ -36,7 +36,7 @@ The earlier [Kinyarwanda implementation record](design_implementation_2026-10-06
 
 ## Setup
 
-The [project guide](project_guide.md) describes setup and the demonstration.
+The [project guide](../project_guide.md) describes setup and the demonstration.
 
 The repository contains all 181 optimized WebPs and their manifest, ten current screenshots and eight catalog sheets. Original generated PNGs, partial preview screenshots, private recordings, model weights, environments and participant data remain outside the repository. This interface update does not retrain or reevaluate the predictor.
 

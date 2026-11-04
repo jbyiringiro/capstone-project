@@ -4,7 +4,7 @@ This update replaces the generated communication pictures with online photograph
 
 ## Photographs
 
-All 181 word cards use a locally bundled WebP, drawn from 116 distinct photographs. The [photo manifest](../app/public/photos/manifest.json) records each word's original title, creator, source page, download URL, exact licence/link, source hash, runtime hash and modifications. The [credits page](../app/public/photos/credits.html), linked from the parent area, provides attribution next to each picture. Related abstract words can share a contextual photograph; the manifest notes the limits of those representations.
+All 181 word cards use a locally bundled WebP, drawn from 116 distinct photographs. The [photo manifest](../../app/public/photos/manifest.json) records each word's original title, creator, source page, download URL, exact licence/link, source hash, runtime hash and modifications. The [credits page](../../app/public/photos/credits.html), linked from the parent area, provides attribution next to each picture. Related abstract words can share a contextual photograph; the manifest notes the limits of those representations.
 
 Photos are resized to fit a 480 × 480 cream canvas without cropping or generative editing. Local copies and credits are precached so the child does not need an internet connection after installation. An unavailable photo falls back to its existing pictogram. Parents can choose pictograms for an entire profile with **Ikibaho → Amafoto afatika**.
 

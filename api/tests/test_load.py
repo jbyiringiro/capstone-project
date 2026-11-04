@@ -1,4 +1,4 @@
-"""Sequential batch test (the load test planned in docs/testing_plan.md): 20 tablets' backlogs of
+"""Sequential batch test (the load test planned in docs/archive/testing_plan.md): 20 tablets' backlogs of
 200 completed messages each, synced in turn.
 
 Uploads go through the real HTTP stack (TestClient -> routers -> SyncService -> SQLite file) in

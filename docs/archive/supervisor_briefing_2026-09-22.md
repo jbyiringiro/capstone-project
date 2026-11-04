@@ -113,7 +113,7 @@ participants and writing rather than debugging.
 | Automated tests | W7 | 22 Python ML tests, 3 API tests, 3 JS tests, CI workflow; all green |
 
 Five commits, 91 tracked files. Results and every decision are logged in `docs/results_log.md`,
-`docs/implementation_plan.md`, `docs/testing_plan.md` and `vocab/decision_log.md`.
+`docs/archive/implementation_plan.md`, `docs/archive/testing_plan.md` and `vocab/decision_log.md`.
 
 ## 5. First results (validation split, lexicon draft v3, 21 Sept)
 

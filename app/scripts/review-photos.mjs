@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 // Local contact sheets for visual review; no source image is changed.
 const repository = fileURLToPath(new URL('../../', import.meta.url))
 const photos = `${repository}/app/public/photos`
-const output = `${repository}/docs/screenshots/licensed-2026-10-10/catalog`
+const output = `${repository}/docs/archive/screenshots/licensed-2026-10-10/catalog`
 const manifest = JSON.parse(await readFile(`${photos}/manifest.json`, 'utf8'))
 const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]))
 await mkdir(output, { recursive: true })

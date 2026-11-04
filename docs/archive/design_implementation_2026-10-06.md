@@ -6,7 +6,7 @@ The working Vuga app now uses Kinyarwanda throughout its interface and speech. I
 
 ## Recorded design and behavior
 
-The source visual direction is the [local design pack](../design/README.md): [silent preview](../design/preview.html), [foundations](../design/foundations.html), [tokens](../design/tokens.json), [icons](../design/assets/icons-contact-sheet.svg) and [handoff](../design/HANDOFF.md). These HTML/SVG/PNG files are local import references, not a native `.fig` document or verified account prototype. Their earlier bilingual sample copy is historical; use the running app for the current Kinyarwanda copy.
+The source visual direction is the [local design pack](../../design/README.md): [silent preview](../../design/preview.html), [foundations](../../design/foundations.html), [tokens](../../design/tokens.json), [icons](../../design/assets/icons-contact-sheet.svg) and [handoff](../../design/HANDOFF.md). These HTML/SVG/PNG files are local import references, not a native `.fig` document or verified account prototype. Their earlier bilingual sample copy is historical; use the running app for the current Kinyarwanda copy.
 
 | Design intent | Implemented behavior |
 |---|---|
@@ -25,7 +25,7 @@ Literal vocabulary sequences such as `njye / gushaka / amazi` are not grammatica
 
 ## Speech source and boundaries
 
-The app bundles 181 synthetic Kinyarwanda word clips generated from exact `label_rw` strings using Meta AI's `facebook/mms-tts-kin`, pinned at `71d00a03419b9bfd203a6bfa4d6bc565cbe3c4e0`. The [manifest](../app/public/audio/rw/manifest.json), [README](../app/public/audio/rw/README.md) and [licence](../app/public/audio/rw/LICENSE.txt) retain attribution, **CC BY-NC 4.0**, generation parameters, hashes and review status. The bundle is distributed for noncommercial research under those terms. Weights/dependencies are kept outside the app and repository.
+The app bundles 181 synthetic Kinyarwanda word clips generated from exact `label_rw` strings using Meta AI's `facebook/mms-tts-kin`, pinned at `71d00a03419b9bfd203a6bfa4d6bc565cbe3c4e0`. The [manifest](../../app/public/audio/rw/manifest.json), [README](../../app/public/audio/rw/README.md) and [licence](../../app/public/audio/rw/LICENSE.txt) retain attribution, **CC BY-NC 4.0**, generation parameters, hashes and review status. The bundle is distributed for noncommercial research under those terms. Weights/dependencies are kept outside the app and repository.
 
 All 181 clips passed exact vocabulary/hash and nonzero 16,000 Hz mono PCM16 checks: 4,914,972 bytes and 153.344 seconds total. Automated checks do not review pronunciation. The speech is synthetic, not a human recording or evidence of native-speaker validation.
 
@@ -63,8 +63,8 @@ Browser playback events and sample checks do not establish physical-speaker audi
 | Frontend and responsive behavior | `app/src/App.jsx`, `Board.jsx`, `Dashboard.jsx`, CSS and runtime icons |
 | Audio implementation | `speech.js`, `VoiceSettings.jsx`, `AudioSettings.jsx`, bundled manifest/licence |
 | Backend/data model | `api/app/main.py`, `schemas.py`, `models.py`; device storage in `app/src/db.js` |
-| ML notebook and metrics | [Executed notebook](../ml/notebooks/vuga_model.ipynb), [HTML](../ml/notebooks/vuga_model.html), portable validation evidence |
-| Deployment and video outline | [Project guide](project_guide.md), [deployment plan](deployment_plan.md) |
+| ML notebook and metrics | [Executed notebook](../../ml/notebooks/vuga_model.ipynb), [HTML](../../ml/notebooks/vuga_model.html), portable validation evidence |
+| Deployment and video outline | [Project guide](../project_guide.md), [deployment plan](../deployment_plan.md) |
 
 The predictor was not retrained during this change. Earlier notebook execution had 10 code cells/three figures and development-only top-3 scores of 21.96% unigram, 45.78% trigram and 46.92% existing GRU seed-0 ONNX. These are historical technical measurements, not new evaluation or learner outcomes. [September API/ML verification](verification_2026-09-28.md) is similarly historical.
 

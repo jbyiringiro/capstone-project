@@ -1,6 +1,6 @@
 ﻿# Vuga design and interaction handoff
 
-This handoff records the earlier illustrated design. The current app uses licensed online pictures and separate parent access with Kinyarwanda throughout; the original SVGs and silent sample preview remain historical import references. Current PIN screens and image licence records are in the working app, not in these older SVGs. The notes on the working app below describe it as of 10 October 2026 ([implementation record](../docs/licensed_images_parent_access_2026-10-10.md)). Since then the first caregiver setup asks for the caregiver's mobile number, texts a code and sets one PIN for the device and the account; see the [testing report](../docs/testing_report.md) and the [current screenshots](../docs/screenshots/final-2026-10-22/).
+This handoff records the earlier illustrated design. The current app uses licensed online pictures and separate parent access with Kinyarwanda throughout; the original SVGs and silent sample preview remain historical import references. Current PIN screens and image licence records are in the working app, not in these older SVGs. The notes on the working app below describe it as of 10 October 2026 ([implementation record](../docs/archive/licensed_images_parent_access_2026-10-10.md)). Since then the first caregiver setup asks for the caregiver's mobile number, texts a code and sets one PIN for the device and the account; see the [testing report](../docs/testing_report.md) and the [current screenshots](../docs/screenshots/final-2026-10-22/).
 
 ## Product intent
 
@@ -63,7 +63,7 @@ No autonomous animation, flashing, confetti, audio rewards or disappearing feedb
 
 ## Implementation status — 10 October 2026
 
-The original local preview remains a separate, session-only design demonstration with sample content. The working app now implements the visual direction and the changes below; see the [current implementation record](../docs/licensed_images_parent_access_2026-10-10.md) for technical verification. Importing these SVGs into Figma still requires the setup and review described above. The earlier prototype links go directly to profiles; when updating the design, add the current parent setup/unlock screens before caregiver destinations.
+The original local preview remains a separate, session-only design demonstration with sample content. The working app now implements the visual direction and the changes below; see the [current implementation record](../docs/archive/licensed_images_parent_access_2026-10-10.md) for technical verification. Importing these SVGs into Figma still requires the setup and review described above. The earlier prototype links go directly to profiles; when updating the design, add the current parent setup/unlock screens before caregiver destinations.
 
 - **Draft retention:** the working app preserves the current composition during caregiver visits by keeping the board mounted while hidden. Changing profile or board mode resets the draft. Browser-reload draft recovery is not claimed.
 - **After playback:** successful Kinyarwanda playback completes the message and returns to the core category. Stop/errors preserve the draft. The former English-demo option is removed. Playback alone does not establish language correctness or an understood exchange.
