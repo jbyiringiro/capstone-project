@@ -3,7 +3,7 @@ import { API_BASE, api, getLinkedAccount, getToken } from '../server/api-client.
 import { syncPending } from '../server/sync.js'
 import { accountBackupState, connectAccount, replaceAccountCopy, restoreFromAccount, saveToAccount } from '../server/account-backup.js'
 import { displayPhone } from '../server/phone.js'
-import { RecoveryCode } from '../parent-access/ParentAccess.jsx'
+import RecoveryCode from '../parent-access/RecoveryCode.jsx'
 import { resetParentPinWithAccount, unlockParentAccess } from '../parent-access/parent-access.js'
 import { countPendingUploads, exportLocalData } from '../storage/messages.js'
 import { saveServerProfiles } from '../storage/profiles.js'

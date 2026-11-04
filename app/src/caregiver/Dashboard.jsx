@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DEFAULT_PREFERENCES } from '../storage/board-preferences.js'
-import { ParentPinSettings } from '../parent-access/ParentAccess.jsx'
+import ParentPinSettings from '../parent-access/ParentPinSettings.jsx'
 import { Brand } from '../shared/ui.jsx'
 import { userError } from '../shared/errors-rw.js'
 import BoardSettingsTab from './BoardSettingsTab.jsx'
