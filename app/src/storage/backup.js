@@ -8,6 +8,7 @@ import { db } from './db.js'
 import { localizedError } from '../shared/errors-rw.js'
 import { isCustomKey } from './custom-symbols.js'
 import { PROFILE_CODE } from './profiles.js'
+import { normalisePreferences } from './board-preferences.js'
 
 export const BACKUP_FORMAT = 'vuga-account-backup-v2'
 const TABLES = ['profiles', 'vocabulary', 'settings']
@@ -16,6 +17,16 @@ const TABLES = ['profiles', 'vocabulary', 'settings']
 const backedUp = key => /^(appearance|vocabulary):/.test(key) || ['mode', 'profile', 'speech-mode'].includes(key)
 const childOf = key => key.slice(key.indexOf(':') + 1)
 const coded = profile => PROFILE_CODE.test(profile?.code ?? '')
+// The server takes each setting only in its current shape (api/app/schemas.py), so board settings
+// saved by an older version go up as this device reads them, and the open child with its profile
+// fields alone.
+const PROFILE_FIELDS = ['profile_id', 'code', 'age_band', 'access_method', 'local_only']
+const accountValue = ({ key, value }) => ({
+  key,
+  value: key.startsWith('appearance:') ? normalisePreferences(value)
+    : key === 'profile' && value ? Object.fromEntries(PROFILE_FIELDS.filter(field => field in value).map(field => [field, value[field]]))
+      : value
+})
 
 export async function createBackup() {
   const [profiles, vocabulary, settings] = await db.transaction('r', TABLES.map(name => db[name]), () =>
@@ -31,7 +42,7 @@ export async function createBackup() {
       profiles: children.map(({ profile_id, code, age_band = null, access_method = 'touch', local_only = true }) => ({ profile_id, code, age_band, access_method, local_only })),
       // Custom words never leave the device, so their keys stay out of the word lists too.
       vocabulary: vocabulary.filter(row => kept.has(row.profile_id) && !isCustomKey(row.key)).map(({ profile_id, key }) => ({ profile_id, key })),
-      settings: settings.filter(setting => backedUp(setting.key) && keptSetting(setting))
+      settings: settings.filter(setting => backedUp(setting.key) && keptSetting(setting)).map(accountValue)
     }
   }
 }

@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '../../src/storage/db.js'
 import { BACKUP_FORMAT, backupDifferences, createBackup, isNewDevice, restoreBackup } from '../../src/storage/backup.js'
-import { getBoardPreferences, saveBoardPreferences } from '../../src/storage/board-preferences.js'
+import { DEFAULT_PREFERENCES, getBoardPreferences, saveBoardPreferences } from '../../src/storage/board-preferences.js'
 import { addCustomSymbol, listCustomSymbols } from '../../src/storage/custom-symbols.js'
 import { saveRecording } from '../../src/storage/recordings.js'
 import { getVocabulary, setVocabulary } from '../../src/storage/vocabulary.js'
@@ -63,6 +63,15 @@ describe('device backup', () => {
     await setUpDevice()
     await db.settings.put({ key: 'profile', value: { profile_id: 'local-2', code: 'Keza' } })
     expect((await createBackup()).data.settings.map(setting => setting.key)).toEqual(['appearance:local-1', 'mode', 'vocabulary:local-1'])
+  })
+
+  it('sends settings an older version saved in the shape the account takes', async () => {
+    await setUpDevice()
+    await db.settings.put({ key: 'appearance:local-1', value: { illustratedSymbols: true, environment: 'meal', gridSize: 'large' } })
+    await db.settings.put({ key: 'profile', value: { profile_id: 'local-1', code: 'P-01', created: '2026-09-21' } })
+    const settings = Object.fromEntries((await createBackup()).data.settings.map(({ key, value }) => [key, value]))
+    expect(settings['appearance:local-1']).toEqual({ ...DEFAULT_PREFERENCES, environment: 'meal' })
+    expect(settings.profile).toEqual({ profile_id: 'local-1', code: 'P-01' })
   })
 
   it('replaces a restored child’s word list but keeps this device’s other children and custom words', async () => {
