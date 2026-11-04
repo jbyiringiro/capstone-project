@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     max_backup_bytes: int = 1024 * 1024
     # The codes that confirm a caregiver's mobile number go out through Africa's Talking once an
     # API key is set; the username "sandbox" uses their free sandbox and its phone simulator.
-    # Without a key the API writes each code to its log, which is enough on a developer machine.
+    # Without a key, local development may write codes to the log. Public deployments disable
+    # that fallback and refuse SMS requests until a provider is configured.
+    sms_log_enabled: bool = True
     africastalking_username: str = "sandbox"
     africastalking_api_key: str | None = None
     africastalking_sender_id: str | None = None  # a registered sender name, if the account has one

@@ -20,7 +20,7 @@ from .errors import (
 )
 from .prediction import ModelRegistry
 from .profiles import ProfileService
-from .sms import AfricasTalkingSms, LogSms, SmsSender
+from .sms import AfricasTalkingSms, LogSms, SmsSender, create_sms_sender
 from .summary import SummaryService
 from .sync import SyncService
 
@@ -49,4 +49,5 @@ __all__ = [
     "TooLarge",
     "TooManyCodes",
     "TooManyTries",
+    "create_sms_sender",
 ]

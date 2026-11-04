@@ -1,5 +1,7 @@
 # Vuga AAC deployment plan
 
+**4 November 2026 update:** the selected free setup is Render Static Site + Render API + Neon PostgreSQL. See the [deployment guide](hosting.md) and [render.yaml](../render.yaml). They supersede the provider choices and rollout instructions below for this deployment. Permanent hosting is not live yet; the temporary device-test tunnel still depends on the development PC.
+
 **Status, 2 November 2026.** Vuga currently runs only as a local production preview (`npm run preview`). Nothing is publicly hosted yet. This plan explains how each part would be deployed, in what order, and how each step would be checked.
 
 ## 1. What gets deployed
@@ -87,7 +89,7 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 
 | When | Check |
 |---|---|
-| Every deploy | Build command runs the 145 Vitest tests. API changes run `python -m pytest ml/tests api/tests` before merging |
+| Every deploy | Build command runs the 146 Vitest tests. API changes run `python -m pytest ml/tests api/tests` before merging |
 | After a PWA deploy | Airplane-mode test on a real device: board, **Vuga** speech, **Erekana**, parent PIN lock |
 | After an API deploy | `/health` shows `model_loaded: true`, plus one Swagger request each to `/auth/login` and `/predict` |
 | Ongoing | The host's uptime check on `/health`, the host's logs, and a weekly `pg_dump` export kept outside the host |

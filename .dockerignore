@@ -1,0 +1,32 @@
+# The API image needs only these sources, its deployed model and the symbol catalogue.
+# Everything else stays outside the build context: Git history, environments, dependencies,
+# tests, notebooks, raw corpora, participant records, frontend media and generated reports.
+**
+!api/
+!api/Dockerfile
+!api/pyproject.toml
+!api/app/
+!api/app/**
+!ml/
+!ml/pyproject.toml
+!ml/vuga_ml/
+!ml/vuga_ml/**
+!ml/artifacts/
+!ml/artifacts/kn_trigram.json
+!vocab/
+!vocab/symbols.csv
+
+# Keep local files out even if they appear inside an allowed source directory.
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.env
+**/.env.*
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite3
+**/*.sqlite3-*
+**/*.log
+**/*.pem
+**/*.key
