@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { normalisePhone } from '../server/phone.js'
 import { userError } from '../shared/errors-rw.js'
 
 // The pieces every parent-access form shares: its messages, fields, the cooldown notice and usePinForm.
+const NAME_MAX = 120 // users.name on the server
 export const MESSAGES = {
   format: 'Koresha imibare ine kugeza kuri itandatu gusa.',
   mismatch: 'Imibare wanditse ntihuye. Ongera uyandike.',
@@ -12,6 +13,11 @@ export const MESSAGES = {
   norecovery: 'Uyu mubare w’ibanga washyizweho nta kode yo kugarura. Koresha konti ya Vuga.',
   recoveryformat: 'Kode yo kugarura ifite inyuguti n’imibare 16, nka ABCD-EFGH-JKLM-NPQR.',
   smscode: 'Andika kode y’imibare 6 twakoherereje muri SMS.',
+  name: `Andika izina ryawe nk’umurezi, inyuguti zitarenze ${NAME_MAX}.`,
+  password: 'Hitamo ijambo ry’ibanga rya konti rifite nibura inyuguti 8.',
+  passwordmismatch: 'Amagambo y’ibanga wanditse ntahuye. Ongera uyandike.',
+  'email-unverified': 'Banza ufungure email twakoherereje, wemeze aderesi yawe, hanyuma wongere winjire.',
+  'email-unavailable': 'Konti za email ntiziraboneka ubu. Ushobora gukomeza ukoresheje iki gikoresho gusa.',
   crypto: 'Mushakisha ntishobora kubika umubare w’ibanga. Koresha urubuga rufite HTTPS cyangwa ufungurire porogaramu kuri iki gikoresho.',
   storage: 'Ntibyashobotse gusoma cyangwa kubika umubare w’ibanga. Reba niba mushakisha yemerewe kubika amakuru.'
 }
@@ -40,6 +46,48 @@ export function PhoneField({ value, setValue, disabled, inputRef }) {
     <input ref={inputRef} type="tel" value={value} disabled={disabled} required inputMode="tel" autoComplete="tel"
       onChange={event => { setValue(event.target.value); event.target.setCustomValidity(event.target.value && !normalisePhone(event.target.value) ? WRONG_PHONE : '') }}
       onInvalid={event => { if (event.currentTarget.validity.valueMissing) event.currentTarget.setCustomValidity(NO_PHONE) }} /></label>
+}
+
+// The adult's own name for a new account, in any script, with its spaces tidied; null if it is
+// empty or too long. It is the account's name on the server, never a child's.
+export function caregiverName(value) {
+  const name = String(value ?? '').trim().replace(/\s+/g, ' ')
+  return name && name.length <= NAME_MAX && !/\p{Cc}/u.test(name) ? name : null
+}
+
+export function NameField({ value, setValue, disabled, inputRef, hint = true }) {
+  return <label className="parent-pin-field parent-name-field">Izina ryawe (umurezi){hint && <small>Izina ryawe bwite, si iry’umwana. Rigaragara kuri konti yawe.</small>}
+    <input ref={inputRef} type="text" value={value} disabled={disabled} required maxLength={NAME_MAX} autoComplete="name" autoCapitalize="words"
+      onChange={event => { setValue(event.target.value); event.target.setCustomValidity('') }}
+      onInvalid={event => event.currentTarget.setCustomValidity(MESSAGES.name)} /></label>
+}
+
+export function EmailField({ value, setValue, disabled, inputRef, readOnly = false }) {
+  return <TextField label="Email" type="email" value={value} setValue={setValue} disabled={disabled} inputRef={inputRef}
+    className="parent-email-field" autoComplete="email" autoCapitalize="none" inputMode="email" maxLength={254} readOnly={readOnly} />
+}
+
+// Cloud passwords are never constrained to, or confused with, the local numeric PIN.
+export function PasswordField({ value, setValue, disabled, inputRef, creating = false, label = 'Ijambo ry’ibanga rya konti', hint }) {
+  const id = useId(), [visible, setVisible] = useState(false)
+  // Each field owns its reveal control; clearing a password hides it again.
+  useEffect(() => { if (!value) setVisible(false) }, [value])
+  return <div className="parent-pin-field parent-password-field">
+    <label htmlFor={id}>{label}</label>
+    <div className="parent-password-input">
+      <input id={id} ref={inputRef} type={visible ? 'text' : 'password'} value={value} onChange={event => setValue(event.target.value)}
+        disabled={disabled} required autoComplete={creating ? 'new-password' : 'current-password'} autoCapitalize="none" spellCheck={false}
+        minLength={creating ? 8 : undefined} aria-describedby={hint ? `${id}-hint` : undefined} />
+      <button type="button" className="parent-password-toggle" disabled={disabled} aria-pressed={visible}
+        aria-label={`${visible ? 'Hisha' : 'Erekana'}: ${label}`} onClick={() => setVisible(current => !current)}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />
+          {visible && <path d="m3 3 18 18" />}
+        </svg>
+      </button>
+    </div>
+    {hint && <small id={`${id}-hint`} className="parent-field-hint">{hint}</small>}
+  </div>
 }
 
 const smsDigits = value => value.replace(/\D/g, '').slice(0, 6)

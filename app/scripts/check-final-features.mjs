@@ -80,7 +80,7 @@ async function caregiver() {
   await expect(gate).toHaveAttribute('data-mode', /setup|unlock/)
   const setup = await gate.getAttribute('data-mode') === 'setup'
   // A first setup offers the caregiver's number; these checks keep the PIN on this device only.
-  if (setup) await gate.getByRole('button', { name: 'Komeza nta nimero', exact: true }).click()
+  if (setup) await gate.getByRole('button', { name: 'Komeza nta konti', exact: true }).click()
   await gate.getByLabel('Umubare w’ibanga', { exact: true }).fill('730521')
   if (setup) {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('730521')
@@ -666,7 +666,163 @@ try {
     await back()
     expect(pageErrors).toEqual([])
   })
-  const report = { generated_at: new Date().toISOString(), browser: `Headless ${channel}`, base_url: baseURL, total: checks.length, status: 'passed', checks, screenshots, pageErrors }
+
+  // Added on 4 November 2026, again last, for the compact board and editing or deleting a child.
+  const keysOnPage = () => tiles().evaluateAll(cells => cells.map(cell => cell.dataset.symbol))
+  const children = () => page.evaluate(async () => {
+    const database = await new Promise((resolve, reject) => { const r = indexedDB.open('vuga'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error) })
+    try {
+      return await new Promise((resolve, reject) => { const r = database.transaction('profiles').objectStore('profiles').getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error) })
+    } finally { database.close() }
+  })
+  const showWord = async (key, on) => {
+    const box = page.getByRole('checkbox', { name: `Hitamo ${labels[key]}`, exact: true })
+    await box.click()
+    await expect(box).toBeChecked({ checked: on })
+    await expect(page.locator('.dash-save-note')).toHaveText('Bibitswe kuri iki gikoresho')
+  }
+  const addChild = async name => {
+    await tab('Abana')
+    await page.locator('.dash-add-profile').click()
+    const form = page.getByRole('dialog', { name: 'Ongeramo umwirondoro' })
+    await form.getByLabel('Izina cyangwa kode y’umwana').fill(name)
+    await form.getByRole('button', { name: 'Bika umwirondoro', exact: true }).click()
+    await expect(page.locator('.dash-device-status')).toContainText(name)
+  }
+  const openChild = async name => {
+    await tab('Abana')
+    await page.locator('.dash-profile-card').filter({ has: page.getByRole('heading', { name, exact: true }) }).click()
+    await expect(page.locator('.dash-device-status')).toContainText(name)
+  }
+  let full = [], second = []
+
+  await check('Hidden pictures leave no gap: the others close up in order on full pages, for that child only, after a reload, and all come back when shown again', async () => {
+    await caregiver()
+    await addChild('Keza')
+    await tab('Ikibaho')
+    await chooseGrid('3 × 3')
+    await setSwitch('Ibyiciro ku kibaho cy’umwana', false)
+    await back()
+    await category('Ingenzi')
+    full = await keysOnPage()
+    expect(full).toHaveLength(9)
+    await board.getByRole('button', { name: 'Urupapuro rukurikira', exact: true }).click()
+    second = await keysOnPage()
+    await board.getByRole('button', { name: 'Urupapuro rubanziriza', exact: true }).click()
+    // Two pictures hidden on the first page: the rest move up, and the next page's first two follow.
+    await caregiver()
+    await tab('Amashusho')
+    for (const key of full.slice(1, 3)) await showWord(key, false)
+    await back()
+    const compact = await keysOnPage()
+    expect(compact).toEqual([full[0], ...full.slice(3), ...second.slice(0, 2)])
+    await expect(board.locator('.symbol-grid .grid-slot')).toHaveCount(0)
+    await screenshot('board-hidden-words-compact')
+    // The demo board still shows them, in their usual places.
+    await caregiver()
+    await page.locator('.dash-demo-button').click()
+    await back()
+    await category('Ingenzi')
+    expect(await keysOnPage()).toEqual(full)
+    await caregiver()
+    await openChild('Keza')
+    await back()
+    await page.reload()
+    await expect(board.locator('.profile-code')).toHaveText('Keza')
+    expect(await keysOnPage()).toEqual(compact)
+    // Every picture hidden: one empty board with its message, no pages and no blank keys.
+    await caregiver()
+    await tab('Amashusho')
+    await page.getByRole('button', { name: 'Kuraho yose', exact: true }).click()
+    await expect(page.locator('.dash-save-note')).toHaveText('Bibitswe kuri iki gikoresho')
+    await back()
+    await expect(board.locator('.board-empty')).toBeVisible()
+    await expect(tiles()).toHaveCount(0)
+    await expect(board.locator('.page-controls')).toHaveCount(0)
+    await expect(board.locator('.symbol-grid .grid-slot')).toHaveCount(0)
+    // Shown again, each picture takes its own place back.
+    await caregiver()
+    await tab('Amashusho')
+    await page.getByRole('button', { name: 'Hitamo yose', exact: true }).click()
+    await expect(page.locator('.dash-save-note')).toHaveText('Bibitswe kuri iki gikoresho')
+    await back()
+    expect(await keysOnPage()).toEqual(full)
+    expect(pageErrors).toEqual([])
+  })
+
+  await check('A caregiver edits a child’s name and age band in Abana; the child keeps their id, pictures and board, and the change survives a reload', async () => {
+    await caregiver()
+    await tab('Amashusho')
+    await showWord(full[1], false)
+    const before = (await children()).find(child => child.code === 'Keza')
+    await addChild('Ganza')
+    await tab('Abana')
+    await page.getByRole('button', { name: 'Hindura umwirondoro wa Keza', exact: true }).click()
+    const form = page.getByRole('dialog', { name: 'Hindura umwirondoro' })
+    const name = form.getByLabel('Izina cyangwa kode y’umwana')
+    await expect(name).toHaveValue('Keza')
+    for (const [value, refusal] of [['   ', 'Andika izina cyangwa kode'], ['ganza', 'Iri zina risanzwe'], ['<Keza>', 'Andika izina cyangwa kode']]) {
+      await name.fill(value)
+      await form.getByRole('button', { name: 'Bika impinduka', exact: true }).click()
+      await expect(form.getByRole('alert')).toContainText(refusal)
+    }
+    // Cancelling leaves the child as they were.
+    await form.getByRole('button', { name: 'Reka', exact: true }).click()
+    expect((await children()).find(child => child.profile_id === before.profile_id).code).toBe('Keza')
+    await page.getByRole('button', { name: 'Hindura umwirondoro wa Keza', exact: true }).click()
+    await name.fill('Keza Uwase')
+    await form.getByLabel(/^Icyiciro cy’imyaka/).selectOption('7-9')
+    await screenshot('child-edit')
+    await form.getByRole('button', { name: 'Bika impinduka', exact: true }).click()
+    await expect(page.locator('.dash-notice[role=status]')).toContainText('Umwirondoro wa Keza ubu witwa Keza Uwase')
+    await expect(page.locator('.dash-profile-card').filter({ has: page.getByRole('heading', { name: 'Keza Uwase', exact: true }) })).toContainText('Imyaka: 7-9')
+    expect((await children()).find(child => child.profile_id === before.profile_id)).toMatchObject({ code: 'Keza Uwase', age_band: '7-9' })
+    await openChild('Keza Uwase')
+    await back()
+    await page.reload()
+    await expect(board.locator('.profile-code')).toHaveText('Keza Uwase')
+    // The same pictures, with the one hidden, on the same 3 x 3 pages.
+    expect(await keysOnPage()).toEqual([full[0], ...full.slice(2), second[0]])
+    expect(pageErrors).toEqual([])
+  })
+
+  await check('Deleting a child names them and what goes; Reka keeps everything, and Siba removes only that child, sending the board back to the demo board', async () => {
+    const keza = (await children()).find(child => child.code === 'Keza Uwase'), ganza = (await children()).find(child => child.code === 'Ganza')
+    await tiles().first().click()
+    await expect(chips()).toHaveCount(1)
+    await expect.poll(async () => (await stored()).messages.filter(m => m.profile_id === keza.profile_id).length).toBeGreaterThan(0)
+    const ganzaWords = (await stored()).vocabulary.filter(row => row.profile_id === ganza.profile_id).length
+    await caregiver()
+    await tab('Abana')
+    const remove = () => page.getByRole('button', { name: 'Siba umwirondoro wa Keza Uwase', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Gusiba umwirondoro wa Keza Uwase?' })
+    await remove()
+    await expect(dialog).toContainText('amashusho yamutoranyirijwe')
+    await expect(dialog).toContainText('ubutumwa bwe n’ibyo yakanze')
+    await expect(dialog).toContainText('amagambo mashya n’amajwi wafashe')
+    await expect(dialog.getByRole('button', { name: 'Reka', exact: true })).toBeFocused()
+    await screenshot('child-delete-confirm')
+    await dialog.getByRole('button', { name: 'Reka', exact: true }).click()
+    await expect(dialog).toBeHidden()
+    expect((await children()).map(child => child.code).sort()).toEqual(['Ganza', 'Keza Uwase'])
+    await remove()
+    await dialog.getByRole('button', { name: 'Siba Keza Uwase burundu', exact: true }).click()
+    await expect(page.locator('.dash-notice[role=status]')).toHaveText('Umwirondoro wa Keza Uwase wasibwe. Ikibaho cy’igerageza ni cyo gikoreshwa ubu.')
+    await expect(page.locator('.dash-device-status')).toContainText('Igerageza')
+    expect((await children()).map(child => child.code)).toEqual(['Ganza'])
+    const left = await stored()
+    expect(left.messages.filter(m => m.profile_id === keza.profile_id)).toEqual([])
+    expect(left.vocabulary.filter(row => row.profile_id === keza.profile_id)).toEqual([])
+    expect(left.vocabulary.filter(row => row.profile_id === ganza.profile_id)).toHaveLength(ganzaWords)
+    await back()
+    await expect(board.locator('.profile-code')).toHaveText('Igerageza')
+    await expect(chips()).toHaveCount(0)
+    await page.reload()
+    await expect(board.locator('.profile-code')).toHaveText('Igerageza')
+    expect((await children()).map(child => child.code)).toEqual(['Ganza'])
+    expect(pageErrors).toEqual([])
+  })
+  const report ={ generated_at: new Date().toISOString(), browser: `Headless ${channel}`, base_url: baseURL, total: checks.length, status: 'passed', checks, screenshots, pageErrors }
   await writeFile(`${output}/final-features-report.json`, JSON.stringify(report, null, 2) + '\n')
   console.log(`Final features: ${checks.length} checks passed`)
 } catch (error) {

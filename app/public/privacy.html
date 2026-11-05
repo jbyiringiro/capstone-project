@@ -1,0 +1,81 @@
+<!doctype html><html lang="rw"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vuga · Uko tubika amakuru · Privacy policy</title>
+<style>body{max-width:860px;margin:auto;padding:28px;background:#f7f5ec;color:#173d37;font:18px/1.6 system-ui,sans-serif}a{color:#176b62}h1{line-height:1.2;margin:12px 0}h2{font-size:22px;margin:28px 0 8px}h3{font-size:19px;margin:18px 0 6px}p,li{margin:0 0 8px}section{background:white;padding:8px 22px 14px;border-radius:16px;margin:18px 0}ol.promises{padding-left:24px}ol.promises li{margin-bottom:10px}table{border-collapse:collapse;width:100%;font-size:16px}th,td{text-align:left;vertical-align:top;border-top:1px solid #d9d5c3;padding:8px 6px}small{color:#5e706a}.lang{display:flex;gap:16px;flex-wrap:wrap}</style>
+<header><a href="/">← Subira ku kibaho</a>
+<h1>Uko Vuga ibika amakuru · Privacy policy</h1>
+<p class="lang"><a href="#rw">Ikinyarwanda</a><a href="#en">English</a></p>
+<p><small>Version 1.1, 5 November 2026. Vuga is a student prototype made by Josue Byiringiro at the African Leadership University, Kigali.</small></p></header>
+
+<section id="rw" lang="rw"><h2>Mu magambo make</h2>
+<ol class="promises">
+<li><b>Ikibaho gikora nta konti.</b> Ibyo umwana akora byose bibikwa kuri iki gikoresho, keretse umuntu mukuru ahisemo kubyohereza.</li>
+<li><b>Kuri seriveri, umwana amenyekana kuri kode gusa</b> (urugero P-01): nta zina, nta foto, nta jwi.</li>
+<li><b>Amafoto, amajwi wafashe n’amagambo mashya wongeyeho ntibiva kuri iki gikoresho.</b></li>
+<li><b>Ntitugurisha amakuru, nta matangazo, kandi nta bikoresho bikurikirana ibyo ukora kuri interineti.</b></li>
+<li><b>Ushobora gusiba konti yawe n’amakuru y’abana yari ibitse:</b> Umurezi → Kwinjira → Siba konti yanjye. Habikwa ibiranga konti yasibwe gusa kugira ngo itazongera gufungurwa n’icyifuzo cya kera.</li>
+<li><b>Umubyeyi cyangwa umurezi wemewe n’umubyeyi ni we wenyine ushyiraho umwirondoro w’umwana.</b></li>
+</ol>
+<p>Konti ya email ikoresha Google Firebase mu kwemeza email no kugenzura ijambo ry’ibanga. Ijambo ry’ibanga rya konti ntiribikwa na Vuga; ritandukanye n’umubare w’ibanga ufungura ahagenewe umurezi kuri iki gikoresho. Gusiba konti ntibisiba amakuru y’abana abitswe kuri iki gikoresho.</p>
+<p>Ibisobanuro byose biri mu Cyongereza hasi aha. Ufite ikibazo, andikira j.byiringir@alustudent.com.</p></section>
+
+<section id="en" lang="en"><h2>The short version</h2>
+<ol class="promises">
+<li><b>The board works with no account.</b> Everything a child does stays on this device unless an adult chooses to send it.</li>
+<li><b>On the server a child is known only by a code</b> such as P-01: never by name, photo or voice.</li>
+<li><b>Photos, recorded voices and custom words you add never leave this device.</b></li>
+<li><b>No selling, no adverts, no trackers.</b> Vuga loads no analytics or advertising code.</li>
+<li><b>You can delete your account and its child data:</b> Umurezi → Kwinjira → Siba konti yanjye. Minimal identifiers of deleted email accounts remain to prevent stale requests recreating them.</li>
+<li><b>Only a parent or guardian, or a teacher or therapist with the parent's agreement, sets up a child's profile.</b></li>
+</ol>
+
+<h2>1. What stays on this device</h2>
+<p>Vuga keeps these in the browser's storage (IndexedDB) on the phone or tablet, and nowhere else:</p>
+<ul><li>each child's profile: a code such as P-01, or the name the family uses;</li>
+<li>custom words, with their photos and recorded voices;</li>
+<li>the messages the child builds, with each tap and its time;</li>
+<li>picture-game results, board settings and the child's own next-word history;</li>
+<li>the caregiver PIN and recovery code, kept only as salted PBKDF2 digests, never as the PIN itself.</li></ul>
+<p>Speech, sentence building and next-word suggestions are all worked out on the device. Clearing the browser's data deletes all of this, so download the messages first if you need them (Ohereza → Kuramo ubutumwa).</p>
+
+<h2>2. What the server keeps when you link a caregiver account</h2>
+<table><tr><th>Data</th><th>Why</th><th>How long</th></tr>
+<tr><td>Your email address and Firebase user ID (email accounts)</td><td>To associate a verified adult identity with the same Vuga account on each device</td><td>Email until account deletion; the identifier ledger described below remains</td></tr>
+<tr><td>Your Rwandan mobile number (legacy phone accounts)</td><td>To text you a code and to sign you in on another device</td><td>Until you delete the account</td></tr>
+<tr><td>Your own name, as you type it when you open the account (not a child’s)</td><td>To show whose account a phone or tablet is linked to</td><td>Until you delete the account</td></tr>
+<tr><td>Your PIN, as a bcrypt hash (legacy phone accounts only)</td><td>To check it is you; the PIN itself is never stored</td><td>Until you change it or delete the account</td></tr>
+<tr><td>A keyed hash of a legacy SMS code</td><td>To confirm the phone number</td><td>10 minutes, or until used</td></tr>
+<tr><td>A count of wrong phone-account PIN tries</td><td>Five wrong tries lock the number for 15 minutes</td><td>Until the next right PIN</td></tr>
+<tr><td>The account copy: children by code, their word lists and board settings</td><td>So a new phone or tablet gets the same board back</td><td>Until you delete the account</td></tr>
+<tr><td>Completed messages: which pictures were pressed, when, and whether a suggestion was used</td><td>Only when you press sync in Ohereza, for the summary of a child's progress</td><td>Until you delete the account</td></tr>
+<tr><td>The ids of children you deleted: no code, name or other data</td><td>So a copy saved later from another phone or tablet cannot bring them back</td><td>Until you delete the account</td></tr></table>
+<p>In the account copy and synced messages the server refuses children’s names, free text, photos and recordings, so they cannot be sent by mistake. A message that uses a custom word stays on the device, because its picture or label may show a family member.</p>
+<p>Email passwords go directly from your browser to Google Firebase and are never sent to or saved by the Vuga API. Vuga stores a short-lived sign-in token and your linked account identity in this browser. The separate device PIN stays on the device. After cloud deletion, Vuga retains the Firebase project ID, Firebase user ID, former Vuga account ID and deletion time while the service operates, so an old token cannot recreate the account. This ledger contains no email, name, password, PIN or child data.</p>
+
+<h2>3. Who else handles data</h2>
+<ul><li><b>Google Firebase Authentication</b> handles email signup, verification and password reset. It receives your adult name, email and password when you sign up, and checks later sign-ins. Vuga does not load Firebase Analytics. See <a href="https://firebase.google.com/support/privacy">Firebase privacy information</a>.</li>
+<li><b>Africa's Talking</b> sends the six-digit code for legacy phone accounts. It receives the number and the text, nothing else.</li>
+<li><b>Hosting.</b> Rwandan law asks for personal data to be stored in Rwanda unless the National Cyber Security Authority (NCSA) has authorised storage abroad (Law No. 058/2021, Article 50). The public test server is in Europe, so it is not open to families' accounts. Before any family links a number, Vuga will register with NCSA as a data controller (Article 29) and store accounts in Rwanda or with NCSA's authorisation.</li></ul>
+<p>We never sell or share data for advertising, and we do not use children's messages to train models. If that ever changes, we will ask for consent first.</p>
+
+<h2>4. Children</h2>
+<p>Vuga is used by children but set up by adults. Under Rwandan law a child's personal data under 16 needs the consent of a person with parental responsibility (Law No. 058/2021, Article 9). Only a parent or guardian, or a teacher or therapist with the parent's agreement, should create a child's profile or link it to an account. The caregiver area is behind a long press and a PIN, so a child cannot change settings or send data.</p>
+
+<h2>5. Your rights and how to use them</h2>
+<table><tr><th>Right</th><th>In Vuga</th></tr>
+<tr><td>See your data</td><td>The caregiver area shows each child's words, settings and summary; Ohereza downloads this device's messages as a file.</td></tr>
+<tr><td>Correct it</td><td>Edit a child's code, words or settings in the caregiver area.</td></tr>
+<tr><td>Delete it</td><td>Kwinjira → Siba konti yanjye deletes the Vuga cloud account and its child data and, for email accounts, requests deletion of the Firebase account. The identifier ledger above remains. If a provider error occurs, retry while the page is open to finish deletion. Local unlinking does not delete the cloud account. Amagambo mashya → Siba removes a custom word and its voice. Clearing browser data removes everything on this device.</td></tr>
+<tr><td>Withdraw consent</td><td>Stop syncing at any time, or delete the account; withdrawing is as easy as agreeing (Article 8).</td></tr>
+<tr><td>Complain</td><td>Write to us first; you can also complain to the National Cyber Security Authority (NCSA), Rwanda's data protection authority.</td></tr></table>
+
+<h2>6. Security</h2>
+<p>The device PIN is hashed locally, and repeated wrong tries temporarily lock it. Email accounts use a separate password managed by Firebase; the API checks token signatures, verified email and current account state. Password resets revoke older cloud sessions without changing the local PIN. Legacy phone accounts hash their cloud PIN with bcrypt, lock after five wrong tries and revoke old sessions when that PIN changes. If personal data on the server were ever exposed, we would tell NCSA within 48 hours (Article 43) and tell the caregivers affected.</p>
+
+<h2>7. Research study</h2>
+<p>The adult usability study at Autisme Rwanda (ALU Research Ethics Committee approval SEPT26-BSE-048) has its own consent form. It records only a participant code and the taps made on the study tablet; no children take part.</p>
+
+<h2>8. Terms of use</h2>
+<p>Vuga is a free prototype. It supports communication but does not replace a speech therapist, and its Kinyarwanda words and voices still await review by native speakers. The code is under the MIT licence. The pictograms (ARASAAC, CC BY-NC-SA 4.0) and the synthetic voice (Meta MMS-TTS, CC BY-NC 4.0) may not be used commercially, so Vuga is not sold. Each photograph keeps its own licence (<a href="/photos/credits.html">photo credits</a>), and so does each open-source library built into the app (<a href="/third-party-licenses.txt">third-party licences</a>).</p>
+
+<h2>9. Changes and contact</h2>
+<p>If this policy changes, the new version and date will appear here before the change takes effect. Questions: Josue Byiringiro, j.byiringir@alustudent.com.</p></section>
+</html>

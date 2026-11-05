@@ -21,11 +21,14 @@ from app.db import Base, SessionLocal, engine
 from app.dependencies import get_sms
 from app.main import app
 from app.schemas import normalise_phone
-from app.services import BackupService, SmsFailed, accounts, codes
+from app.services import BackupService, DisabledSms, SmsFailed, accounts, codes
 
 
 class Outbox:
-    """Stands in for the SMS service: keeps every text, so a test reads the code a caregiver would."""
+    """Stands in for the SMS service: keeps every text, so a test reads the code a caregiver would.
+    It plays a provider that texts phones; nothing leaves the test."""
+
+    delivery = "sms"
 
     def __init__(self):
         self.texts = []
@@ -146,12 +149,12 @@ def _message(profile_id):
 
 def test_public_registration_cannot_create_admin_and_takes_a_four_to_six_digit_pin(client):
     assert client.post("/auth/code", json={"phone": "0780000020", "purpose": "register"}).status_code == 202
-    body = {"phone": "0780000020", "code": client.sms.code("0780000020"), "pin": "2468"}
+    body = {"name": "Mukamana", "phone": "0780000020", "code": client.sms.code("0780000020"), "pin": "2468"}
     assert client.post("/auth/register", json={**body, "role": "administrator"}).status_code == 422
     for pin in ("123", "1234567", "12a4", "secret1", "é" * 37):
         assert client.post("/auth/register", json={**body, "pin": pin}).status_code == 422
     r = client.post("/auth/register", json=body)
-    assert r.status_code == 201 and r.json()["name"] == ""
+    assert r.status_code == 201 and r.json()["name"] == "Mukamana" and r.json()["role"] == "teacher"
     assert client.post("/auth/login", data={"username": body["phone"], "password": "x" * 73}).status_code == 401
     headers = _auth(client, body["phone"])
     assert client.post("/symbols/import", headers=headers).status_code == 403
@@ -433,7 +436,7 @@ def test_an_account_opens_only_with_the_code_texted_to_its_number(client):
     body = {"name": "Mama Keza", "phone": "0788 123 456", "pin": "2468"}
     assert client.post("/auth/register", json={**body, "code": "123456"}).status_code == 400
     sent = client.post("/auth/code", json={"phone": "0788 123 456", "purpose": "register"})
-    assert sent.status_code == 202 and sent.json() == {"resend_after": 60, "expires_in": 600}
+    assert sent.status_code == 202 and sent.json() == {"resend_after": 60, "expires_in": 600, "delivery": "sms"}
     [(to, text)] = client.sms.texts
     assert to == "+250788123456" and text.startswith("Vuga:") and text.isascii() and len(text) <= 160
     code = client.sms.code(to)
@@ -443,7 +446,7 @@ def test_an_account_opens_only_with_the_code_texted_to_its_number(client):
     assert client.post("/auth/register", json={**body, "code": _other(code)}).status_code == 400
     r = client.post("/auth/register", json={**body, "code": code})
     assert r.status_code == 201, r.text
-    assert r.json()["phone"] == "+250788123456"
+    assert r.json()["phone"] == "+250788123456" and r.json()["name"] == "Mama Keza"
     for spelling in ("0788123456", "+250 788 123 456", "250788123456"):
         assert client.post("/auth/login", data={"username": spelling, "password": "2468"}).status_code == 200
     # One account for a number: no second code and no second account.
@@ -460,21 +463,27 @@ def test_a_code_works_once_for_a_few_tries_and_a_number_gets_few_texts(client, m
     monkeypatch.setattr(codes, "_now", lambda: clock[0])
     body = {"phone": "0788123456", "pin": "2468"}
     ask = lambda: client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"})
-    register = lambda code: client.post("/auth/register", json={**body, "code": code}).status_code
+    refusal = lambda code: client.post("/auth/register", json={**body, "name": "Uwase", "code": code})
+    register = lambda code: refusal(code).status_code
     assert ask().status_code == 202
     # Another code only after a minute; the wait is in the body and the Retry-After header.
     early = ask()
     assert early.status_code == 429 and early.json()["retry_after"] == 60 and early.headers["Retry-After"] == "60"
-    # Five wrong tries spend the code.
+    assert early.json()["reason"] == "wait"
+    # Five wrong tries spend the code; each refusal says how many tries are left.
     code = client.sms.code("0788123456")
-    for _ in range(5):
-        assert register(_other(code)) == 400
-    assert register(code) == 400
+    for left in (4, 3, 2, 1):
+        wrong = refusal(_other(code))
+        assert wrong.status_code == 400 and wrong.json() | {"detail": None} == {
+            "detail": None, "reason": "wrong", "attempts_left": left}
+    assert refusal(_other(code)).json()["reason"] == "spent"
+    assert refusal(code).json()["reason"] == "spent"
     # A code works for ten minutes.
     clock[0] += timedelta(seconds=61)
     assert ask().status_code == 202
     clock[0] += timedelta(minutes=10)
-    assert register(client.sms.code("0788123456")) == 400
+    expired = refusal(client.sms.code("0788123456"))
+    assert expired.status_code == 400 and expired.json()["reason"] == "expired"
     # Five texts an hour at most to one number.
     for _ in range(3):
         clock[0] += timedelta(seconds=61)
@@ -482,10 +491,19 @@ def test_a_code_works_once_for_a_few_tries_and_a_number_gets_few_texts(client, m
     clock[0] += timedelta(seconds=61)
     capped = ask()
     assert capped.status_code == 429 and capped.json()["retry_after"] > 60 * 40
+    assert capped.json()["reason"] == "limit"
     assert len(client.sms.texts) == 5
     clock[0] = start + timedelta(hours=1, seconds=1)
     assert ask().status_code == 202
-    assert register(client.sms.code("0788123456")) == 201
+    code = client.sms.code("0788123456")
+    assert register(code) == 201
+    # A code that worked is used up.
+    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "reset"}).status_code == 202
+    assert client.post("/auth/reset-pin", json={**body, "code": code}).json()["reason"] == "wrong"
+    reset = client.sms.code("0788123456")
+    assert client.post("/auth/reset-pin", json={**body, "pin": "1357", "code": reset}).status_code == 204
+    used = client.post("/auth/reset-pin", json={**body, "pin": "9753", "code": reset})
+    assert used.status_code == 400 and used.json()["reason"] == "expired"
 
 
 def test_a_forgotten_pin_is_replaced_with_a_texted_code_which_also_lifts_a_lock(client):
@@ -514,13 +532,50 @@ def test_a_forgotten_pin_is_replaced_with_a_texted_code_which_also_lifts_a_lock(
 
 def test_a_text_the_sms_service_refuses_is_reported_and_leaves_no_wait(client):
     class Down:
+        delivery = "sms"
+
         def send(self, phone, text):
             raise SmsFailed("could not send the code")
 
+    ask = lambda: client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"})
     app.dependency_overrides[get_sms] = Down
-    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"}).status_code == 502
+    refused = ask()
+    assert refused.status_code == 502 and refused.json() == {"detail": "could not send the code"}
+    # A server with no provider and no development log says so (503), and keeps no code either.
+    app.dependency_overrides[get_sms] = DisabledSms
+    assert client.get("/health").json()["sms"] == "off"
+    unset = ask()
+    assert unset.status_code == 503 and unset.json() == {"detail": "sms is not set up on this server"}
+    with SessionLocal() as db:
+        assert db.scalars(select(models.PhoneCode)).all() == []
     app.dependency_overrides[get_sms] = lambda: client.sms
-    assert client.post("/auth/code", json={"phone": "0788123456", "purpose": "register"}).status_code == 202
+    assert client.get("/health").json()["sms"] == "sms"
+    assert ask().status_code == 202
+
+
+def test_a_new_account_needs_the_caregivers_name_and_older_accounts_without_one_still_sign_in(client):
+    ask = lambda phone: client.post("/auth/code", json={"phone": phone, "purpose": "register"})
+    open_account = lambda phone, **name: client.post("/auth/register", json={
+        "phone": phone, "pin": "2468", "code": client.sms.code(phone), **name})
+    assert ask("0788123456").status_code == 202
+    for name in ({}, {"name": ""}, {"name": "   "}, {"name": "Uwase\x07"}, {"name": "A" * 121}, {"name": None}):
+        assert open_account("0788123456", **name).status_code == 422, name
+    # Any script, as typed, with its spaces tidied; 120 characters is the limit.
+    r = open_account("0788123456", name="  Uwase   Ange-Marie Ñkurunziza 李 ")
+    assert r.status_code == 201 and r.json()["name"] == "Uwase Ange-Marie Ñkurunziza 李"
+    token = client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).json()["access_token"]
+    me = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"}).json()
+    assert me["name"] == "Uwase Ange-Marie Ñkurunziza 李" and me["phone"] == "+250788123456"
+    assert client.get("/auth/me").status_code == 401
+    assert ask("0722000000").status_code == 202
+    assert open_account("0722000000", name="M" * 120).status_code == 201
+    # An account opened before names were asked for keeps working, with no name made up for it.
+    with SessionLocal() as db:
+        db.add(models.User(name="", phone="+250733000000", role="teacher", password_hash=accounts.hash_password("1357")))
+        db.commit()
+    old = client.post("/auth/login", data={"username": "0733000000", "password": "1357"})
+    assert old.status_code == 200
+    assert client.get("/auth/me", headers={"Authorization": f"Bearer {old.json()['access_token']}"}).json()["name"] == ""
 
 
 def test_five_wrong_pins_lock_the_number_for_fifteen_minutes(client, monkeypatch):
@@ -554,6 +609,37 @@ def test_a_pin_is_changed_with_the_current_one(client):
     assert change("2468", "1357") == 204
     assert client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).status_code == 401
     assert client.post("/auth/login", data={"username": "0788123456", "password": "1357"}).status_code == 200
+
+
+def test_an_account_is_erased_with_its_pin_and_takes_all_it_kept_on_the_server(client):
+    h, pid = _profile(client, phone="0788123456", code="P-07")
+    assert client.post("/sync", json={"messages": [_message(pid)]}, headers=h).status_code == 200
+    assert client.put("/backup", json=_snapshot(), headers=h).status_code == 200
+    other, other_pid = _profile(client, phone="0722000000", code="P-08")
+    assert client.post("/sync", json={"messages": [_message(other_pid)]}, headers=other).status_code == 200
+    erase = lambda pin: client.post("/auth/delete-account", json={"phone": "0788 123 456", "pin": pin}).status_code
+    gone = client.post("/profiles", json={"code": "P-09"}, headers=h).json()["profile_id"]
+    assert client.delete(f"/profiles/{gone}", headers=h).status_code == 204
+    assert erase("0000") == 401
+    with SessionLocal() as db:
+        assert set(db.scalars(select(models.User.phone))) == {"+250788123456", "+250722000000"}
+        assert set(db.scalars(select(models.ChildProfile.code))) == {"P-07", "P-08"}
+    assert erase("2468") == 204
+    with SessionLocal() as db:
+        assert db.scalars(select(models.User.phone)).all() == ["+250722000000"]
+        assert db.scalars(select(models.ChildProfile.code)).all() == ["P-08"]
+        assert {m.profile_id for m in db.scalars(select(models.Message))} == {other_pid}
+        assert {e.message.profile_id for e in db.scalars(select(models.TapEvent))} == {other_pid}
+        assert db.scalars(select(models.AccountBackup)).all() == []
+        assert db.scalars(select(models.PhoneCode.phone)).all() == ["+250722000000"]
+        assert db.scalars(select(models.LoginAttempt.phone)).all() == ["+250722000000"]
+        assert db.scalars(select(models.DeletedProfile)).all() == []
+    # Its session ends, its PIN signs in no more, and the number can open a new, empty account.
+    assert client.get("/backup/status", headers=h).status_code == 401
+    assert client.post("/auth/login", data={"username": "0788123456", "password": "2468"}).status_code == 401
+    assert erase("2468") == 401
+    assert client.get("/profiles", headers=_auth(client, "0788123456")).json() == []
+    assert [p["code"] for p in client.get("/profiles", headers=other).json()] == ["P-08"]
 
 
 def test_wrong_pins_sent_at_the_same_moment_are_all_counted(client, monkeypatch):
@@ -636,3 +722,99 @@ def test_a_pin_replaced_while_a_change_with_the_old_one_is_stored_stays_replaced
     assert done and change.status_code == 401
     login = lambda pin: client.post("/auth/login", data={"username": "0788123456", "password": pin}).status_code
     assert login("5555") == 401 and login("1357") == 200
+
+
+def test_a_childs_code_and_age_band_change_for_the_same_child_and_only_by_its_account(client):
+    h, pid = _profile(client, phone="0788123456", code="P-07")
+    by_key = {s["key"]: s["symbol_id"] for s in client.get("/symbols").json()}
+    client.put(f"/profiles/{pid}/vocabulary", json={"symbol_ids": [by_key["I"], by_key["WATER"]]}, headers=h)
+    assert client.post("/sync", json={"messages": [_message(pid)]}, headers=h).status_code == 200
+    other, other_pid = _profile(client, phone="0722000000", code="P-08")
+    edit = lambda profile_id, body, headers=h: client.patch(f"/profiles/{profile_id}", json=body, headers=headers)
+    r = edit(pid, {"code": "P-17", "age_band": "7-9"})
+    assert r.status_code == 200 and r.json() == {"profile_id": pid, "code": "P-17", "age_band": "7-9", "access_method": "touch"}
+    # What is left out stays; the age band can be cleared, the code cannot.
+    assert edit(pid, {"age_band": None}).json()["code"] == "P-17"
+    assert edit(pid, {"age_band": "10-12"}).json()["age_band"] == "10-12"
+    for bad in ({"code": None}, {"code": "Keza"}, {"code": "p-17"}, {"age_band": "seven"}, {"name": "Keza"}):
+        assert edit(pid, bad).status_code == 422, bad
+    # Another child's code is taken, on any account; another account's child looks missing.
+    assert edit(pid, {"code": "P-08"}).status_code == 409
+    assert edit(other_pid, {"code": "P-30"}).status_code == 404
+    assert edit(pid, {"code": "P-30"}, other).status_code == 404
+    assert client.patch(f"/profiles/{pid}", json={"code": "P-30"}).status_code == 401
+    # The same id keeps the child's words and synced messages.
+    assert [s["key"] for s in client.get(f"/profiles/{pid}/vocabulary", headers=h).json()] == ["I", "WATER"]
+    assert client.get(f"/profiles/{pid}/summary", headers=h).json()["symbol_frequency"]
+    assert [p["code"] for p in client.get("/profiles", headers=other).json()] == ["P-08"]
+
+
+def test_a_deleted_child_takes_only_its_own_server_data_and_stays_out_of_the_account_copy(client):
+    h, pid = _profile(client, phone="0788123456", code="P-07")
+    kept = client.post("/profiles", json={"code": "P-11"}, headers=h).json()["profile_id"]
+    other, other_pid = _profile(client, phone="0722000000", code="P-08")
+    by_key = {s["key"]: s["symbol_id"] for s in client.get("/symbols").json()}
+    for profile_id, headers in ((pid, h), (kept, h), (other_pid, other)):
+        client.put(f"/profiles/{profile_id}/vocabulary", json={"symbol_ids": [by_key["I"]]}, headers=headers)
+        assert client.post("/sync", json={"messages": [_message(profile_id)]}, headers=headers).status_code == 200
+    # The account copy has the child, as a device saved it.
+    copy = deepcopy(_snapshot())
+    copy["data"]["profiles"][0] |= {"profile_id": pid, "code": "P-07"}
+    copy["data"]["vocabulary"] = [{"profile_id": pid, "key": "I"}]
+    copy["data"]["settings"] = [{"key": f"appearance:{pid}", "value": {"environment": "meal"}},
+                                {"key": "profile", "value": {"profile_id": pid, "code": "P-07"}}, {"key": "mode", "value": "static"}]
+    assert client.put("/backup", json=copy, headers=h).status_code == 200
+    # Only its own account deletes it.
+    assert client.delete(f"/profiles/{pid}", headers=other).status_code == 404
+    assert client.delete(f"/profiles/{pid}").status_code == 401
+    assert client.delete(f"/profiles/{pid}", headers=h).status_code == 204
+    assert client.delete(f"/profiles/{pid}", headers=h).status_code == 404
+    with SessionLocal() as db:
+        assert set(db.scalars(select(models.ChildProfile.profile_id))) == {kept, other_pid}
+        assert {m.profile_id for m in db.scalars(select(models.Message))} == {kept, other_pid}
+        assert {e.message.profile_id for e in db.scalars(select(models.TapEvent))} == {kept, other_pid}
+        assert {v.profile_id for v in db.scalars(select(models.ProfileVocabulary))} == {kept, other_pid}
+        assert db.scalars(select(models.DeletedProfile.profile_id)).all() == [pid]
+    assert [p["code"] for p in client.get("/profiles", headers=h).json()] == ["P-11"]
+    # The copy saved before the deletion comes back without the child, its words and settings.
+    back = client.get("/backup", headers=h).json()
+    assert back["data"] == {"profiles": [], "vocabulary": [], "settings": [{"key": "mode", "value": "static"}], "deleted": [pid]}
+    # A device that still has the child, saving on the latest copy, cannot bring it back.
+    stale = deepcopy(copy) | {"base_revision": back["revision"]}
+    assert client.put("/backup", json=stale, headers=h).status_code == 200
+    assert client.get("/backup", headers=h).json()["data"]["profiles"] == []
+    assert client.get("/backup", headers=other).status_code == 404
+
+
+def test_children_a_device_deleted_never_come_back_through_the_account_copy(client):
+    h = _auth(client, "0788123456")
+    second = "local-" + str(uuid.uuid4())
+    snapshot = deepcopy(_snapshot())
+    snapshot["data"]["profiles"].append({"profile_id": second, "code": "P-02", "age_band": None, "access_method": "touch", "local_only": True})
+    snapshot["data"]["settings"].append({"key": f"appearance:{second}", "value": {"environment": "home"}})
+    assert client.put("/backup", json=snapshot, headers=h).json()["revision"] == 1
+    # The phone deletes P-01, and its copy says so.
+    phone = deepcopy(snapshot) | {"base_revision": 1}
+    phone["data"] = {"profiles": [snapshot["data"]["profiles"][1]], "vocabulary": [],
+                     "settings": [{"key": f"appearance:{second}", "value": {"environment": "home"}}], "deleted": [CHILD]}
+    assert client.put("/backup", json=phone, headers=h).json()["revision"] == 2
+    assert client.get("/backup", headers=h).json()["data"] == phone["data"]
+    # A tablet that still had P-01 saves an older copy: refused as stale, and once it saves on the
+    # latest revision, P-01 stays out all the same.
+    tablet = deepcopy(snapshot) | {"base_revision": 1}
+    assert client.put("/backup", json=tablet, headers=h).status_code == 409
+    tablet["base_revision"] = 2
+    assert client.put("/backup", json=tablet, headers=h).json()["revision"] == 3
+    data = client.get("/backup", headers=h).json()["data"]
+    assert [p["code"] for p in data["profiles"]] == ["P-02"] and data["vocabulary"] == [] and data["deleted"] == [CHILD]
+    assert [s["key"] for s in data["settings"]] == [f"appearance:{second}"]
+    # A deletion sent with a stale save is kept even though the save is refused.
+    late = "local-" + str(uuid.uuid4())
+    refused = deepcopy(phone) | {"base_revision": 1}
+    refused["data"]["deleted"] = [late]
+    assert client.put("/backup", json=refused, headers=h).status_code == 409
+    assert client.get("/backup", headers=h).json()["data"]["deleted"] == sorted([CHILD, late])
+    # Ids only: anything else is refused.
+    for bad in (["Keza"], [CHILD] * 1001, "P-01"):
+        assert client.put("/backup", json=deepcopy(phone) | {"base_revision": 3, "data": {**phone["data"], "deleted": bad}},
+                          headers=h).status_code == 422

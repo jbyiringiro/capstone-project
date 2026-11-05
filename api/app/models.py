@@ -1,6 +1,6 @@
 """ORM models: one class per table in the proposal ERD (Figure 7, eleven tables), plus the
 caregiver's account backup, the SMS codes that confirm mobile numbers and the count of wrong PINs,
-added in the final version.
+added in the final version, and the ids of children a caregiver deleted.
 
 Privacy rules from NFR4 are enforced at the schema level: child_profiles carries a pseudonymous
 `code` and age band only, never a name, photo or date of birth. The account backup follows the
@@ -12,7 +12,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -24,18 +24,41 @@ def _uuid() -> str:
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (UniqueConstraint("firebase_project_id", "firebase_uid", name="uq_users_firebase_identity"),)
     user_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(120))
-    phone: Mapped[str] = mapped_column(String(32), unique=True)  # +2507XXXXXXXX, confirmed by SMS
+    phone: Mapped[str | None] = mapped_column(String(32), unique=True)  # existing SMS accounts
+    email: Mapped[str | None] = mapped_column(String(254), unique=True)
+    firebase_uid: Mapped[str | None] = mapped_column(String(128))
+    firebase_project_id: Mapped[str | None] = mapped_column(String(128))
     role: Mapped[str] = mapped_column(String(16))  # teacher | caregiver | administrator
     # The caregiver's PIN, which also opens the caregiver area on each device signed in to it.
-    password_hash: Mapped[str] = mapped_column(String(128))
+    password_hash: Mapped[str | None] = mapped_column(String(128))  # Firebase keeps email passwords
     # Each session token carries this number; changing or resetting the PIN raises it, which ends
     # every session opened with the old PIN.
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     profiles: Mapped[list[ChildProfile]] = relationship(back_populates="creator")
+
+    @property
+    def auth_provider(self) -> str:
+        return "firebase" if self.firebase_uid else "phone"
+
+
+class FirebaseIdentity(Base):
+    """Serializes provisioning/deletion and remembers erased UIDs without retaining the email.
+
+    A deleted UID can never recreate its Vuga account, even when deleting the provider account
+    fails after the local transaction. A deliberate fresh Firebase signup gets a different UID.
+    """
+
+    __tablename__ = "firebase_identities"
+    project_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String(36))  # deliberately not a foreign key
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
 class ChildProfile(Base):
@@ -169,6 +192,17 @@ class AccountBackup(Base):
     size: Mapped[int] = mapped_column(Integer)  # bytes of `data`
     saved_at: Mapped[datetime] = mapped_column(DateTime)
     revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+
+
+class DeletedProfile(Base):
+    """A child the caregiver deleted, by id only: no code, name or data. The account copy leaves
+    these children out, so a device that still had one cannot bring it back (services/backups.py).
+    A new table, so create_all adds it to a database that was already running."""
+
+    __tablename__ = "deleted_profiles"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.user_id"), primary_key=True)
+    profile_id: Mapped[str] = mapped_column(String(48), primary_key=True)  # uuid or local-uuid
+    deleted_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class PhoneCode(Base):

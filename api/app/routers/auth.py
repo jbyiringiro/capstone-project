@@ -5,11 +5,33 @@ from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 
 from .. import schemas
-from ..dependencies import DbSession, Sms
+from ..dependencies import CurrentUser, DbSession, Sms
 from ..security import create_token
 from ..services import AccountService
+from ..services.email_accounts import EmailAccountService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/email/session", response_model=schemas.EmailSessionOut)
+def email_session(body: schemas.EmailSessionIn, db: DbSession):
+    """Link a verified Firebase Email/Password identity; name is required on first sign-in.
+
+    The returned bearer is the Firebase ID token itself and expires with it. Passwords and
+    refresh tokens stay outside Vuga's API. Existing phone accounts are kept separate.
+    """
+    user = EmailAccountService(db).session(body)
+    return schemas.EmailSessionOut(access_token=body.id_token, user=schemas.UserOut.model_validate(user))
+
+
+@router.post("/email/delete-account", status_code=204)
+def delete_email_account(body: schemas.EmailDelete, db: DbSession):
+    """Erase Vuga and Firebase account data after a password sign-in within five minutes.
+
+    Retry a partial provider cleanup with the same recent token and user_id. Vuga tombstones
+    prevent a deleted UID from recreating an account, including after provider outages.
+    """
+    EmailAccountService(db).delete_account(body)
 
 
 @router.post("/code", response_model=schemas.CodeSent, status_code=202)
@@ -32,6 +54,13 @@ def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], db: DbSession):
     return schemas.Token(access_token=create_token(user))
 
 
+@router.get("/me", response_model=schemas.UserOut)
+def me(user: CurrentUser):
+    """The signed-in account: its name (empty for accounts opened before names were asked for)
+    and number."""
+    return user
+
+
 @router.post("/reset-pin", status_code=204)
 def reset_pin(body: schemas.PinReset, db: DbSession):
     """Replaces a forgotten PIN, with the `reset` code texted to the number."""
@@ -42,3 +71,10 @@ def reset_pin(body: schemas.PinReset, db: DbSession):
 def change_pin(body: schemas.PinChange, db: DbSession):
     """Changes the PIN when the current one is known; it counts towards the lock like a sign-in."""
     AccountService(db).change_pin(body)
+
+
+@router.post("/delete-account", status_code=204)
+def delete_account(body: schemas.AccountDelete, db: DbSession):
+    """Erases the account and everything it keeps on the server, with the current PIN, which counts
+    towards the lock like a sign-in. Its sessions end, and the number can open a new account."""
+    AccountService(db).delete_account(body)

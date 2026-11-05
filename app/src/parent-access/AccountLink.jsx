@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../server/api-client.js'
 import { connectAccount } from '../server/account-backup.js'
 import { displayPhone, normalisePhone } from '../server/phone.js'
-import { usePhoneCode } from '../server/use-phone-code.js'
+import { codeSentText, usePhoneCode } from '../server/use-phone-code.js'
 import { localizedError } from '../shared/errors-rw.js'
 import { ParentAccessError, unlockParentAccess, validParentPin } from './parent-access.js'
-import { PhoneField, PinField, SmsCodeField, WRONG_PIN, errorText } from './forms.jsx'
+import { NameField, PhoneField, PinField, SmsCodeField, WRONG_PIN, caregiverName, errorText } from './forms.jsx'
+import EmailAccountLink from './EmailAccountLink.jsx'
 
 // Brings the account's copy onto this device, or saves this device to the account, and says what
 // happened. Without internet the copy simply waits for the next time.
@@ -22,25 +23,35 @@ export async function connectBackup(onDeviceRestored) {
   } catch { return 'Ibyo kuri konti bizahuzwa n’iki gikoresho ubutaha hari interineti.' }
 }
 
-// Links this device to a caregiver's Vuga account by mobile number. A new number gets a code by SMS
-// and a PIN: the one chosen here, or the device's own when it already has one (`devicePin`). A
-// number that has an account signs in with its PIN, and a forgotten PIN is replaced with a new code.
-// `onLinked` gets the number, the PIN and whether the account already existed.
-export default function AccountLink({ devicePin = false, onLinked, onSkip }) {
+// Links this device to a caregiver's Vuga account by mobile number. A new number gets a code by SMS,
+// the caregiver's own name and a PIN: the one chosen here, or the device's own when it already has
+// one (`devicePin`). A number that has an account signs in with its PIN, and a forgotten PIN is
+// replaced with a new code. `onLinked` gets the number, the PIN and whether the account already existed.
+export default function AccountLink(props) {
+  const [legacy, setLegacy] = useState(false)
+  const [legacyBusy, setLegacyBusy] = useState(false)
+  return legacy ? <>
+    <PhoneAccountLink {...props} onBusyChange={setLegacyBusy} />
+    <button type="button" className="parent-text-button" disabled={legacyBusy} onClick={() => setLegacy(false)}>Koresha email</button>
+  </> : <EmailAccountLink {...props} onLegacy={() => setLegacy(true)} />
+}
+
+function PhoneAccountLink({ devicePin = false, onLinked, onSkip, onBusyChange }) {
   const [step, setStep] = useState('number') // number | new | existing | reset
-  const [phone, setPhone] = useState(''), [code, setCode] = useState('')
+  const [phone, setPhone] = useState(''), [code, setCode] = useState(''), [name, setName] = useState('')
   const [pin, setPin] = useState(''), [confirmation, setConfirmation] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState('')
   const sms = usePhoneCode(), first = useRef(null)
   const number = sms.sentTo ?? normalisePhone(phone)
   useEffect(() => { setCode(''); setPin(''); setConfirmation(''); setError(''); if (step !== 'number') first.current?.focus() }, [step])
   async function run(event, task) {
-    event?.preventDefault(); setBusy(true); setError('')
+    event?.preventDefault(); setBusy(true); onBusyChange?.(true); setError('')
     try { await task() } catch (failure) {
-      // A request that never reached the server leaves the way without a number open.
-      const unreachable = failure?.localized && !failure.status
-      setError(errorText(failure) + (unreachable && onSkip ? ' Ushobora no gukomeza nta nimero.' : ''))
-    } finally { setBusy(false) }
+      // A request that never reached the server, or a server that cannot text codes, leaves the way
+      // without a number open.
+      const unavailable = failure?.localized && (!failure.status || failure.status === 503 || failure.status === 502)
+      setError(errorText(failure) + (unavailable && onSkip ? ' Ushobora no gukomeza nta nimero.' : ''))
+    } finally { setBusy(false); onBusyChange?.(false) }
   }
   const newPin = () => {
     if (!validParentPin(pin)) throw new ParentAccessError('format')
@@ -51,12 +62,14 @@ export default function AccountLink({ devicePin = false, onLinked, onSkip }) {
     catch (failure) { if (failure.status === 409) setStep('existing'); else throw failure }
   })
   const create = event => run(event, async () => {
+    if (!/^\d{6}$/.test(code)) throw new ParentAccessError('smscode')
+    const caregiver = caregiverName(name)
+    if (!caregiver) throw new ParentAccessError('name')
     if (devicePin) {
       const local = await unlockParentAccess(pin)
       if (!local.ok) throw localizedError(local.retryAfterMs ? `Wagerageje kenshi. Tegereza amasegonda ${Math.ceil(local.retryAfterMs / 1000)}, wongere ugerageze.` : WRONG_PIN)
     } else newPin()
-    if (!/^\d{6}$/.test(code)) throw new ParentAccessError('smscode')
-    await api.register(sms.sentTo, code, pin)
+    await api.register(sms.sentTo, code, pin, caregiver)
     await api.login(sms.sentTo, pin)
     await onLinked({ phone: sms.sentTo, pin, existing: false })
   })
@@ -79,6 +92,7 @@ export default function AccountLink({ devicePin = false, onLinked, onSkip }) {
   if (step === 'number') return <>
     <form onSubmit={askCode}>
       <PhoneField value={phone} setValue={setPhone} inputRef={first} disabled={busy} />
+      <p className="parent-access-note">Nimero ikoreshwa gusa kohereza kode no kwinjira. Abana bamenyekana kuri seriveri kuri kode gusa; amazina, amafoto n’amajwi biguma kuri iki gikoresho. <a href="/privacy.html" target="_blank" rel="noreferrer">Uko Vuga ibika amakuru</a></p>
       {alert}
       <button className="button-primary parent-submit" disabled={busy}>{busy ? 'Birimo kohereza…' : 'Ohereza kode'}</button>
     </form>
@@ -98,9 +112,10 @@ export default function AccountLink({ devicePin = false, onLinked, onSkip }) {
 
   const creating = step === 'new'
   return <>
-    <p role="status">Twohereje kode y’imibare 6 kuri {displayPhone(sms.sentTo)}. Imara iminota 10.</p>
+    <p role="status">{codeSentText(sms.delivery, displayPhone(sms.sentTo))}</p>
     <form onSubmit={creating ? create : reset}>
       <SmsCodeField value={code} setValue={setCode} inputRef={first} disabled={busy} />
+      {creating && <NameField value={name} setValue={setName} disabled={busy} />}
       {creating && devicePin
         ? <PinField label="Umubare w’ibanga usanzwe" value={pin} setValue={setPin} autoComplete="current-password" disabled={busy} />
         : <>

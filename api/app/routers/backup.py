@@ -32,7 +32,8 @@ def backup_status(user: CurrentUser, db: DbSession):
     return BackupService(db, user).status()
 
 
-@router.get("", response_model=schemas.BackupOut)
+# Exactly as saved: `deleted` appears only when the account has deleted children.
+@router.get("", response_model=schemas.BackupOut, response_model_exclude_unset=True)
 def load_backup(user: CurrentUser, db: DbSession):
     return BackupService(db, user).load()
 

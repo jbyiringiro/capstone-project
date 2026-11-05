@@ -34,6 +34,15 @@ def create_token(user: User) -> str:
 
 def current_user(token: Annotated[str, Depends(oauth2)],
                  db: Annotated[Session, Depends(get_db)]) -> User:
+    # Email accounts use Google's ID token directly. Only their provider's fixed RS256
+    # verifier can accept it; phone accounts continue using Vuga's HS256 tokens.
+    try:
+        if jwt.get_unverified_header(token).get("alg") == "RS256":
+            from .services.email_accounts import EmailAccountService
+
+            return EmailAccountService(db).authenticate(token)
+    except JWTError:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token") from None
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         subject = payload.get("sub")
@@ -41,7 +50,7 @@ def current_user(token: Annotated[str, Depends(oauth2)],
     except JWTError:
         user = None
     # A session opened before the PIN last changed is over.
-    if user is None or payload.get("ver") != user.token_version:
+    if user is None or user.firebase_uid is not None or payload.get("ver") != user.token_version:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid or expired token")
     return user
 

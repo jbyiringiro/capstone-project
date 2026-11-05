@@ -1,12 +1,14 @@
 # Free public hosting: Render + Neon
 
+**Email account update, 5 November 2026:** the working source now offers Firebase Spark Email/Password signup, email verification and password reset with a separate offline device PIN. Follow the [email account setup guide](email-accounts.md) to configure Firebase and rebuild/deploy both Render services. The source changes alone do not activate email on the hosted app. The SMS instructions below remain for existing phone accounts; the earlier hosted checks describe those older deployments.
+
 **Live on 4 November 2026:** [Vuga app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health), hosted on Render with Neon PostgreSQL. These public services run independently of the developer's computer.
 
 **Verified:** the frontend and install manifest are reachable, its bundle targets `https://vuga-api.onrender.com`, `/health` returns `status: "ok"` and `model_loaded: true`, and `/symbols` returns 188 symbols.
 
 **Desktop browser evidence, deployed commit `266dbfe`:** [hosted smoke-check results](evidence/hosted_smoke_2026-11-04.json) record the visible board, blocked browser API request and initial offline-cache progress. A fresh Edge context cached 91 files at 20 seconds and 450 at 180 seconds, with no observed download errors; installation was still in progress. Offline reload was not attempted, so this is not an offline pass or physical-device evidence. Keep the app online while its initial cache downloads, then verify a cold offline launch.
 
-**Still pending:** requests from the app's origin received no `Access-Control-Allow-Origin` header, and a browser fetch failed. Set the API's `VUGA_CORS_ORIGINS` to `["https://vuga-app.onrender.com"]` and redeploy, then repeat the browser check. Live SMS is not configured; phone registration and SMS PIN reset remain unavailable. Hosted offline readiness, physical-device and account-persistence checks below remain to be recorded.
+**Latest read-only check, 5 November 2026:** the frontend and API health endpoint returned 200, but the CORS preflight for `POST /auth/code` still returned 400, `Disallowed CORS origin`, with no `Access-Control-Allow-Origin`. The hosted health response also lacks the current code's `sms` field. See [raw results](evidence/hosted_check_2026-11-05.json). The local Blueprint now sets `VUGA_CORS_ORIGINS` to `["https://vuga-app.onrender.com"]`; this correction is **not active until the updated deployment branch is synced/deployed**. Live SMS setup and handset receipt remain unverified (section 4), as do hosted offline readiness, physical-device and account persistence. No SMS or account operation was performed by this check.
 
 ## Services and limits
 
@@ -15,6 +17,7 @@
 | React PWA | Render Static Site, free | Serves the board, pictures, audio, model and service worker over HTTPS |
 | FastAPI | Render Web Service, free Docker instance | Runs accounts, sync, backup and server-side prediction |
 | PostgreSQL | Neon Free project | Persists server data across API restarts and deployments |
+| Email authentication | Firebase Authentication, Spark | Verifies caregiver email and passwords; sends verification/reset emails |
 
 The [Render Blueprint](../render.yaml) provisions only the static site and free API. It does not create a paid service or Render database. Render's free database expires after 30 days, so use Neon for this setup.
 
@@ -35,28 +38,51 @@ Render's free API sleeps after 15 minutes without traffic and can take about a m
 ## 3. Deploy the Render Blueprint
 
 1. Create a Blueprint from the repository and intended branch, using `render.yaml` at the repository root. Inspect the proposed resources: `vuga-api` must use **Free**, and `vuga-app` must be a static site. Stop if the dashboard proposes paid resources.
-2. Set `VUGA_DATABASE_URL` to the Neon secret. For the initial `VUGA_CORS_ORIGINS`, use `[]`; this permits deployment without guessing the app's hostname. Cross-origin browser account requests will remain blocked until step 4.
+2. Set `VUGA_DATABASE_URL` to the Neon secret. The Blueprint supplies the known public app origin as `VUGA_CORS_ORIGINS`; use the exact frontend origin if deploying under a different hostname.
 3. Render generates a persistent `VUGA_JWT_SECRET`. Retain it across deployments. The Docker process binds to Render's `PORT`, and startup creates/seeds the schema in the fresh database.
-4. Set the API's `VUGA_CORS_ORIGINS` to `["https://vuga-app.onrender.com"]`, with no trailing slash in the origin, then redeploy the API. If the app hostname changes, update this value too. `sync: false` preserves this dashboard-managed value on later Blueprint syncs.
+4. Sync the updated Blueprint and deploy the API so `VUGA_CORS_ORIGINS=["https://vuga-app.onrender.com"]` takes effect. This public value is managed in `render.yaml`, since `sync: false` does not update existing variables during Blueprint syncs. For an immediate dashboard correction, open **vuga-api → Environment**, set that value and select **Save and deploy**. If the hostname changes, update the Blueprint too. Use no trailing slash. See [Render's Blueprint environment-variable rules](https://render.com/docs/blueprint-spec) and [dashboard instructions](https://render.com/docs/configure-environment-variables).
 5. The frontend's `VITE_API_BASE` references the API's public `RENDER_EXTERNAL_URL`. If creating services manually, set it to the API's full HTTPS URL before building the frontend. Never use a private Render hostname or `localhost:8000`.
 6. Record both actual URLs and the deployed commit. Future releases are manual (`autoDeployTrigger: off`): run the checks and explicitly deploy the reviewed commit. A Blueprint sync can also apply configuration changes.
 
 The frontend build command is `cd app && npm ci && npm test && npm run build`; the publish folder is `app/dist`. The API Dockerfile is `api/Dockerfile` with build context `.`. The Blueprint sets the SPA rewrite and revalidates the service worker, HTML and install manifest. See [Render Blueprint reference](https://render.com/docs/blueprint-spec) and [public service URL variables](https://render.com/docs/environment-variables).
 
-## 4. SMS accounts
+## 4. Live SMS (Africa's Talking)
 
-Free hosting does not provide free delivery of text messages. The deployed configuration disables the development fallback that prints codes to logs. Without an SMS provider key, code requests return the existing delivery-failure response; they do not claim an SMS was sent. The communication board and local caregiver PIN still work through **Komeza nta nimero**. New phone-account registration and SMS PIN reset remain unavailable until live delivery is configured.
+Free hosting does not provide free delivery of text messages. New accounts can use [verified email](email-accounts.md); this section is for the legacy phone option. The deployed configuration disables the development fallback that prints codes to logs. The communication board and local caregiver PIN work without SMS through **Komeza nta konti**, and a forgotten PIN can be replaced with the recovery code written down at setup.
 
-When live Africa's Talking delivery is ready, set these as API runtime variables in Render, then redeploy:
+**What happens to a code request.** The app sends `POST /auth/code` with the number. The API accepts only a Rwandan mobile number, allows one code a minute and five an hour per number and purpose, and then:
+
+| API set-up | What the API does | What the caregiver sees |
+|---|---|---|
+| No API key, `VUGA_SMS_LOG_ENABLED=false` (public host now) | Refuses with **503** `sms is not set up on this server`; no code is stored | SMS is not set up on the Vuga server; they can continue without a number |
+| Username `sandbox` and a sandbox key | Sends to Africa's Talking's **sandbox simulator**; **202** with `delivery: "simulator"` | The code went to the provider's simulator and will not reach a phone |
+| Live username and live key | `POST https://api.africastalking.com/version1/messaging` (form fields `username`, `to`, `message`, optional `from`; header `apiKey`); **202** with `delivery: "sms"` when the recipient's status is 100, 101 or 102 | A code was sent, valid 10 minutes |
+| Provider refusal (wrong key or username, or a status such as 401 RiskHold, 402 InvalidSenderId, 403 InvalidPhoneNumber, 405 InsufficientBalance) | **502**; no code is stored; the API log names the HTTP status or recipient status, never the number, code or key | The SMS could not be sent; try again later |
+| Uncertain outcome (timeout, HTTP 408/5xx, malformed or unknown provider response) | **502**; keeps an inactive send reservation, the cooldown and hourly budget; never activates an unconfirmed code | Sending could not be confirmed; another request may need to wait for the cooldown |
+
+A 202 means Africa's Talking **accepted** the text. Its status 101 "Sent" means it was handed to the mobile network, not that it reached the phone ([Africa's Talking messaging error codes](https://help.africastalking.com/en/articles/16150386-messaging-error-codes)). Only the delivery report (Success) in the Africa's Talking dashboard, or the code arriving on the handset, shows delivery. The API's request matches Africa's Talking's own Python SDK (live host `api.africastalking.com`, sandbox host `api.sandbox.africastalking.com`, sandbox chosen only by the username `sandbox`). Their developer documentation refused automated access when this was written, so check it from a browser before going live.
+
+**Steps to turn on live SMS** (all outside the repository; none can be done from code):
+
+1. Fix CORS first (section 3, step 4). Until then the browser never reaches `/auth/code`.
+2. In Africa's Talking, create or open a **live** app (not the sandbox), note its exact **username**, and generate an **API key** for that live app. A sandbox key does not work on the live host, and a live key with the username `sandbox` goes to the simulator host and is refused.
+3. Add SMS credit to the live account. Without it, texts are refused as InsufficientBalance (405). Check the per-SMS price for Rwanda in the dashboard.
+4. **Sender ID for Rwanda.** Africa's Talking's [Rwanda sender ID requirements](http://help.africastalking.com/en/articles/11581484-rwanda-sender-id-requirements) ask for procuration letters for MTN and Airtel on company letterhead, stamped and signed, and the certificate of company registration. Until a sender ID is approved, leave `VUGA_AFRICASTALKING_SENDER_ID` unset so the account's default sender is used. Whether the default sender is delivered on Rwandan networks could not be confirmed. If texts come back refused (402 InvalidSenderId or 502 RejectedByGateway, or Rejected in the delivery reports), an approved sender ID is required.
+5. In Render, open `vuga-api` → **Environment**, set the variables below, save, and deploy the API manually (`autoDeployTrigger: off`). The deployed commit must include this version of the API; `266dbfe` on `deploy/vuga-cloud` does not report `sms` in `/health`.
 
 | Variable | Value |
 |---|---|
-| `VUGA_AFRICASTALKING_USERNAME` | Live app username; `sandbox` sends to a simulator, not a phone |
-| `VUGA_AFRICASTALKING_API_KEY` | Secret live API key |
-| `VUGA_AFRICASTALKING_SENDER_ID` | Approved sender ID, if required by the account |
+| `VUGA_AFRICASTALKING_USERNAME` | The live app's username, exactly; `sandbox` sends to the simulator, not a phone |
+| `VUGA_AFRICASTALKING_API_KEY` | The live app's API key (secret; dashboard only, never in Git, chat or screenshots) |
+| `VUGA_AFRICASTALKING_SENDER_ID` | The approved sender ID, or leave unset |
 | `VUGA_SMS_LOG_ENABLED` | Keep `false` |
 
-Confirm the provider's charges and account requirements before sending real SMS. Do not publish or ask users to retrieve authentication codes from logs.
+6. Check the mode without texting anyone: `GET https://vuga-api.onrender.com/health` must show `"sms": "sms"` (`simulator` is the sandbox, `off` means no key). This identifies the configured sender; it does not validate its key, balance or delivery. The Render log shows one line at startup saying where codes go.
+7. Check delivery with **one approved test number** (your own phone), and record three results separately: the app's message that a code was sent (the provider **accepted** it); the text's status in the Africa's Talking SMS log (**delivered**, or why not); and the text **arriving on the phone**, with its code opening the account once. Then check a wrong code (it says how many tries are left), the one-minute wait before another code, and a code older than 10 minutes. Mocked tests and provider acceptance are not proof of receipt.
+
+Do not publish or ask users to retrieve authentication codes from logs. Vuga does not process Africa's Talking's delivery-report callbacks; use their dashboard.
+
+**Retry semantics.** The database reserves each send before contacting the provider. A definite refusal restores the previous code and send count only if that reservation is still current. Unknown outcomes and interrupted workers keep the reservation: an SMS might already have left the provider, so retrying cannot bypass the one-minute/five-per-hour limits. A late response cannot overwrite a newer code. Provider logs contain bounded numeric status codes only, never response bodies or provider-supplied descriptions that might echo credentials or message text.
 
 ## 5. Verify the deployed system
 
@@ -71,6 +97,6 @@ Use test data and record actual outcomes; this checklist is not a claim of passi
 
 ## Persistent data and future changes
 
-The fresh database is initialized with `create_all()`; existing databases are not migrated automatically. Before changing a deployed schema, add an explicit migration and take a database export. Keep backups outside the repository and do not use the API container's local SQLite file for persistent hosting. The Docker context excludes local databases, secrets, raw corpora and large training artefacts.
+The email release runs an idempotent migration before serving requests: it adds email/Firebase identity fields, allows phone/password hash to be null for email accounts, and creates the identity and deleted-profile tables. PostgreSQL inspection, schema changes and table creation share one transaction and advisory lock, including simultaneous fresh-database starts. Five checks passed against disposable PostgreSQL 17.11, covering existing records/constraints, rollback and concurrent startup. This does not replace taking a Neon backup or validating the actual cloud database. Back up the deployed database before upgrading; retain its URL and JWT secret. Keep backups outside the repository and do not use the API container's local SQLite file for persistent hosting. See the [email account guide](email-accounts.md). The Docker context excludes local databases, secrets, raw corpora and large training artefacts.
 
 Record the deployed commit and remaining verification results alongside the URLs above. Stop the temporary tunnel only after the permanent app has been verified.

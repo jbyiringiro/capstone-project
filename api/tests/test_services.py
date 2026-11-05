@@ -3,7 +3,7 @@ import io
 import json
 import uuid
 from datetime import UTC, datetime, timedelta
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import parse_qs
 
 import pytest
@@ -230,3 +230,41 @@ def test_africas_talking_gets_the_number_text_and_key_and_its_refusals_are_failu
                   URLError("no route to host")):
         with pytest.raises(SmsFailed):
             _africas_talking(reply).send("+250788123456", "x")
+
+
+def test_africas_talking_refusals_are_logged_with_their_reason_but_never_the_number_key_or_code(caplog):
+    refused = HTTPError("https://api.africastalking.com/version1/messaging", 401, "Unauthorized", {},
+                        io.BytesIO(b"The supplied authentication is invalid: key-1 +250788123456 482913"))
+    untrusted_label = _recipients(402)
+    untrusted_label["SMSMessageData"]["Recipients"][0]["status"] = "key-1 +250788123456 482913"
+    for reply in (refused, _recipients(405), untrusted_label, _recipients(482913)):
+        with pytest.raises(SmsFailed):
+            _africas_talking(reply).send("+250788123456", "Vuga: kode ni 482913")
+    logged = " ".join(record.getMessage() for record in caplog.records)
+    assert "HTTP 401" in logged and "supplied authentication is invalid" not in logged
+    assert "405" in logged and "402" in logged
+    for secret in ("788123456", "482913", "key-1"):
+        assert secret not in logged
+
+
+@pytest.mark.parametrize(("reply", "uncertain"), [
+    (_recipients(405), False),
+    (HTTPError("https://sms.example", 401, "Unauthorized", {}, io.BytesIO(b"refused")), False),
+    (HTTPError("https://sms.example", 429, "Too Many Requests", {}, io.BytesIO(b"refused")), False),
+    (HTTPError("https://sms.example", 408, "Request Timeout", {}, io.BytesIO(b"unknown")), True),
+    (HTTPError("https://sms.example", 503, "Unavailable", {}, io.BytesIO(b"unknown")), True),
+    (URLError("synthetic connection failure"), True),
+    (TimeoutError("synthetic transport timeout"), True),
+    ({"unexpected": "response"}, True),
+    (b"not JSON", True),
+    (_recipients(), True),
+    (_recipients(500), True),
+    (_recipients(201), True),
+    (_recipients(101, 405), True),
+    (_recipients("101"), True),
+    (_recipients({"unexpected": "shape"}), True),
+])
+def test_sms_failure_distinguishes_refusal_from_unknown_delivery(reply, uncertain):
+    with pytest.raises(SmsFailed) as refused:
+        _africas_talking(reply).send("+250780000099", "synthetic test code")
+    assert refused.value.delivery_uncertain is uncertain

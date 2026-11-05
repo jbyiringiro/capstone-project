@@ -16,13 +16,27 @@ services:
       - key: VUGA_JWT_SECRET
         generateValue: true
       - key: VUGA_CORS_ORIGINS
-        sync: false
+        # Public frontend origin, managed here so Blueprint sync repairs stale dashboard values.
+        value: '["https://vuga-app.onrender.com"]'
       - key: VUGA_MODEL_DIR
         value: /srv/ml/artifacts
       - key: VUGA_DEFAULT_MODEL
         value: kn_trigram.json
+      # Firebase Spark Email/Password web config; no private service-account key required.
+      - key: VUGA_FIREBASE_PROJECT_ID
+        value: vuga-sms-test
+      - key: VUGA_FIREBASE_API_KEY
+        sync: false
+      # Never log codes on a public host. The provider settings below are set in the dashboard
+      # (sync: false) and never committed; see docs/hosting.md, "Live SMS".
       - key: VUGA_SMS_LOG_ENABLED
         value: "false"
+      - key: VUGA_AFRICASTALKING_USERNAME
+        sync: false
+      - key: VUGA_AFRICASTALKING_API_KEY
+        sync: false
+      - key: VUGA_AFRICASTALKING_SENDER_ID
+        sync: false
 
   - type: web
     name: vuga-app
@@ -38,6 +52,16 @@ services:
           type: web
           name: vuga-api
           envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_FIREBASE_PROJECT_ID
+        fromService:
+          type: web
+          name: vuga-api
+          envVarKey: VUGA_FIREBASE_PROJECT_ID
+      - key: VITE_FIREBASE_API_KEY
+        fromService:
+          type: web
+          name: vuga-api
+          envVarKey: VUGA_FIREBASE_API_KEY
     routes:
       - type: rewrite
         source: /*

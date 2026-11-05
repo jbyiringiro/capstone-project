@@ -2,7 +2,8 @@
    toolbar, and a dense grid of keys separated by thin lines. Each key shows its word on top and its
    picture below, on a colour for its word type (people and pronouns yellow, actions green,
    describing and feelings blue, naming words orange, time tan, questions purple, social words
-   pink). Every picture keeps one place. */
+   pink). The pictures keep their order; hidden words leave no gap, and only the end of the last
+   page is blank (.grid-slot). */
 .board { --board-green: var(--teal); --key-line: #6E7781; height: 100dvh; display: flex; flex-direction: column; background: #FFFFFF; color: #111; position: relative; overflow: hidden; }
 
 /* Speech display bar: the chosen words as text, then Vuga, clear and the black delete key. */

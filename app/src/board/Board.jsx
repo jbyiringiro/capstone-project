@@ -52,8 +52,8 @@ function useGridArea(ref, visible) {
 // The child's board, with Vuga's own pictures: the speech display bar on top, a thin green toolbar,
 // and a dense grid of keys that fills the rest of the screen. Section tabs above the pictures let the
 // child pick a section, starting at Ingenzi; with the tabs turned off, the child sees the one section
-// the caregiver chooses. Every picture keeps one place: hidden words leave their slot empty, and a
-// next-words page opens in the same grid.
+// the caregiver chooses. The pictures keep their order; words a caregiver hides for this child are
+// left out, so the rest close up with no gaps, and a next-words page opens in the same grid.
 export default function Board({
   symbols, byKey, allowed, mode, profileId, profileCode, predictor, onOpenAdult,
   preferences = DEFAULT_PREFERENCES, visible = true
@@ -114,16 +114,19 @@ export default function Board({
   useEffect(() => { setCategory(home); setPage(0); setRelated(null) }, [home, tabs, placeOrder])
   useEffect(() => { if (tabs && !categories.includes(category)) setCategory('core') }, [tabs, categories, category])
   const nextWords = key => relatedWords(key, preferences.relatedLists).filter(next => byKey[next] && allowed.has(next))
-  // Every word of the view keeps its slot; words this board hides are null and show as an empty slot.
-  const slots = useMemo(() => {
+  // The view's pictures in their fixed order, without the words this child's board hides, so the
+  // others close up (grid-pages.js).
+  const shownSymbols = useMemo(() => {
     const keys = related ? relatedWords(related.key, preferences.relatedLists) : sectionKeys(category, symbols, placeWords)
-    return keys.filter(key => byKey[key]).map(key => (allowed.has(key) ? byKey[key] : null))
+    return keys.filter(key => byKey[key] && allowed.has(key)).map(key => byKey[key])
   }, [related, category, symbols, byKey, allowed, placeWords, preferences.relatedLists])
   const shape = gridShape(preferences.gridSize, area.width, area.height, preferences.largeTiles)
-  const grid = gridPage(slots, shape, page)
-  const shown = grid.cells.filter(Boolean).length
+  const grid = gridPage(shownSymbols, shape, page)
+  const shown = grid.cells.length
   const suggestions = suggestedKeys.map(key => byKey[key]).filter(Boolean)
-  useEffect(() => { if (related && !slots.some(Boolean)) { setPage(related.page); setRelated(null) } }, [related, slots])
+  useEffect(() => { if (related && !shownSymbols.length) { setPage(related.page); setRelated(null) } }, [related, shownSymbols])
+  // Hiding words or a smaller grid can leave fewer pages: the board stays on the last one there is.
+  useEffect(() => { if (page !== grid.page) setPage(grid.page) }, [page, grid.page])
 
   const persist = (type, extra) => session.current.record(type, extra)
     .catch(() => setNotice('Ubutumwa ntibwabashije kubikwa kuri iki gikoresho. Buracyagaragara. Banza urebe niba ububiko bukora.'))
@@ -307,10 +310,8 @@ export default function Board({
 
       <section ref={gridArea} className={`symbol-area ${related ? 'related-page' : ''}`} aria-label={title}>
         <main ref={gridRef} className="symbol-grid grid" aria-label={`Amashusho: ${title}`}>
-          {grid.cells.map((symbol, index) => symbol
-            ? <SymbolCell key={symbol.symbol_id} symbol={symbol} onPress={select} disabled={speaking}
-              selected={message.includes(symbol.symbol_id)} realistic={realistic} showLabel={labels} />
-            : <span key={`hidden-${index}`} className="grid-slot" aria-hidden="true" />)}
+          {grid.cells.map(symbol => <SymbolCell key={symbol.symbol_id} symbol={symbol} onPress={select} disabled={speaking}
+            selected={message.includes(symbol.symbol_id)} realistic={realistic} showLabel={labels} />)}
           {shown > 0 && Array.from({ length: grid.empty }, (_, i) => <span key={`empty-${i}`} className="grid-slot" aria-hidden="true" />)}
           {!shown && <div className="board-empty empty"><Icon name="leaf" /><h3>Amashusho yawe</h3><p>Nta mashusho yatoranyijwe. Umurezi ashobora kugufasha guhitamo ayo ukeneye.</p><button className="button-outline" onClick={() => onOpenAdult()}><Icon name="settings" />Umurezi</button></div>}
         </main>

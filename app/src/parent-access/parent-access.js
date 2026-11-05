@@ -1,4 +1,5 @@
 import { db } from '../storage/db.js'
+import { sameAccount } from '../server/account-identity.js'
 
 // A local adult gate, not a server account or protection against device owners.
 // Never persist a PIN, a recovery code or an unlocked session. Storage errors fail closed.
@@ -47,6 +48,18 @@ function status(value, now) {
 
 export async function getParentAccessStatus(now = Date.now()) {
   return status(checked(await db.settings.get(PARENT_ACCESS_KEY)), now)
+}
+
+const credentialVersion = value => value && JSON.stringify([
+  value.version, value.salt, value.digest, value.recoverySalt ?? null, value.recoveryDigest ?? null
+])
+
+// Capture before cloud reauthentication, then compare in the same transaction as the new PIN.
+// Attempt counters may change while signing in; replacing the PIN/recovery credential may not.
+export async function getParentPinVersion() {
+  const value = checked(await db.settings.get(PARENT_ACCESS_KEY))
+  if (!value) throw new ParentAccessError('unconfigured')
+  return credentialVersion(value)
 }
 
 async function derive(secret, salt) {
@@ -132,8 +145,18 @@ export async function recoverParentPin(code, pin, confirmation) {
 }
 
 // Called only after the adult has signed in to the Vuga account linked to this device.
-export async function resetParentPinWithAccount(pin, confirmation) {
+export async function resetParentPinWithAccount(pin, confirmation, proof = null) {
   const next = await credential(pin, confirmation)
-  await db.settings.put({ key: PARENT_ACCESS_KEY, value: next.value })
+  await db.transaction('rw', db.settings, async () => {
+    if (proof) {
+      const account = (await db.settings.get('account'))?.value
+      const token = (await db.settings.get('token'))?.value
+      const current = checked(await db.settings.get(PARENT_ACCESS_KEY))
+      if (!proof.account?.user_id || !proof.token || !proof.gate
+        || !sameAccount(account, proof.account) || token !== proof.token
+        || credentialVersion(current) !== proof.gate) throw new ParentAccessError('changed')
+    }
+    await db.settings.put({ key: PARENT_ACCESS_KEY, value: next.value })
+  })
   return { ok: true, retryAfterMs: 0, recoveryCode: next.recoveryCode }
 }

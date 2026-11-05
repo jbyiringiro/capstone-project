@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from itertools import pairwise
 from typing import Annotated, Any, Literal
 
@@ -20,6 +21,7 @@ Role = Literal["teacher", "caregiver", "administrator"]
 ActionType = Literal["select", "navigate", "correct", "speak"]
 BoardMode = Literal["static", "predictive"]
 CodePurpose = Literal["register", "reset"]
+SmsDelivery = Literal["sms", "simulator", "log"]
 
 # A Rwandan mobile number (MTN 078 and 079, Airtel 072 and 073) in any usual spelling. It is kept
 # as +2507XXXXXXXX, the form SMS services take, so 0788 123 456 and +250 788 123 456 are one account.
@@ -52,20 +54,38 @@ class CodeRequest(BaseModel):
 class CodeSent(BaseModel):
     resend_after: int  # seconds before another code may be asked for
     expires_in: int  # seconds the code works
+    # Where the code went: a phone (`sms`), the provider's sandbox simulator, or the server's log
+    # in local development. The provider taking the text does not yet mean the phone received it.
+    delivery: SmsDelivery
+
+
+NAME_MAX = 120  # users.name
+
+
+def _caregiver_name(value: str) -> str:
+    """The adult's own name, in any script, with its spaces tidied: required, at most 120
+    characters, and no control characters."""
+    name = " ".join(value.split())
+    if not name:
+        raise ValueError("name is required")
+    if len(name) > NAME_MAX:
+        raise ValueError(f"name must be at most {NAME_MAX} characters")
+    if any(unicodedata.category(character) == "Cc" for character in name):
+        raise ValueError("name must not contain control characters")
+    return name
+
+
+# The caregiver who opens the account, not a child: children go by codes on the server.
+CaregiverName = Annotated[str, Field(max_length=2 * NAME_MAX), AfterValidator(_caregiver_name)]
 
 
 class UserCreate(BaseModel):
-    name: str = Field(default="", max_length=120)  # optional: the number identifies the account
+    name: CaregiverName
     phone: MobileNumber
     code: SmsCode  # texted to `phone`: the caregiver holds the number
     # Privileged accounts must be provisioned by the deployment operator.
     role: Literal["teacher", "caregiver"] = "teacher"
     pin: Pin
-
-    @field_validator("name", mode="before")
-    @classmethod
-    def trim_name(cls, value):
-        return value.strip() if isinstance(value, str) else value
 
 
 class PinReset(BaseModel):
@@ -82,10 +102,19 @@ class PinChange(BaseModel):
     new_pin: Pin
 
 
+class AccountDelete(BaseModel):
+    """Erasing the account, with its number and current PIN."""
+
+    phone: MobileNumber
+    pin: str = Field(max_length=72)  # checked like a sign-in
+
+
 class UserOut(BaseModel):
     user_id: str
-    name: str
-    phone: str
+    name: str  # empty for accounts opened before a name was asked for
+    phone: str | None
+    email: str | None = None
+    auth_provider: Literal["phone", "firebase"] = "phone"
     role: Role
     model_config = {"from_attributes": True}
 
@@ -93,6 +122,22 @@ class UserOut(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+class EmailSessionIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id_token: str = Field(min_length=1, max_length=16384)
+    name: CaregiverName | None = None
+
+
+class EmailSessionOut(Token):
+    user: UserOut
+
+
+class EmailDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id_token: str = Field(min_length=1, max_length=16384)
+    user_id: str = Field(min_length=1, max_length=36)
 
 
 # An age or age band such as 7, 6-8 or 12+, and how the child reaches the screen. Neither can hold
@@ -105,6 +150,21 @@ class ProfileCreate(BaseModel):
     code: str = Field(pattern=r"^[A-Z]-\d{2,3}$", description="pseudonymous code such as P-07")
     age_band: AgeBand | None = None
     access_method: AccessMethod = "touch"
+
+
+class ProfileUpdate(BaseModel):
+    """A child's new code or age band; what is left out stays as it is. The id stays, so the
+    child's words and synced messages stay theirs."""
+
+    model_config = ConfigDict(extra="forbid")
+    code: str | None = Field(default=None, pattern=r"^[A-Z]-\d{2,3}$")
+    age_band: AgeBand | None = None
+
+    @model_validator(mode="after")
+    def code_is_never_cleared(self):
+        if "code" in self.model_fields_set and self.code is None:
+            raise ValueError("a child keeps a code")
+        return self
 
 
 class ProfileOut(BaseModel):
@@ -320,6 +380,9 @@ class BackupData(BaseModel):
     profiles: list[BackupProfile] = Field(max_length=200)
     vocabulary: list[BackupWord] = Field(max_length=20_000)
     settings: list[BackupSetting] = Field(max_length=2_000)
+    # Children the caregiver deleted, by id only. The account remembers them, so a copy saved
+    # later from a device that still had one of them cannot bring it back (services/backups.py).
+    deleted: list[ProfileId] | None = Field(default=None, max_length=1_000)
 
 
 class BackupIn(BaseModel):

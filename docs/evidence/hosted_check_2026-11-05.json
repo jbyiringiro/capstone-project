@@ -1,0 +1,50 @@
+{
+  "checked_on": "2026-11-05",
+  "time_zone": "UTC",
+  "observed_at_utc": "2026-11-05T10:55:13Z",
+  "method": "Read-only HTTPS requests from PowerShell Invoke-WebRequest. No authorization headers, account operations, SMS requests, or production database access.",
+  "checks": [
+    {
+      "method": "GET",
+      "url": "https://vuga-app.onrender.com/",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "observed_title": "Vuga",
+      "result": "Frontend HTML reachable. This does not establish interactive functionality or offline readiness."
+    },
+    {
+      "method": "GET",
+      "url": "https://vuga-api.onrender.com/health",
+      "status": 200,
+      "content_type": "application/json",
+      "body": { "status": "ok", "model_loaded": true },
+      "result": "API and model reachable. Response has no SMS delivery-mode field; it does not match the current local health response. Database persistence and SMS delivery were not tested."
+    },
+    {
+      "method": "OPTIONS",
+      "url": "https://vuga-api.onrender.com/auth/code",
+      "request_headers": {
+        "Origin": "https://vuga-app.onrender.com",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "content-type"
+      },
+      "status": 400,
+      "access_control_allow_origin": null,
+      "body": "Disallowed CORS origin",
+      "result": "Failed: hosted frontend origin is rejected by the API preflight. No POST /auth/code request was sent."
+    }
+  ],
+  "required_correction": {
+    "service": "vuga-api",
+    "environment_variable": "VUGA_CORS_ORIGINS",
+    "value": "[\"https://vuga-app.onrender.com\"]",
+    "activation": "Apply in Render and redeploy, or sync a deployed Blueprint containing this nonsecret value, then repeat the preflight."
+  },
+  "not_verified": [
+    "Live SMS provider configuration, acceptance or handset delivery",
+    "Exact deployed commit",
+    "Database persistence",
+    "Browser interaction or offline launch",
+    "Physical-device compatibility"
+  ]
+}
