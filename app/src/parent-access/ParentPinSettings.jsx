@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, getLinkedAccount } from '../server/api-client.js'
+import { emailAuth } from '../server/email-auth.js'
 import { displayPhone } from '../server/phone.js'
 import { localizedError } from '../shared/errors-rw.js'
 import {
@@ -8,6 +9,7 @@ import {
 } from './parent-access.js'
 import AccountLink, { connectBackup } from './AccountLink.jsx'
 import RecoveryCode from './RecoveryCode.jsx'
+import EmailPasswordReset from './EmailPasswordReset.jsx'
 import { Cooldown, MESSAGES, PasswordField, PinField, errorText, usePinForm } from './forms.jsx'
 import './parent-access.css'
 
@@ -21,6 +23,7 @@ export default function ParentPinSettings({ onDeviceRestored }) {
   const [account, setAccount] = useState(undefined), [linkNote, setLinkNote] = useState(''), [linkRecovery, setLinkRecovery] = useState('')
   const eraseForm = usePinForm(), [erasing, setErasing] = useState(false)
   const [erasePassword, setErasePassword] = useState(''), [resetBusy, setResetBusy] = useState(false), [resetError, setResetError] = useState('')
+  const [resetOpen, setResetOpen] = useState(false)
   const [unlinking, setUnlinking] = useState(false), [unlinkBusy, setUnlinkBusy] = useState(false)
   const accountAddress = account?.email || (account?.phone ? displayPhone(account.phone) : '')
   useEffect(() => {
@@ -71,14 +74,15 @@ export default function ParentPinSettings({ onDeviceRestored }) {
   }
   // A number that already had an account brings its PIN, which becomes this device's PIN too.
   // Email accounts always keep the local PIN that AccountLink checked before linking.
-  async function linked({ phone, email, user_id, pin, existing }) {
+  async function linked({ phone, email, user_id, auth_provider, pin, existing }) {
     const replaced = !email && existing ? await resetParentPinWithAccount(pin, pin) : null
     const backup = await connectBackup(onDeviceRestored)
-    setAccount((await getLinkedAccount().catch(() => null)) ?? (email ? { email, user_id, auth_provider: 'firebase' } : { phone }))
+    setAccount((await getLinkedAccount().catch(() => null)) ?? (email ? { email, user_id, auth_provider: auth_provider || emailAuth.provider } : { phone }))
     setLinkNote(`Iki gikoresho gihujwe na konti ya ${email || displayPhone(phone)}.${email ? ' Umubare w’ibanga w’iki gikoresho ntiwahindutse.' : existing ? ' Umubare w’ibanga wa konti ni wo ukoreshwa no kuri iki gikoresho.' : ''} ${backup}`.trim())
     if (replaced) { setLinkRecovery(replaced.recoveryCode); setRecoverable(true) }
   }
   async function resetEmailPassword() {
+    if (emailAuth.verificationMethod === 'code') { setResetOpen(true); setLinkNote(''); setResetError(''); return }
     setResetBusy(true); setResetError(''); setLinkNote('')
     try {
       await api.requestEmailPasswordReset(account.email)
@@ -105,7 +109,9 @@ export default function ParentPinSettings({ onDeviceRestored }) {
           {linkNote && <p role="status">{linkNote}</p>}
           {account.email && <>
             {resetError && <p role="alert" className="parent-form-error">{resetError}</p>}
-            <button type="button" className="parent-text-button" disabled={resetBusy || unlinkBusy || eraseForm.busy} onClick={resetEmailPassword}>{resetBusy ? 'Birimo kohereza…' : 'Hindura ijambo ry’ibanga rya konti ukoresheje email'}</button>
+            {resetOpen ? <EmailPasswordReset initialEmail={account.email} readOnly onBusyChange={setResetBusy}
+              onBack={() => setResetOpen(false)} onDone={() => { setResetOpen(false); setLinkNote('Ijambo ry’ibanga rya konti ryahinduwe. Umubare w’ibanga w’iki gikoresho ntiwahindutse.') }} />
+              : <button type="button" className="parent-text-button" disabled={resetBusy || unlinkBusy || eraseForm.busy} onClick={resetEmailPassword}>{resetBusy ? 'Birimo kohereza…' : 'Hindura ijambo ry’ibanga rya konti ukoresheje email'}</button>}
             {unlinking && <p role="status">Guhagarika guhuza iki gikoresho na konti ntibisiba konti yo kuri seriveri cyangwa amakuru y’abana ari hano. Kubika no kugarura iby’iyi konti bizasaba kongera kwinjira.</p>}
             <button type="button" className="parent-text-button" disabled={unlinkBusy || resetBusy || eraseForm.busy} onClick={unlink}>{unlinkBusy ? 'Birimo guhagarikwa…' : unlinking ? 'Yego, hagarika guhuza iki gikoresho' : 'Hagarika guhuza iki gikoresho na konti'}</button>
             {unlinking && <button type="button" className="parent-text-button" disabled={unlinkBusy} onClick={() => setUnlinking(false)}>Reka, gumana konti ihujwe</button>}

@@ -51,6 +51,15 @@ describe('account identity and backup ownership', () => {
     expect(sameAccount({ phone: '+250788123456', user_id: 'old' }, { phone: '+250788123456', user_id: 'new' })).toBe(false)
   })
 
+  it('keeps Neon ownership and refuses to merge a prior Firebase account by email', () => {
+    const neon = { ...FIRST, user_id: 'neon-vuga-user', auth_provider: 'neon' }
+    expect(accountIdentity(neon)).toEqual({ user_id: neon.user_id, email: neon.email, auth_provider: 'neon' })
+    expect(sameAccount(neon, FIRST)).toBe(false)
+    expect(sameAccount(neon, { email: FIRST.email })).toBe(false)
+    expect(sameAccount(neon, { ...neon, email: 'renamed@example.test' })).toBe(true)
+    expect(sameAccount({ phone: '+250788123456', auth_provider: 'neon' }, { phone: '+250788123456' })).toBe(false)
+  })
+
   it('rejects a saved backup join from a former owner of the same email without any upload', async () => {
     await device(SECOND, FIRST)
     const remote = remoteCopy()

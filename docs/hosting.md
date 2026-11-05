@@ -1,6 +1,6 @@
 # Free public hosting: Render + Neon
 
-**Email account update, 5 November 2026:** the working source now offers Firebase Spark Email/Password signup, email verification and password reset with a separate offline device PIN. Follow the [email account setup guide](email-accounts.md) to configure Firebase and rebuild/deploy both Render services. The source changes alone do not activate email on the hosted app. The SMS instructions below remain for existing phone accounts; the earlier hosted checks describe those older deployments.
+**Render + Neon migration, 5 November 2026:** the selected deployment now uses Neon Managed Better Auth with email verification codes. Follow the [Neon account setup and release checks](neon-auth.md). Implementation and live deployment status must be reported separately. Firebase and SMS instructions further below describe earlier releases and are not the selected configuration.
 
 **Live on 4 November 2026:** [Vuga app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health), hosted on Render with Neon PostgreSQL. These public services run independently of the developer's computer.
 
@@ -17,7 +17,7 @@
 | React PWA | Render Static Site, free | Serves the board, pictures, audio, model and service worker over HTTPS |
 | FastAPI | Render Web Service, free Docker instance | Runs accounts, sync, backup and server-side prediction |
 | PostgreSQL | Neon Free project | Persists server data across API restarts and deployments |
-| Email authentication | Firebase Authentication, Spark | Verifies caregiver email and passwords; sends verification/reset emails |
+| Email authentication | Neon Managed Better Auth, Free | Email/password accounts, verification codes and password recovery; shared sender has testing limits |
 
 The [Render Blueprint](../render.yaml) provisions only the static site and free API. It does not create a paid service or Render database. Render's free database expires after 30 days, so use Neon for this setup.
 

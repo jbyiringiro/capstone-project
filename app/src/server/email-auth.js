@@ -3,6 +3,7 @@
 // Passwords and refresh tokens are never retained. The caller keeps only the verified
 // ID token for the short cloud session; signing in again obtains a fresh token.
 import { localizedError } from '../shared/errors-rw.js'
+import { createNeonEmailAuth } from './neon-email-auth.js'
 
 const ENDPOINT = 'https://identitytoolkit.googleapis.com/v1/accounts:'
 const MESSAGES = {
@@ -142,6 +143,7 @@ export function createEmailAuth({ apiKey = '', projectId = '', fetchImpl = (...a
   }
 
   return {
+    provider: 'firebase', verificationMethod: 'link',
     configured,
     async register(email, password, name) {
       const displayName = caregiverName(name)
@@ -177,7 +179,15 @@ export function createEmailAuth({ apiKey = '', projectId = '', fetchImpl = (...a
   }
 }
 
-export const emailAuth = createEmailAuth({
+export function createConfiguredEmailAuth({ provider = 'firebase', apiBase, ...firebase } = {}) {
+  if (provider === 'neon') return createNeonEmailAuth({ apiBase, fetchImpl: firebase.fetchImpl, timeoutMs: firebase.timeoutMs })
+  // Unknown values must not silently send credentials to another provider.
+  return createEmailAuth(provider === 'firebase' ? firebase : {})
+}
+
+export const emailAuth = createConfiguredEmailAuth({
+  provider: import.meta.env.VITE_EMAIL_AUTH_PROVIDER || 'firebase',
+  apiBase: import.meta.env.VITE_API_BASE ?? 'http://localhost:8000',
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID
 })

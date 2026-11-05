@@ -10,7 +10,8 @@ from sqlalchemy.schema import CreateTable
 
 from .db import Base, engine
 
-_ADDITIONS = {"email": 254, "firebase_uid": 128, "firebase_project_id": 128}
+_ADDITIONS = {"email": 254, "firebase_uid": 128, "firebase_project_id": 128,
+              "neon_uid": 128, "neon_auth_url": 512}
 
 
 def migrate_email_accounts(target) -> None:
@@ -28,6 +29,7 @@ def migrate_email_accounts(target) -> None:
                 conn.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
                 _indexes(conn)
             Base.metadata.create_all(conn)
+            _neon_deletion_confirmation(conn)
         return
     if target.dialect.name == "sqlite":
         if "users" in inspect(target).get_table_names():
@@ -35,12 +37,22 @@ def migrate_email_accounts(target) -> None:
     else:
         raise RuntimeError("Email account migration supports SQLite and PostgreSQL only")
     Base.metadata.create_all(target)
+    with target.begin() as conn:
+        _neon_deletion_confirmation(conn)
+
+
+def _neon_deletion_confirmation(conn) -> None:
+    columns = {column["name"] for column in inspect(conn).get_columns("neon_identities")}
+    if "provider_deleted" not in columns:
+        conn.execute(text("ALTER TABLE neon_identities ADD COLUMN provider_deleted BOOLEAN NOT NULL DEFAULT FALSE"))
 
 
 def _indexes(conn) -> None:
     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_email ON users (email)"))
     conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_firebase_identity "
                       "ON users (firebase_project_id, firebase_uid)"))
+    conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_users_neon_identity "
+                      "ON users (neon_auth_url, neon_uid)"))
 
 
 def _sqlite(target) -> None:

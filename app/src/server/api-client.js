@@ -88,8 +88,9 @@ const WRONG_ACCOUNT = 'Injira kuri konti ya email ihujwe n’iki gikoresho. Indi
 const pendingEmailDeletions = new Map()
 
 function checkedEmailAccount(user) {
-  if (!user?.user_id || !user.email || user.auth_provider !== 'firebase') throw localizedError(EMAIL_ERRORS[401])
-  return { user_id: user.user_id, email: user.email, name: user.name || '', auth_provider: 'firebase' }
+  if (!user?.user_id || !user.email || !['firebase', 'neon'].includes(user.auth_provider)
+    || (emailAuth.provider && user.auth_provider !== emailAuth.provider)) throw localizedError(EMAIL_ERRORS[401])
+  return { user_id: user.user_id, email: user.email, name: user.name || '', auth_provider: user.auth_provider }
 }
 
 async function storeEmailSession(token, user, expectedAccount = null, previous = null) {
@@ -114,7 +115,10 @@ async function storeEmailSession(token, user, expectedAccount = null, previous =
 export const api = {
   registerEmail: (email, password, name) => emailAuth.register(email, password, name),
   resendEmailVerification: (email, password) => emailAuth.resendVerification(email, password),
+  verifyEmailCode: (email, code) => emailAuth.verifyEmail(email, code),
   requestEmailPasswordReset: email => emailAuth.sendPasswordReset(email),
+  confirmEmailPasswordReset: (email, code, password) => emailAuth.confirmPasswordReset(email, code, password),
+  finishEmailPasswordReset: (email, password) => emailAuth.finishPasswordReset(email, password),
   loginEmail: async (email, password, name) => {
     const previous = await db.transaction('r', db.settings, async () => ({ account: await getLinkedAccount(), token: await getToken() }))
     const identity = await emailAuth.login(email, password)
@@ -214,7 +218,15 @@ export const api = {
     return t
   },
   me: () => req('/auth/me'),
-  logout: () => setToken(null),
+  logout: async () => {
+    const token = await getToken()
+    // Local sign-out remains available offline. Online, also revoke the Neon session.
+    try { if (token?.startsWith('neon.') && globalThis.navigator?.onLine !== false) await emailAuth.signOut?.(token) }
+    catch { /* An unavailable server must not prevent local sign-out. */ }
+    finally {
+      await db.transaction('rw', db.settings, async () => { if (await getToken() === token) await setToken(null) })
+    }
+  },
   symbols: () => req('/symbols', { auth: false }),
   profiles: () => req('/profiles'),
   createProfile: (code, age_band) => req('/profiles', { method: 'POST', body: { code, age_band } }),

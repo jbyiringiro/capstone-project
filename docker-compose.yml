@@ -18,12 +18,11 @@ services:
       VUGA_DATABASE_URL: postgresql+psycopg://vuga:vuga@db:5432/vuga
       VUGA_JWT_SECRET: ${VUGA_JWT_SECRET:?Set VUGA_JWT_SECRET to a random string of at least 32 characters}
       VUGA_CORS_ORIGINS: '["http://localhost:5173","http://localhost:4173","http://localhost:4175","http://127.0.0.1:4175"]'
-      VUGA_FIREBASE_PROJECT_ID: ${VUGA_FIREBASE_PROJECT_ID:-}
-      VUGA_FIREBASE_API_KEY: ${VUGA_FIREBASE_API_KEY:-}
-      # Without an Africa's Talking key the API writes each SMS code to its log.
-      VUGA_AFRICASTALKING_USERNAME: ${VUGA_AFRICASTALKING_USERNAME:-sandbox}
-      VUGA_AFRICASTALKING_API_KEY: ${VUGA_AFRICASTALKING_API_KEY:-}
-      VUGA_AFRICASTALKING_SENDER_ID: ${VUGA_AFRICASTALKING_SENDER_ID:-}
+      VUGA_EMAIL_AUTH_PROVIDER: ${VUGA_EMAIL_AUTH_PROVIDER:-neon}
+      VUGA_NEON_AUTH_URL: ${VUGA_NEON_AUTH_URL:-}
+      VUGA_NEON_AUTH_ORIGIN: ${VUGA_NEON_AUTH_ORIGIN:-http://localhost:5173}
+      VUGA_NEON_DELETE_ENABLED: ${VUGA_NEON_DELETE_ENABLED:-false}
+      VUGA_SMS_LOG_ENABLED: "false"
     volumes:
       - ./ml/artifacts:/srv/ml/artifacts:ro
       - media:/srv/media

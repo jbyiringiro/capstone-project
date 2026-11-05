@@ -1,5 +1,7 @@
 # Email account release — 5 November 2026
 
+> Superseded before deployment by the [Neon account release](neon-accounts-2026-11-05.md). Firebase configuration below is historical.
+
 **Prepared and tested; not yet deployed.** The public app and API currently serve the preceding release. Render/Neon account access, a production backup and the hosted environment update are still required.
 
 ## Changes

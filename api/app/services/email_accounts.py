@@ -1,4 +1,4 @@
-"""Verified Firebase identities mapped to Vuga accounts and durable deletion tombstones."""
+"""Verified provider identities mapped to Vuga accounts and durable deletion tombstones."""
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, insert, select, update
@@ -6,40 +6,49 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from ..config import settings
 from .errors import (
     Conflict,
     EmailAuthUnavailable,
     EmailDeletionPending,
+    EmailProviderError,
     InvalidCredentials,
     InvalidInput,
 )
 from .firebase_auth import EmailIdentity, FirebaseAuth, firebase_auth
 from .locking import lock_account
+from .neon_auth import NeonAuth, neon_auth
 from .profiles import erase_profiles
 
 
 class EmailAccountService:
-    def __init__(self, db: Session, provider: FirebaseAuth | None = None) -> None:
+    def __init__(self, db: Session, provider: FirebaseAuth | NeonAuth | None = None) -> None:
         self.db = db
-        self.provider = provider or firebase_auth
+        self.provider = provider or active_email_provider()
+        self.is_neon = isinstance(self.provider, NeonAuth)
+        self.identity_table = models.NeonIdentity if self.is_neon else models.FirebaseIdentity
+        self.namespace_field = "auth_url" if self.is_neon else "project_id"
 
     def _user(self, identity: EmailIdentity) -> models.User | None:
+        if self.is_neon:
+            return self.db.scalar(select(models.User).where(
+                models.User.neon_auth_url == identity.project_id, models.User.neon_uid == identity.uid))
         return self.db.scalar(select(models.User).where(
             models.User.firebase_project_id == identity.project_id, models.User.firebase_uid == identity.uid))
 
-    def _identity(self, identity: EmailIdentity) -> models.FirebaseIdentity | None:
-        return self.db.get(models.FirebaseIdentity, (identity.project_id, identity.uid), populate_existing=True)
+    def _identity(self, identity: EmailIdentity):
+        return self.db.get(self.identity_table, (identity.project_id, identity.uid), populate_existing=True)
 
-    def _lock_identity(self, identity: EmailIdentity) -> models.FirebaseIdentity:
-        table = models.FirebaseIdentity
+    def _lock_identity(self, identity: EmailIdentity):
+        table = self.identity_table
         if self._identity(identity) is None:
             try:
-                self.db.execute(insert(table).values(project_id=identity.project_id, uid=identity.uid,
-                                                      deleted=False))
+                self.db.execute(insert(table).values(**{self.namespace_field: identity.project_id,
+                                                         "uid": identity.uid, "deleted": False}))
                 self.db.commit()
             except IntegrityError:
                 self.db.rollback()  # A concurrent first sign-in created the same lock row.
-        self.db.execute(update(table).where(table.project_id == identity.project_id, table.uid == identity.uid)
+        self.db.execute(update(table).where(getattr(table, self.namespace_field) == identity.project_id, table.uid == identity.uid)
                         .values(deleted=table.deleted).execution_options(synchronize_session=False))
         return self._identity(identity)
 
@@ -55,8 +64,10 @@ class EmailAccountService:
                 if body.name is None:
                     self.db.rollback()
                     raise InvalidInput("name is required when creating an email account")
-                user = models.User(name=body.name, phone=None, email=identity.email, firebase_uid=identity.uid,
-                                   firebase_project_id=identity.project_id, role="caregiver", password_hash=None)
+                provider_fields = ({"neon_uid": identity.uid, "neon_auth_url": identity.project_id} if self.is_neon
+                                   else {"firebase_uid": identity.uid, "firebase_project_id": identity.project_id})
+                user = models.User(name=body.name, phone=None, email=identity.email,
+                                   role="caregiver", password_hash=None, **provider_fields)
                 self.db.add(user)
                 self.db.flush()
                 record.user_id = user.user_id
@@ -79,12 +90,16 @@ class EmailAccountService:
         return user
 
     def delete_account(self, body: schemas.EmailDelete) -> None:
+        if self.is_neon:
+            self.provider.ensure_deletion_available()
         # Signatures are checked even for retries. A tombstone permits only cleanup of the exact
         # previously erased account, never new sign-in/access or an arbitrary provider identity.
         identity = self.provider.verify_signature(body.id_token, recent=True)
         record = self._identity(identity)
         if record is None or record.user_id != body.user_id:
             raise InvalidCredentials("email session does not match this account")
+        if self.is_neon and record.deleted and record.provider_deleted:
+            return  # A confirmed provider response was durably recorded; no revoked cookie needed.
         if not record.deleted:
             self.provider.verify(body.id_token, recent=True)
             record = self._lock_identity(identity)
@@ -107,10 +122,17 @@ class EmailAccountService:
                     self.db.execute(statement.execution_options(synchronize_session=False))
                 record.deleted, record.deleted_at = True, datetime.now(UTC).replace(tzinfo=None)
                 self.db.commit()
-        # Commit local erasure first. If Firebase fails, no old token or delayed session exchange
+        # Commit local erasure first. If the provider fails, no old token or delayed session exchange
         # can resurrect it. Retrying this endpoint is safe with the same recent signed ID token.
         try:
             self.provider.delete(body.id_token)
-        except (EmailAuthUnavailable, InvalidCredentials):
+            if self.is_neon:
+                record.provider_deleted = True
+                self.db.commit()
+        except (EmailAuthUnavailable, EmailProviderError, InvalidCredentials):
             raise EmailDeletionPending(
                 "Vuga account data was deleted; retry to finish deleting the email account") from None
+
+
+def active_email_provider() -> FirebaseAuth | NeonAuth:
+    return neon_auth if settings.email_auth_provider == "neon" else firebase_auth

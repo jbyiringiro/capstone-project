@@ -1,0 +1,173 @@
+{
+  "recorded_at": "2026-11-05T20:38:04.001Z",
+  "baseURL": "http://127.0.0.1:4176/",
+  "mockOnly": true,
+  "buildAssets": [
+    {
+      "path": "/assets/index-9teyF00N.css",
+      "sha256": "23f04f5b20ea2f78fd4d1cfcca3552e046d930a0c7193d02d3b8007871fef8d0"
+    },
+    {
+      "path": "/assets/index-CkHoKMKf.js",
+      "sha256": "7d61d979385f956e49a015f22238a32463fd530efa88d83d29728ab601b0351e"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Neon signup has no SMS alternative and fits narrow phones",
+      "status": "passed"
+    },
+    {
+      "name": "Verification rejects wrong codes and does not open an account session",
+      "status": "passed"
+    },
+    {
+      "name": "Resending waits sixty seconds and never requests a password or sends duplicates",
+      "status": "passed"
+    },
+    {
+      "name": "A correct verification code requires explicit password login afterward",
+      "status": "passed"
+    },
+    {
+      "name": "Password reset validates its email code and confirmation before changing the password",
+      "status": "passed"
+    },
+    {
+      "name": "Login stores immutable Neon ownership and a separate hashed offline PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Offline PIN access does not send passwords or codes to any service",
+      "status": "passed"
+    },
+    {
+      "name": "Account settings include a complete code-based reset and preserve the local PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Forgotten PIN provides email password reset without granting local access",
+      "status": "passed"
+    },
+    {
+      "name": "Recovery refuses a different server identity even with the same email",
+      "status": "passed"
+    },
+    {
+      "name": "Fresh authentication by the linked identity permits local PIN recovery",
+      "status": "passed"
+    },
+    {
+      "name": "Deletion retries preserve child data and the local PIN while removing only the account link",
+      "status": "passed"
+    },
+    {
+      "name": "All authentication traffic used the Vuga API with zero Firebase, Neon-cookie, or SMS requests",
+      "status": "passed"
+    }
+  ],
+  "requests": [
+    {
+      "path": "/auth/neon/register",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/verify",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/resend",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/verify",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/request",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/confirm",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/confirm",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/finish",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/login",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/email/session",
+      "method": "POST"
+    },
+    {
+      "path": "/backup/status",
+      "method": "GET"
+    },
+    {
+      "path": "/backup",
+      "method": "PUT"
+    },
+    {
+      "path": "/backup",
+      "method": "GET"
+    },
+    {
+      "path": "/auth/neon/password-reset/request",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/confirm",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/request",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/password-reset/confirm",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/login",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/me",
+      "method": "GET"
+    },
+    {
+      "path": "/auth/neon/login",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/me",
+      "method": "GET"
+    },
+    {
+      "path": "/auth/neon/login",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/neon/login",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/email/delete-account",
+      "method": "POST"
+    },
+    {
+      "path": "/auth/email/delete-account",
+      "method": "POST"
+    }
+  ],
+  "external": [],
+  "errors": []
+}

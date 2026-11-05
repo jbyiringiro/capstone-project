@@ -67,7 +67,7 @@ def legacy_schema(target):
         Column("created_at", DateTime, nullable=False, server_default=text("now()")),
     )
     for table in Base.metadata.sorted_tables:
-        if table.name not in ("users", "firebase_identities", "deleted_profiles"):
+        if table.name not in ("users", "firebase_identities", "neon_identities", "deleted_profiles"):
             table.to_metadata(legacy)
     legacy.create_all(target)
     with target.begin() as conn:
@@ -119,8 +119,8 @@ def test_postgres_upgrade_preserves_existing_data_and_constraints(postgres):
     assert snapshot(postgres, legacy) == before
     columns = {column["name"]: column for column in inspect(postgres).get_columns("users")}
     assert columns["phone"]["nullable"] and columns["password_hash"]["nullable"]
-    assert {"email", "firebase_uid", "firebase_project_id"} <= columns.keys()
-    assert {"firebase_identities", "deleted_profiles"} <= set(inspect(postgres).get_table_names())
+    assert {"email", "firebase_uid", "firebase_project_id", "neon_uid", "neon_auth_url"} <= columns.keys()
+    assert {"firebase_identities", "neon_identities", "deleted_profiles"} <= set(inspect(postgres).get_table_names())
     assert any(index["name"] == "idx_legacy_user_name"
                for index in inspect(postgres).get_indexes("users"))
     with Session(postgres) as db:
@@ -130,6 +130,15 @@ def test_postgres_upgrade_preserves_existing_data_and_constraints(postgres):
         db.commit()
         assert db.get(models.User, "new").phone is None
         assert db.get(models.FirebaseIdentity, ("project", "uid")).deleted is False
+        db.add(models.User(user_id="neon", name="Neon Parent", email="neon@example.test",
+                           neon_uid="uid", neon_auth_url="https://test.neon.build/neondb/auth", role="caregiver"))
+        db.add(models.NeonIdentity(auth_url="https://test.neon.build/neondb/auth", uid="uid", user_id="neon"))
+        db.commit()
+        assert db.get(models.NeonIdentity, ("https://test.neon.build/neondb/auth", "uid")).deleted is False
+    with pytest.raises(IntegrityError), postgres.begin() as conn:
+        conn.execute(models.User.__table__.insert().values(
+            name="Duplicate", role="caregiver", email="other-neon@example.test", neon_uid="uid",
+            neon_auth_url="https://test.neon.build/neondb/auth"))
     for values in (
         {"email": "parent@example.test", "firebase_uid": "different"},
         {"email": "different@example.test", "firebase_uid": "uid"},

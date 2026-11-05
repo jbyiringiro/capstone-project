@@ -26,7 +26,19 @@ class EmailNotVerified(ServiceError):
 
 
 class EmailDeletionPending(EmailAuthUnavailable):
-    """Vuga data is erased; Firebase identity cleanup still needs a retry (503)."""
+    """Vuga data is erased; provider identity cleanup is not confirmed (503)."""
+
+
+class EmailProviderError(ServiceError):
+    """Allowlisted provider error information, never a raw provider response."""
+
+    def __init__(self, detail: str, code: str, status: int, *, account_created: bool = False,
+                 password_reset: bool = False):
+        super().__init__(detail)
+        self.code = code
+        self.status = status
+        self.account_created = account_created
+        self.password_reset = password_reset
 
 
 class NotOwned(ServiceError):

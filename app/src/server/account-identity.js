@@ -5,7 +5,7 @@ import { displayPhone, normalisePhone } from './phone.js'
 export function sameAccount(left, right) {
   if (!left || !right) return false
   if (left.user_id && right.user_id) return left.user_id === right.user_id
-  if (left.email || right.email || left.auth_provider === 'firebase' || right.auth_provider === 'firebase') return false
+  if (left.email || right.email || ['firebase', 'neon'].includes(left.auth_provider) || ['firebase', 'neon'].includes(right.auth_provider)) return false
   const phone = normalisePhone(left.phone)
   return !!phone && phone === normalisePhone(right.phone)
 }
@@ -14,6 +14,6 @@ export const displayAccount = account => account?.email || (account?.phone ? dis
 
 export function accountIdentity(account) {
   return account?.email
-    ? { user_id: account.user_id, email: account.email, auth_provider: 'firebase' }
+    ? { user_id: account.user_id, email: account.email, auth_provider: account.auth_provider || 'firebase' }
     : { phone: account?.phone ?? null, ...(account?.user_id ? { user_id: account.user_id } : {}) }
 }

@@ -1,24 +1,75 @@
-"""Adult accounts (FR1): a mobile number confirmed by an SMS code, and one PIN."""
+"""Caregiver email accounts plus the existing phone/PIN compatibility endpoints."""
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.security import OAuth2PasswordRequestForm
 
 from .. import schemas
+from ..config import settings
 from ..dependencies import CurrentUser, DbSession, Sms
 from ..security import create_token
 from ..services import AccountService
 from ..services.email_accounts import EmailAccountService
+from ..services.errors import EmailAuthUnavailable, SmsUnavailable
+from ..services.neon_auth import neon_auth
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+def _neon(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    if settings.email_auth_provider != "neon":
+        raise EmailAuthUnavailable("Neon email sign-in is not enabled")
+    return neon_auth
+
+
+@router.post("/neon/register", status_code=201)
+def neon_register(body: schemas.NeonRegisterIn, response: Response):
+    return _neon(response).register(body.name, body.email, body.password)
+
+
+@router.post("/neon/login")
+def neon_login(body: schemas.NeonLoginIn, response: Response):
+    return _neon(response).login(body.email, body.password)
+
+
+@router.post("/neon/verify")
+def neon_verify(body: schemas.NeonVerifyIn, response: Response):
+    return _neon(response).verify_email(body.email, body.otp)
+
+
+@router.post("/neon/resend")
+def neon_resend(body: schemas.NeonEmailIn, response: Response):
+    return _neon(response).resend(body.email)
+
+
+@router.post("/neon/password-reset/request")
+def neon_request_reset(body: schemas.NeonEmailIn, response: Response):
+    return _neon(response).request_reset(body.email)
+
+
+@router.post("/neon/password-reset/confirm")
+def neon_reset(body: schemas.NeonResetIn, response: Response):
+    return _neon(response).reset_password(body.email, body.otp, body.password)
+
+
+@router.post("/neon/password-reset/finish")
+def neon_finish_reset(body: schemas.NeonLoginIn, response: Response):
+    return _neon(response).finish_reset(body.email, body.password)
+
+
+@router.post("/neon/signout", status_code=204)
+def neon_signout(body: schemas.NeonSignoutIn, response: Response):
+    _neon(response).signout(body.id_token)
+
+
 @router.post("/email/session", response_model=schemas.EmailSessionOut)
 def email_session(body: schemas.EmailSessionIn, db: DbSession):
-    """Link a verified Firebase Email/Password identity; name is required on first sign-in.
+    """Link the configured provider's verified identity; name is required on first sign-in.
 
-    The returned bearer is the Firebase ID token itself and expires with it. Passwords and
-    refresh tokens stay outside Vuga's API. Existing phone accounts are kept separate.
+    The bearer is an opaque, encrypted Neon session or a Firebase ID token in rollback mode.
+    The identity provider is selected by server configuration; identities are never merged by
+    email. This endpoint accepts no password and retains existing account ownership.
     """
     user = EmailAccountService(db).session(body)
     return schemas.EmailSessionOut(access_token=body.id_token, user=schemas.UserOut.model_validate(user))
@@ -26,10 +77,11 @@ def email_session(body: schemas.EmailSessionIn, db: DbSession):
 
 @router.post("/email/delete-account", status_code=204)
 def delete_email_account(body: schemas.EmailDelete, db: DbSession):
-    """Erase Vuga and Firebase account data after a password sign-in within five minutes.
+    """Erase Vuga and provider account data after a password sign-in within five minutes.
 
     Retry a partial provider cleanup with the same recent token and user_id. Vuga tombstones
-    prevent a deleted UID from recreating an account, including after provider outages.
+    prevent a deleted UID from recreating an account, including after provider outages. Neon
+    self-service deletion must first be enabled. Unconfirmed remote cleanup remains pending.
     """
     EmailAccountService(db).delete_account(body)
 
@@ -38,6 +90,8 @@ def delete_email_account(body: schemas.EmailDelete, db: DbSession):
 def send_code(body: schemas.CodeRequest, db: DbSession, sms: Sms):
     """Texts a six-digit code to the number: `register` before opening an account (409 if the
     number has one), `reset` before choosing a new PIN (404 if it has none)."""
+    if settings.email_auth_provider == "neon":
+        raise SmsUnavailable("SMS accounts are disabled; use email sign-in")
     return AccountService(db, sms).send_code(body.phone, body.purpose)
 
 

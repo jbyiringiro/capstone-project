@@ -5,6 +5,8 @@ import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -31,7 +33,12 @@ from .services import (
     TooManyTries,
     create_sms_sender,
 )
-from .services.errors import EmailAuthUnavailable, EmailDeletionPending, EmailNotVerified
+from .services.errors import (
+    EmailAuthUnavailable,
+    EmailDeletionPending,
+    EmailNotVerified,
+    EmailProviderError,
+)
 
 # Starlette renamed the 422 and 413 constants; fall back for older releases.
 _UNPROCESSABLE = getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", 422)
@@ -63,9 +70,9 @@ _SMS_DELIVERY = {
 
 model_registry = ModelRegistry(settings.model_dir, settings.default_model)
 sms = create_sms_sender(username=settings.africastalking_username,
-                        api_key=settings.africastalking_api_key,
+                        api_key=settings.africastalking_api_key if settings.email_auth_provider != "neon" else None,
                         sender_id=settings.africastalking_sender_id,
-                        log_enabled=settings.sms_log_enabled)
+                        log_enabled=settings.sms_log_enabled and settings.email_auth_provider != "neon")
 
 
 def load_model():
@@ -89,9 +96,41 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
                    allow_methods=["*"], allow_headers=["*"])
 
 
+@app.middleware("http")
+async def private_auth_responses(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/auth/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, error: RequestValidationError):
+    if request.url.path.startswith("/auth/neon/"):
+        # FastAPI normally includes invalid input values. Passwords/codes must not be reflected.
+        issues = [{key: issue[key] for key in ("loc", "msg", "type") if key in issue}
+                  for issue in error.errors()]
+        return JSONResponse({"detail": issues}, status_code=422, headers={"Cache-Control": "no-store"})
+    return await request_validation_exception_handler(request, error)
+
+
 @app.exception_handler(ServiceError)
-async def service_error(_: Request, error: ServiceError) -> JSONResponse:
+async def service_error(request: Request, error: ServiceError) -> JSONResponse:
+    if isinstance(error, EmailProviderError):
+        body = {"detail": error.detail, "code": error.code}
+        if error.account_created:
+            body["accountCreated"] = True
+        if error.password_reset:
+            body["passwordReset"] = True
+        if error.status == 429:
+            body["retry_after"] = 60
+        return JSONResponse(body, status_code=error.status, headers={"Cache-Control": "no-store"})
     code = _STATUS_BY_ERROR.get(type(error), status.HTTP_400_BAD_REQUEST)
+    if isinstance(error, EmailNotVerified):
+        return JSONResponse({"detail": error.detail, "code": "EMAIL_NOT_VERIFIED"}, status_code=code)
+    if isinstance(error, InvalidCredentials) and request.url.path.startswith("/auth/neon/"):
+        provider_code = "INVALID_EMAIL_OR_PASSWORD" if request.url.path == "/auth/neon/login" else "INVALID_SESSION"
+        return JSONResponse({"detail": error.detail, "code": provider_code}, status_code=code)
     if isinstance(error, RetryLater):
         # In the body as well, because a browser app cannot read Retry-After across origins.
         body = {"detail": error.detail, "retry_after": error.retry_after}

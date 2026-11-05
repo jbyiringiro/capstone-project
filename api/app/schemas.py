@@ -114,7 +114,7 @@ class UserOut(BaseModel):
     name: str  # empty for accounts opened before a name was asked for
     phone: str | None
     email: str | None = None
-    auth_provider: Literal["phone", "firebase"] = "phone"
+    auth_provider: Literal["phone", "firebase", "neon"] = "phone"
     role: Role
     model_config = {"from_attributes": True}
 
@@ -138,6 +138,44 @@ class EmailDelete(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id_token: str = Field(min_length=1, max_length=16384)
     user_id: str = Field(min_length=1, max_length=36)
+
+
+def _email_address(value: str) -> str:
+    email = value.strip().casefold()
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+        raise ValueError("a valid email address is required")
+    return email
+
+
+EmailAddress = Annotated[str, Field(min_length=3, max_length=254), AfterValidator(_email_address)]
+EmailPassword = Annotated[str, Field(min_length=8, max_length=128,
+                                    json_schema_extra={"format": "password", "writeOnly": True})]
+
+
+class NeonEmailIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    email: EmailAddress
+
+
+class NeonLoginIn(NeonEmailIn):
+    password: EmailPassword
+
+
+class NeonRegisterIn(NeonLoginIn):
+    name: CaregiverName
+
+
+class NeonVerifyIn(NeonEmailIn):
+    otp: str = Field(pattern=r"^\d{6}$")
+
+
+class NeonResetIn(NeonVerifyIn):
+    password: EmailPassword
+
+
+class NeonSignoutIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id_token: str = Field(min_length=1, max_length=16384)
 
 
 # An age or age band such as 7, 6-8 or 12+, and how the child reaches the screen. Neither can hold

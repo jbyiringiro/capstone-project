@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../server/api-client.js'
+import { emailAuth } from '../server/email-auth.js'
+import EmailPasswordReset from './EmailPasswordReset.jsx'
 import { normalisePhone } from '../server/phone.js'
 import { codeSentText, usePhoneCode } from '../server/use-phone-code.js'
 import { ParentAccessError, getParentPinVersion, recoverParentPin, resetParentPinWithAccount, validParentPin } from './parent-access.js'
@@ -15,6 +17,7 @@ export default function ForgotPin({ status, account, onRecovered, onBack }) {
   const [way, setWay] = useState(ways[0] ?? null)
   const [secret, setSecret] = useState(''), [sending, setSending] = useState(false)
   const [resetNote, setResetNote] = useState('')
+  const [resetOpen, setResetOpen] = useState(false)
   const form = usePinForm(), first = useRef(null), sms = usePhoneCode()
   const emailAccount = !!account?.email
   const phone = account?.phone ? normalisePhone(account.phone) ?? account.phone : null
@@ -50,6 +53,7 @@ export default function ForgotPin({ status, account, onRecovered, onBack }) {
       : sms.sentTo ? codeSentText(sms.delivery, masked(phone))
       : `Tuzohereza kode muri SMS kuri ${masked(phone)}, nimero ya konti ya Vuga ihujwe n’iki gikoresho. Umubare w’ibanga mushya uzaba n’uwa konti yawe. Bisaba interineti.`
   async function resetEmailPassword() {
+    if (emailAuth.verificationMethod === 'code') { setResetOpen(true); setSecret(''); setResetNote(''); return }
     setSending(true); form.setError(''); setResetNote('')
     try {
       await api.requestEmailPasswordReset(account.email)
@@ -57,6 +61,11 @@ export default function ForgotPin({ status, account, onRecovered, onBack }) {
     } catch (failure) { form.setError(errorText(failure)) }
     finally { setSending(false) }
   }
+  if (resetOpen) return <>
+    <h1 id="parent-access-title">Hindura ijambo ry’ibanga rya konti.</h1>
+    <EmailPasswordReset initialEmail={account.email} readOnly onBack={() => setResetOpen(false)}
+      onDone={() => { setResetOpen(false); setResetNote('Ijambo ry’ibanga rya konti ryahinduwe. Rikoreshe hano kugira ngo ugarure umubare w’ibanga w’iki gikoresho.') }} />
+  </>
   return <>
     <h1 id="parent-access-title">Shyiraho umubare w’ibanga mushya.</h1>
     {!way ? <div className="parent-setup-note"><b>Nta buryo bwo kuwugarura buri kuri iki gikoresho.</b>

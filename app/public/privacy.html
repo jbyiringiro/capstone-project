@@ -14,7 +14,7 @@
 <li><b>Ushobora gusiba konti yawe n’amakuru y’abana yari ibitse:</b> Umurezi → Kwinjira → Siba konti yanjye. Habikwa ibiranga konti yasibwe gusa kugira ngo itazongera gufungurwa n’icyifuzo cya kera.</li>
 <li><b>Umubyeyi cyangwa umurezi wemewe n’umubyeyi ni we wenyine ushyiraho umwirondoro w’umwana.</b></li>
 </ol>
-<p>Konti ya email ikoresha Google Firebase mu kwemeza email no kugenzura ijambo ry’ibanga. Ijambo ry’ibanga rya konti ntiribikwa na Vuga; ritandukanye n’umubare w’ibanga ufungura ahagenewe umurezi kuri iki gikoresho. Gusiba konti ntibisiba amakuru y’abana abitswe kuri iki gikoresho.</p>
+<p>Konti ya email ikoresha Neon mu kwemeza email no kugenzura ijambo ry’ibanga. Ijambo ry’ibanga n’umubare wo kwemeza binyura kuri seriveri ya Vuga bikoherezwa kuri Neon mu buryo burinzwe; Vuga ntibibika. Ijambo ry’ibanga rya konti ntiribikwa na Vuga; ritandukanye n’umubare w’ibanga ufungura ahagenewe umurezi kuri iki gikoresho. Gusiba konti ntibisiba amakuru y’abana abitswe kuri iki gikoresho.</p>
 <p>Ibisobanuro byose biri mu Cyongereza hasi aha. Ufite ikibazo, andikira j.byiringir@alustudent.com.</p></section>
 
 <section id="en" lang="en"><h2>The short version</h2>
@@ -38,7 +38,7 @@
 
 <h2>2. What the server keeps when you link a caregiver account</h2>
 <table><tr><th>Data</th><th>Why</th><th>How long</th></tr>
-<tr><td>Your email address and Firebase user ID (email accounts)</td><td>To associate a verified adult identity with the same Vuga account on each device</td><td>Email until account deletion; the identifier ledger described below remains</td></tr>
+<tr><td>Your email address and authentication-provider user ID (email accounts)</td><td>To associate a verified adult identity with the same Vuga account on each device</td><td>Email until account deletion; the identifier ledger described below remains</td></tr>
 <tr><td>Your Rwandan mobile number (legacy phone accounts)</td><td>To text you a code and to sign you in on another device</td><td>Until you delete the account</td></tr>
 <tr><td>Your own name, as you type it when you open the account (not a child’s)</td><td>To show whose account a phone or tablet is linked to</td><td>Until you delete the account</td></tr>
 <tr><td>Your PIN, as a bcrypt hash (legacy phone accounts only)</td><td>To check it is you; the PIN itself is never stored</td><td>Until you change it or delete the account</td></tr>
@@ -48,11 +48,11 @@
 <tr><td>Completed messages: which pictures were pressed, when, and whether a suggestion was used</td><td>Only when you press sync in Ohereza, for the summary of a child's progress</td><td>Until you delete the account</td></tr>
 <tr><td>The ids of children you deleted: no code, name or other data</td><td>So a copy saved later from another phone or tablet cannot bring them back</td><td>Until you delete the account</td></tr></table>
 <p>In the account copy and synced messages the server refuses children’s names, free text, photos and recordings, so they cannot be sent by mistake. A message that uses a custom word stays on the device, because its picture or label may show a family member.</p>
-<p>Email passwords go directly from your browser to Google Firebase and are never sent to or saved by the Vuga API. Vuga stores a short-lived sign-in token and your linked account identity in this browser. The separate device PIN stays on the device. After cloud deletion, Vuga retains the Firebase project ID, Firebase user ID, former Vuga account ID and deletion time while the service operates, so an old token cannot recreate the account. This ledger contains no email, name, password, PIN or child data.</p>
+<p>In the Neon deployment, the browser sends account requests to the Vuga API over HTTPS. The API forwards the required name, email, password or verification code to Neon. Vuga does not store or log passwords or verification codes. Neon manages password credentials and sessions. The browser stores an encrypted session token and the linked account identity; only the API can open that token. The separate device PIN stays on the device. After cloud deletion, Vuga retains the provider identifier, provider user ID, former Vuga account ID and deletion time while the service operates, so an old session cannot recreate the account. This ledger contains no email, name, password, PIN or child data.</p>
 
 <h2>3. Who else handles data</h2>
-<ul><li><b>Google Firebase Authentication</b> handles email signup, verification and password reset. It receives your adult name, email and password when you sign up, and checks later sign-ins. Vuga does not load Firebase Analytics. See <a href="https://firebase.google.com/support/privacy">Firebase privacy information</a>.</li>
-<li><b>Africa's Talking</b> sends the six-digit code for legacy phone accounts. It receives the number and the text, nothing else.</li>
+<ul><li><b>Neon</b> stores the cloud database and handles email signup, verification and password reset for the Render + Neon deployment. It receives your adult name, email and password when needed for authentication. Its shared email sender is used for capstone testing. See <a href="https://neon.com/privacy-policy">Neon privacy information</a>.</li>
+<li><b>Render</b> hosts the website and Vuga API. The Neon deployment does not send SMS or use Firebase authentication. Older deployments may still use their documented legacy account providers.</li>
 <li><b>Hosting.</b> Rwandan law asks for personal data to be stored in Rwanda unless the National Cyber Security Authority (NCSA) has authorised storage abroad (Law No. 058/2021, Article 50). The public test server is in Europe, so it is not open to families' accounts. Before any family links a number, Vuga will register with NCSA as a data controller (Article 29) and store accounts in Rwanda or with NCSA's authorisation.</li></ul>
 <p>We never sell or share data for advertising, and we do not use children's messages to train models. If that ever changes, we will ask for consent first.</p>
 
@@ -63,12 +63,12 @@
 <table><tr><th>Right</th><th>In Vuga</th></tr>
 <tr><td>See your data</td><td>The caregiver area shows each child's words, settings and summary; Ohereza downloads this device's messages as a file.</td></tr>
 <tr><td>Correct it</td><td>Edit a child's code, words or settings in the caregiver area.</td></tr>
-<tr><td>Delete it</td><td>Kwinjira → Siba konti yanjye deletes the Vuga cloud account and its child data and, for email accounts, requests deletion of the Firebase account. The identifier ledger above remains. If a provider error occurs, retry while the page is open to finish deletion. Local unlinking does not delete the cloud account. Amagambo mashya → Siba removes a custom word and its voice. Clearing browser data removes everything on this device.</td></tr>
+<tr><td>Delete it</td><td>Kwinjira → Siba konti yanjye deletes the Vuga cloud account and its child data and, for email accounts, requests deletion of the authentication-provider account. Completion requires confirmation from that provider; a pending or failed request must be retried. The identifier ledger above remains. If a provider error occurs, retry while the page is open to finish deletion. Local unlinking does not delete the cloud account. Amagambo mashya → Siba removes a custom word and its voice. Clearing browser data removes everything on this device.</td></tr>
 <tr><td>Withdraw consent</td><td>Stop syncing at any time, or delete the account; withdrawing is as easy as agreeing (Article 8).</td></tr>
 <tr><td>Complain</td><td>Write to us first; you can also complain to the National Cyber Security Authority (NCSA), Rwanda's data protection authority.</td></tr></table>
 
 <h2>6. Security</h2>
-<p>The device PIN is hashed locally, and repeated wrong tries temporarily lock it. Email accounts use a separate password managed by Firebase; the API checks token signatures, verified email and current account state. Password resets revoke older cloud sessions without changing the local PIN. Legacy phone accounts hash their cloud PIN with bcrypt, lock after five wrong tries and revoke old sessions when that PIN changes. If personal data on the server were ever exposed, we would tell NCSA within 48 hours (Article 43) and tell the caregivers affected.</p>
+<p>The device PIN is hashed locally, and repeated wrong tries temporarily lock it. Email accounts use a separate password managed by Neon in the selected deployment; the API checks encrypted session tokens, verified email and current provider session state. The Neon deployment requires session revocation on password reset; the local PIN is independent. Legacy phone accounts hash their cloud PIN with bcrypt, lock after five wrong tries and revoke old sessions when that PIN changes. If personal data on the server were ever exposed, we would tell NCSA within 48 hours (Article 43) and tell the caregivers affected.</p>
 
 <h2>7. Research study</h2>
 <p>The adult usability study at Autisme Rwanda (ALU Research Ethics Committee approval SEPT26-BSE-048) has its own consent form. It records only a participant code and the taps made on the study tablet; no children take part.</p>

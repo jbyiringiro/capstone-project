@@ -7,7 +7,7 @@ import { syncPending } from '../../src/server/sync.js'
 import { finaliseMessage, logAction, startDraft, SyncState } from '../../src/storage/messages.js'
 
 vi.mock('../../src/server/email-auth.js', () => ({ emailAuth: {
-  register: vi.fn(), login: vi.fn(), reauthenticate: vi.fn(), resendVerification: vi.fn(), sendPasswordReset: vi.fn()
+  provider: 'firebase', register: vi.fn(), login: vi.fn(), reauthenticate: vi.fn(), resendVerification: vi.fn(), sendPasswordReset: vi.fn(), signOut: vi.fn()
 } }))
 
 const FIRST = { user_id: 'adult-1', email: 'parent@example.com', name: 'Uwase', auth_provider: 'firebase' }
@@ -45,9 +45,51 @@ beforeEach(async () => {
   await Promise.all(db.tables.map(table => table.clear()))
   emailAuth.login.mockReset().mockResolvedValue(FRESH)
   emailAuth.reauthenticate.mockReset().mockResolvedValue(FRESH)
+  emailAuth.signOut.mockReset().mockResolvedValue(undefined)
+  emailAuth.provider = 'firebase'
 })
 
 describe('email account API integration', () => {
+  it('stores Neon ownership without merging an older Firebase identity with the same email', async () => {
+    await linked()
+    emailAuth.provider = 'neon'
+    const neon = { ...FIRST, user_id: 'neon-vuga-user', auth_provider: 'neon' }
+    emailAuth.login.mockResolvedValue({ ...FRESH, idToken: 'neon.sealed-session' })
+    server(() => reply(200, { access_token: 'neon.sealed-session', user: neon }))
+    await api.loginEmail(FIRST.email, 'password')
+    expect(await getLinkedAccount()).toEqual(neon)
+    expect(await getToken()).toBe('neon.sealed-session')
+    expect(await db.settings.get('account-backup')).toBeUndefined()
+  })
+
+  it('rejects an unexpected provider from the API without replacing the local account', async () => {
+    await linked()
+    const before = await accountRows()
+    emailAuth.provider = 'neon'
+    server(() => reply(200, { access_token: 'neon.sealed-session', user: FIRST }))
+    await expect(api.loginEmail(FIRST.email, 'password')).rejects.toMatchObject({ localized: true })
+    expect(await accountRows()).toEqual(before)
+  })
+
+  it('revokes a Neon session at sign-out without erasing a newer concurrent login', async () => {
+    const neon = { ...FIRST, auth_provider: 'neon' }
+    await linked(neon, 'neon.first-session')
+    emailAuth.signOut.mockImplementation(async () => linked(neon, 'neon.new-session'))
+    await api.logout()
+    expect(emailAuth.signOut).toHaveBeenCalledWith('neon.first-session')
+    expect(await getToken()).toBe('neon.new-session')
+    expect(await getLinkedAccount()).toEqual(neon)
+  })
+
+  it('allows local Neon sign-out when the provider is unavailable and preserves PIN recovery identity', async () => {
+    const neon = { ...FIRST, auth_provider: 'neon' }
+    await linked(neon, 'neon.first-session')
+    emailAuth.signOut.mockRejectedValue(new Error('network unavailable'))
+    await api.logout()
+    expect(await getToken()).toBeNull()
+    expect(await getLinkedAccount()).toEqual(neon)
+  })
+
   it('exchanges a verified identity and atomically links its immutable user id without sending a password to Vuga', async () => {
     await linked(SECOND)
     const requests = server(() => reply(200, { access_token: FRESH.idToken, token_type: 'bearer', user: FIRST }))

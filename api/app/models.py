@@ -24,16 +24,21 @@ def _uuid() -> str:
 
 class User(Base):
     __tablename__ = "users"
-    __table_args__ = (UniqueConstraint("firebase_project_id", "firebase_uid", name="uq_users_firebase_identity"),)
+    __table_args__ = (
+        UniqueConstraint("firebase_project_id", "firebase_uid", name="uq_users_firebase_identity"),
+        UniqueConstraint("neon_auth_url", "neon_uid", name="uq_users_neon_identity"),
+    )
     user_id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     name: Mapped[str] = mapped_column(String(120))
     phone: Mapped[str | None] = mapped_column(String(32), unique=True)  # existing SMS accounts
     email: Mapped[str | None] = mapped_column(String(254), unique=True)
     firebase_uid: Mapped[str | None] = mapped_column(String(128))
     firebase_project_id: Mapped[str | None] = mapped_column(String(128))
+    neon_uid: Mapped[str | None] = mapped_column(String(128))
+    neon_auth_url: Mapped[str | None] = mapped_column(String(512))
     role: Mapped[str] = mapped_column(String(16))  # teacher | caregiver | administrator
     # The caregiver's PIN, which also opens the caregiver area on each device signed in to it.
-    password_hash: Mapped[str | None] = mapped_column(String(128))  # Firebase keeps email passwords
+    password_hash: Mapped[str | None] = mapped_column(String(128))  # the identity provider keeps email passwords
     # Each session token carries this number; changing or resetting the PIN raises it, which ends
     # every session opened with the old PIN.
     token_version: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
@@ -43,6 +48,8 @@ class User(Base):
 
     @property
     def auth_provider(self) -> str:
+        if self.neon_uid:
+            return "neon"
         return "firebase" if self.firebase_uid else "phone"
 
 
@@ -59,6 +66,18 @@ class FirebaseIdentity(Base):
     user_id: Mapped[str | None] = mapped_column(String(36))  # deliberately not a foreign key
     deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class NeonIdentity(Base):
+    """Immutable, branch-scoped Neon identity and durable deletion tombstone."""
+
+    __tablename__ = "neon_identities"
+    auth_url: Mapped[str] = mapped_column(String(512), primary_key=True)
+    uid: Mapped[str] = mapped_column(String(128), primary_key=True)
+    user_id: Mapped[str | None] = mapped_column(String(36))
+    deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime)
+    provider_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 
 class ChildProfile(Base):

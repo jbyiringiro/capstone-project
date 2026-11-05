@@ -13,6 +13,7 @@ export const MESSAGES = {
   norecovery: 'Uyu mubare w’ibanga washyizweho nta kode yo kugarura. Koresha konti ya Vuga.',
   recoveryformat: 'Kode yo kugarura ifite inyuguti n’imibare 16, nka ABCD-EFGH-JKLM-NPQR.',
   smscode: 'Andika kode y’imibare 6 twakoherereje muri SMS.',
+  emailcode: 'Andika kode y’imibare 6 twakoherereje muri email.',
   name: `Andika izina ryawe nk’umurezi, inyuguti zitarenze ${NAME_MAX}.`,
   password: 'Hitamo ijambo ry’ibanga rya konti rifite nibura inyuguti 8.',
   passwordmismatch: 'Amagambo y’ibanga wanditse ntahuye. Ongera uyandike.',
@@ -94,6 +95,13 @@ const smsDigits = value => value.replace(/\D/g, '').slice(0, 6)
 export function SmsCodeField({ value, setValue, disabled, inputRef }) {
   return <TextField label="Kode twakoherereje" value={value} setValue={next => setValue(smsDigits(next))} inputRef={inputRef} disabled={disabled}
     className="parent-code-field" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" />
+}
+
+export function EmailCodeField({ value, setValue, disabled, inputRef }) {
+  return <TextField label="Kode yo muri email" value={value} setValue={next => setValue(smsDigits(next))} inputRef={inputRef} disabled={disabled}
+    className="parent-code-field" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6}
+    onInput={event => event.currentTarget.setCustomValidity('')}
+    onInvalid={event => event.currentTarget.setCustomValidity(MESSAGES.emailcode)} />
 }
 
 export function usePinForm() {
