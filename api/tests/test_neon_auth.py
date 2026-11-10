@@ -208,6 +208,77 @@ def test_provider_cookie_cache_is_discarded_and_missing_cookie_fails_closed():
     assert _NoRedirects().redirect_request(None, None, 302, "", {}, "https://other.example") is None
 
 
+@pytest.mark.parametrize("attributes", [
+    "Path=/; HttpOnly; Secure; SameSite=None; Partitioned",
+    "Partitioned; Secure; HttpOnly; Path=/; SameSite=None",
+    "Secure; partitioned; Priority=High; SameSite=None",
+    "Expires=Wed, 09 Jun 2032 10:18:14 GMT; Secure; Partitioned",
+])
+def test_partitioned_provider_cookie_supports_login_and_reset(provider, monkeypatch, attributes):
+    original = provider._request
+
+    def partitioned(path, body=None, **kwargs):
+        result, headers = original(path, body, **kwargs)
+        if path == "/sign-in/email":
+            headers = [f"__Secure-neon-auth.session_token=signed-test-cookie; {attributes}",
+                       "neon-auth.session_data=cached-user; Secure; Partitioned"]
+        return result, headers
+
+    monkeypatch.setattr(provider, "_request", partitioned)
+    token = signed(provider)
+    assert provider.verify(token).uid == "neon-test-uid"
+    assert provider.finish_reset("parent@example.test", "new-password") == {"reset": True}
+    assert all(call[2] == "__Secure-neon-auth.session_token=signed-test-cookie"
+               for call in provider.calls if call[2])
+
+
+@pytest.mark.parametrize("headers", [
+    ["neon-auth.session_token=; Secure; Partitioned"],
+    ["neon-auth.session_data=cached; Partitioned"],
+    ["neon-auth.session_token=first; Partitioned", "neon-auth.session_token=second; Partitioned"],
+    ["neon-auth.session_token=first other=value; Partitioned"],
+    ["neon-auth.session_token=first\r\nInjected: value; Partitioned"],
+    ["neon-auth.session_token=first; Path=/\nInjected: value"],
+    ["neon-auth.session_token=" + "x" * 8192 + "; Partitioned"],
+])
+def test_unusable_provider_cookie_is_rejected(headers):
+    with pytest.raises(EmailAuthUnavailable):
+        NeonAuth._cookie(headers)
+
+
+def test_login_transport_forwards_only_encoded_session_cookie(monkeypatch):
+    provider = NeonAuth(AUTH_URL, "https://vuga-app.onrender.com", "synthetic-cookie-test-key")
+    cookie = "__Secure-neon-auth.session_token=synthetic%2Bsignature%2Fvalue%3D"
+    user = {"id": "test-uid", "email": "parent@example.test", "name": "Parent", "emailVerified": True}
+    session = {"userId": "test-uid", "expiresAt": (datetime.now(UTC) + timedelta(hours=1)).isoformat()}
+    seen = []
+
+    def response(payload, cookies=()):
+        result = io.BytesIO(json.dumps(payload).encode())
+        result.headers = Message()
+        for value in cookies:
+            result.headers.add_header("Set-Cookie", value)
+        return result
+
+    def request(req, timeout):
+        seen.append(req)
+        if req.full_url.endswith("/sign-in/email"):
+            return response({"user": user}, [
+                cookie + "; Path=/; HttpOnly; Secure; SameSite=None; Partitioned",
+                "neon-auth.session_data=cached; Path=/; Secure; Partitioned",
+                "neon-auth.dont_remember=true; Secure; SameSite=None; Partitioned",
+            ])
+        assert req.full_url == AUTH_URL + "/get-session?disableCookieCache=true"
+        assert req.get_header("Cookie") == cookie
+        return response({"user": user, "session": session})
+
+    monkeypatch.setattr(provider._opener, "open", request)
+    token = provider.login("parent@example.test", "synthetic-password")["idToken"]
+    assert cookie not in token
+    assert provider.verify(token).uid == "test-uid"
+    assert len(seen) == 3
+
+
 def test_transport_uses_fixed_origin_and_does_not_expose_provider_errors(monkeypatch):
     provider = NeonAuth(AUTH_URL, "https://vuga-app.onrender.com", "test-secret")
     seen = []

@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-10",
+  "deployed": false,
+  "change": "Parse the session cookie pair independently of modern Set-Cookie attributes such as Partitioned.",
+  "before_fix": {
+    "new_regression_cases_failed": 4,
+    "message": "email provider did not return a usable session"
+  },
+  "api": {
+    "passed": 175,
+    "skipped": 5,
+    "provider": "mocked",
+    "database": "disposable SQLite"
+  },
+  "ruff": "passed for changed Python files",
+  "local_health": {
+    "app": 200,
+    "api": 200,
+    "email": "neon"
+  },
+  "real_provider": {
+    "email_delivery": "User reports receiving the verification code.",
+    "registration": "Local API recorded POST /auth/neon/register 201.",
+    "verification": "Local API recorded POST /auth/neon/verify 200.",
+    "login_before_fix": "Local API recorded POST /auth/neon/login 503.",
+    "login_after_fix": "Awaiting user retry; not yet confirmed.",
+    "reset_and_deletion": "Not yet tested against a real account; deletion remains disabled."
+  },
+  "source_sha256": {
+    "api/app/services/neon_auth.py": "48934aa2133ebc06ef2cca9c1e8f3cdd96d6202259b8441707f818037a38c59a",
+    "api/tests/test_neon_auth.py": "8a0b9c9159b5b5048a41cde3e20b6167698965656d2eb29393691dcac6148270"
+  }
+}

@@ -23,11 +23,11 @@ Render serves the React PWA and Python API. Neon supplies PostgreSQL and Managed
 | Neon browser checks | 13 passed with simulated API responses, including 320px and 390px layouts |
 | Local Neon API health | `status: ok`, `model_loaded: true`, `sms: off`, `email: neon` |
 | Production-mode frontend build | Passed with hosted API URL and Neon provider; existing large-chunk warning remains (526 kB JavaScript, 163 kB gzip) |
-| Real Neon integration | Public routes respond; account actions currently blocked by `INVALID_ORIGIN` until trusted domains are configured |
+| Real Neon integration | Public routes respond; `INVALID_ORIGIN` was resolved on 6 November; see the real-account follow-up below |
 
 Evidence: [check summary](../evidence/neon-accounts-2026-11-05/checks.json), [API results](../evidence/neon-accounts-2026-11-05/api.xml), [PostgreSQL results](../evidence/neon-accounts-2026-11-05/postgresql.xml), [browser results](../evidence/neon-accounts-2026-11-05/browser.json).
 
-The browser checks did not create accounts or send email. Real signup, email receipt, password recovery, session-cookie behavior and managed account deletion are still unverified. Passing mocked tests is not evidence of email delivery or hosted availability.
+The browser checks did not create accounts or send email. At the initial release check, real signup, email receipt, password recovery, session-cookie behavior and managed account deletion were unverified; the follow-up below records subsequent results. Passing mocked tests is not evidence of email delivery or hosted availability.
 
 ## Remaining rollout steps
 
@@ -39,3 +39,15 @@ The browser checks did not create accounts or send email. Real signup, email rec
 6. Record the deployed commit and actual hosted checks before describing the migration as live.
 
 Neon's shared email sender is documented for development/testing. This two-provider free configuration is suitable for the capstone test; production email delivery has not been established. See the [provider limitation and setup](../neon-auth.md#shared-email-limitation).
+
+## Session-cookie correction - 10 November 2026
+
+The user received the real Neon verification email. The local API recorded successful registration (201) and code verification (200), followed by login failures (503). Python 3.11's cookie parser discarded a full `Set-Cookie` header containing Neon's `Partitioned` attribute. The earlier synthetic headers omitted this attribute.
+
+The API now parses only the cookie name/value pair, preserving the encoded signature. It rejects line breaks, malformed pairs, ambiguous session tokens and oversized values, and continues to exclude cached user cookies. No passwords, codes or provider cookies were copied into this evidence.
+
+Four new regression cases reproduced the failure before the fix. Afterward, **175 API checks passed; 5 PostgreSQL-only checks were skipped**. New coverage includes login, password-reset cleanup, encoded values and multiple transport headers. Ruff passed. The isolated local API was restarted and its health check passed. Frontend and database schema files were unchanged, so their earlier checks were not rerun.
+
+Real login after this fix still requires the user's retry. Password recovery, revocation and deletion also remain pending. Account deletion stays disabled and this candidate has not been deployed to Render.
+
+Evidence: [check summary](../evidence/neon-session-cookie-2026-11-10/checks.json), [API results](../evidence/neon-session-cookie-2026-11-10/api.xml).

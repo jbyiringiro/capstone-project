@@ -116,8 +116,15 @@ class NeonAuth:
         selected = []
         try:
             for header in headers:
+                if "\r" in header or "\n" in header:
+                    raise CookieError("invalid cookie header")
                 jar = SimpleCookie()
-                jar.load(header)
+                # Only the cookie pair belongs in a subsequent Cookie request header.
+                # Python 3.11 drops a full Set-Cookie containing Neon's Partitioned
+                # flag, so parse the pair independently of browser-only attributes.
+                jar.load(header.split(";", 1)[0].strip())
+                if len(jar) != 1:
+                    raise CookieError("invalid cookie pair")
                 for name, item in jar.items():
                     # Exclude session_data: it can cache a user after revocation/deletion.
                     if name.endswith(".session_token") and item.value:
