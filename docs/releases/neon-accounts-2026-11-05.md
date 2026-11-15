@@ -48,6 +48,6 @@ The API now parses only the cookie name/value pair, preserving the encoded signa
 
 Four new regression cases reproduced the failure before the fix. Afterward, **175 API checks passed; 5 PostgreSQL-only checks were skipped**. New coverage includes login, password-reset cleanup, encoded values and multiple transport headers. Ruff passed. The isolated local API was restarted and its health check passed. Frontend and database schema files were unchanged, so their earlier checks were not rerun.
 
-Real login after this fix still requires the user's retry. Password recovery, revocation and deletion also remain pending. Account deletion stays disabled and this candidate has not been deployed to Render.
+On 15 November, the user confirmed that real login works in the local preview after this fix. Password recovery, revocation and deletion remain pending. Account deletion stays disabled and this candidate has not been deployed to Render.
 
 Evidence: [check summary](../evidence/neon-session-cookie-2026-11-10/checks.json), [API results](../evidence/neon-session-cookie-2026-11-10/api.xml).
