@@ -1,6 +1,10 @@
 # Render and Neon email accounts
 
-This configuration uses two hosted providers: Render for the React app and Python API, and Neon for PostgreSQL and Managed Better Auth. Use only their Free plans. The Neon migration is under validation; a successful local build does not mean the public deployment has changed.
+This configuration uses two hosted providers: Render for the React app and Python API, and Neon for PostgreSQL and Managed Better Auth. Both remain on their Free plans.
+
+**Hosted release, 17 November 2026:** the app and API are live at `5d5388b`. Eight live API checks and 11 browser navigation checks passed, with no observed browser errors. The production database URL and JWT secret were retained; a ready recovery branch was created before enabling production Auth. Hosted signup, email delivery, successful login, password reset and session revocation have not yet been tested end to end, and `VUGA_NEON_DELETE_ENABLED=false`. See the [hosted release record](releases/neon-hosted-2026-11-17.md) for deployed services and evidence.
+
+Production Auth uses branch `br-dawn-tooth-b97xsvmu` and the public base URL `https://ep-summer-credit-b9q6kaz6.neonauth.c-7.eu-central-1.aws.neon.tech/neondb/auth`. The earlier `vuga-auth-test` branch is no longer present; its old Auth URL must not be used for the hosted app. Accounts created on that test Auth branch do not automatically exist on production. The test-branch instructions below describe how to set up a new isolated test when needed.
 
 ## Authentication flow
 

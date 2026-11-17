@@ -1,6 +1,8 @@
 # Free public hosting: Render + Neon
 
-**Render + Neon migration, 5 November 2026:** the selected deployment now uses Neon Managed Better Auth with email verification codes. Follow the [Neon account setup and release checks](neon-auth.md). Implementation and live deployment status must be reported separately. Firebase and SMS instructions further below describe earlier releases and are not the selected configuration.
+**Current release, 17 November 2026:** the Render app and API are live at `5d5388b` from `deploy/vuga-cloud`, using Neon Managed Better Auth on the production branch. Eight live API checks and 11 browser navigation checks passed, with no observed browser errors. Both providers remain on Free plans. The existing database URL and JWT secret were retained, and a recovery branch is ready. Hosted signup, email delivery, successful login, password reset and session revocation still need an end-to-end test; account deletion remains disabled. See the [hosted release record](releases/neon-hosted-2026-11-17.md) and [Neon configuration](neon-auth.md). Firebase and SMS instructions further below describe earlier releases and are not the selected configuration.
+
+## Earlier hosting evidence
 
 **Live on 4 November 2026:** [Vuga app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health), hosted on Render with Neon PostgreSQL. These public services run independently of the developer's computer.
 
@@ -8,7 +10,7 @@
 
 **Desktop browser evidence, deployed commit `266dbfe`:** [hosted smoke-check results](evidence/hosted_smoke_2026-11-04.json) record the visible board, blocked browser API request and initial offline-cache progress. A fresh Edge context cached 91 files at 20 seconds and 450 at 180 seconds, with no observed download errors; installation was still in progress. Offline reload was not attempted, so this is not an offline pass or physical-device evidence. Keep the app online while its initial cache downloads, then verify a cold offline launch.
 
-**Latest read-only check, 5 November 2026:** the frontend and API health endpoint returned 200, but the CORS preflight for `POST /auth/code` still returned 400, `Disallowed CORS origin`, with no `Access-Control-Allow-Origin`. The hosted health response also lacks the current code's `sms` field. See [raw results](evidence/hosted_check_2026-11-05.json). The local Blueprint now sets `VUGA_CORS_ORIGINS` to `["https://vuga-app.onrender.com"]`; this correction is **not active until the updated deployment branch is synced/deployed**. Live SMS setup and handset receipt remain unverified (section 4), as do hosted offline readiness, physical-device and account persistence. No SMS or account operation was performed by this check.
+**Historical read-only check, 5 November 2026:** the frontend and API health endpoint returned 200, but the CORS preflight for `POST /auth/code` returned 400, `Disallowed CORS origin`, with no `Access-Control-Allow-Origin`. That deployment's health response also lacked the current code's `sms` field. See [raw results](evidence/hosted_check_2026-11-05.json). The local Blueprint correction to `VUGA_CORS_ORIGINS=["https://vuga-app.onrender.com"]` had not yet been deployed at that time. No SMS or account operation was performed by this check. These observations describe the old deployment; use the 17 November release record above for current API results. Physical-device and hosted offline-readiness checks remain separate outstanding tests.
 
 ## Services and limits
 

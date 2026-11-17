@@ -1,0 +1,95 @@
+﻿{
+    "startedAt":  "2026-11-17T18:35:02.519Z",
+    "baseURL":  "https://vuga-app.onrender.com/",
+    "scope":  "Fresh browser contexts; board and email signup/login/reset navigation only. No real authentication or physical-device testing.",
+    "checks":  [
+                   {
+                       "viewport":  "desktop",
+                       "name":  "Hosted document and communication board load",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "desktop",
+                       "name":  "Email signup is enabled and legacy SMS option is absent",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "desktop",
+                       "name":  "Email login and separate offline PIN fields are visible",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "desktop",
+                       "name":  "Neon code-based password-reset navigation works without requesting mail",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "mobile-emulated",
+                       "name":  "Hosted document and communication board load",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "mobile-emulated",
+                       "name":  "Email signup is enabled and legacy SMS option is absent",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "mobile-emulated",
+                       "name":  "Email login and separate offline PIN fields are visible",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "mobile-emulated",
+                       "name":  "Neon code-based password-reset navigation works without requesting mail",
+                       "status":  "passed"
+                   },
+                   {
+                       "viewport":  "mobile-emulated",
+                       "name":  "Login also fits a 320-pixel viewport",
+                       "status":  "passed"
+                   },
+                   {
+                       "name":  "No non-read HTTP requests occurred",
+                       "status":  "passed",
+                       "count":  0
+                   },
+                   {
+                       "name":  "Browser did not contact a third-party authentication provider directly",
+                       "status":  "passed",
+                       "count":  0
+                   }
+               ],
+    "pageErrors":  [
+
+                   ],
+    "consoleErrors":  [
+
+                      ],
+    "resourceFailures":  [
+
+                         ],
+    "httpErrors":  [
+
+                   ],
+    "buildAssets":  [
+                        {
+                            "path":  "/assets/index-9teyF00N.css",
+                            "status":  200,
+                            "bytes":  71700,
+                            "sha256":  "23f04f5b20ea2f78fd4d1cfcca3552e046d930a0c7193d02d3b8007871fef8d0"
+                        },
+                        {
+                            "path":  "/assets/index-0b1ElBpk.js",
+                            "status":  200,
+                            "bytes":  526923,
+                            "sha256":  "dd31aa41f6bef85845e147022bef2ba273c48ced62878de936db3b71b3dc5ade"
+                        }
+                    ],
+    "browser":  {
+                    "version":  "156.0.4314.58",
+                    "channel":  "msedge"
+                },
+    "finishedAt":  "2026-11-17T18:35:10.362Z",
+    "status":  "passed",
+    "deployed_commit":  "5d5388b124ea2cd6b77b8c8970726e7826cf0b23"
+}

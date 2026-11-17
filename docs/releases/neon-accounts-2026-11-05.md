@@ -1,6 +1,6 @@
 # Neon account release — 5 November 2026
 
-**Implemented and locally tested; not deployed.** This supersedes the prepared Firebase release. The public app continues to run the preceding deployment.
+**Historical release record, initially implemented and locally tested on 5 November.** This superseded the prepared Firebase release; it was not deployed at that time. The dated checks and rollout checklist below preserve the evidence from that stage, including the subsequent cookie fix and local-login confirmation. For the current deployment, see the [17 November hosted release](neon-hosted-2026-11-17.md): both the app and API are live at `5d5388b`; hosted end-to-end account validation remains pending.
 
 ## Changes
 
