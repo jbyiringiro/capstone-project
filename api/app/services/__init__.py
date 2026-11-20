@@ -13,6 +13,7 @@ from .errors import (
     RetryLater,
     ServiceError,
     SmsFailed,
+    SmsUnavailable,
     StaleBackup,
     TooLarge,
     TooManyCodes,
@@ -20,7 +21,7 @@ from .errors import (
 )
 from .prediction import ModelRegistry
 from .profiles import ProfileService
-from .sms import AfricasTalkingSms, LogSms, SmsSender, create_sms_sender
+from .sms import AfricasTalkingSms, DisabledSms, LogSms, SmsSender, create_sms_sender
 from .summary import SummaryService
 from .sync import SyncService
 
@@ -29,6 +30,7 @@ __all__ = [
     "AfricasTalkingSms",
     "BackupService",
     "Conflict",
+    "DisabledSms",
     "InvalidCode",
     "InvalidCredentials",
     "InvalidInput",
@@ -42,6 +44,7 @@ __all__ = [
     "ServiceError",
     "SmsFailed",
     "SmsSender",
+    "SmsUnavailable",
     "StaleBackup",
     "SummaryService",
     "SymbolCatalogue",

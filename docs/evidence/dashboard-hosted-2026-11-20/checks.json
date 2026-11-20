@@ -1,0 +1,153 @@
+{
+  "date": "2026-11-20",
+  "frontend_commit": "73ec88cc7bcfb1940d11b83619e40b23f3d91f51",
+  "frontend_deploy_id": "dep-dc0275h42hec738f8g2g",
+  "status": "live",
+  "api_commit": "5d5388b124ea2cd6b77b8c8970726e7826cf0b23",
+  "frontend_unit_tests_passed": 245,
+  "production_build": "passed",
+  "hosted_browser_checks": [
+    {
+      "viewport": "desktop",
+      "name": "board loads with no horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "name": "local-only PIN setup and synthetic learner profile",
+      "status": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "name": "header and navigation stay stacked during vocabulary scrolling",
+      "status": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "name": "selecting Ikibaho resets page scroll and marks the selected tab",
+      "status": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "name": "header height changes update the sticky menu offset",
+      "status": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "name": "return-to-board control remains reachable",
+      "status": "passed"
+    },
+    {
+      "viewport": "desktop",
+      "name": "no runtime page errors or attempted network mutations",
+      "status": "passed"
+    },
+    {
+      "viewport": "short-desktop",
+      "name": "board loads with no horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "viewport": "short-desktop",
+      "name": "local-only PIN setup and synthetic learner profile",
+      "status": "passed"
+    },
+    {
+      "viewport": "short-desktop",
+      "name": "header and navigation stay stacked during vocabulary scrolling",
+      "status": "passed"
+    },
+    {
+      "viewport": "short-desktop",
+      "name": "selecting Ikibaho resets page scroll and marks the selected tab",
+      "status": "passed"
+    },
+    {
+      "viewport": "short-desktop",
+      "name": "return-to-board control remains reachable",
+      "status": "passed"
+    },
+    {
+      "viewport": "short-desktop",
+      "name": "no runtime page errors or attempted network mutations",
+      "status": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "name": "board loads with no horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "name": "local-only PIN setup and synthetic learner profile",
+      "status": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "name": "header and navigation stay stacked during vocabulary scrolling",
+      "status": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "name": "selecting Ikibaho resets page scroll and marks the selected tab",
+      "status": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "name": "return-to-board control remains reachable",
+      "status": "passed"
+    },
+    {
+      "viewport": "mobile",
+      "name": "no runtime page errors or attempted network mutations",
+      "status": "passed"
+    },
+    {
+      "viewport": "narrow-mobile",
+      "name": "board loads with no horizontal overflow",
+      "status": "passed"
+    },
+    {
+      "viewport": "narrow-mobile",
+      "name": "local-only PIN setup and synthetic learner profile",
+      "status": "passed"
+    },
+    {
+      "viewport": "narrow-mobile",
+      "name": "header and navigation stay stacked during vocabulary scrolling",
+      "status": "passed"
+    },
+    {
+      "viewport": "narrow-mobile",
+      "name": "selecting Ikibaho resets page scroll and marks the selected tab",
+      "status": "passed"
+    },
+    {
+      "viewport": "narrow-mobile",
+      "name": "return-to-board control remains reachable",
+      "status": "passed"
+    },
+    {
+      "viewport": "narrow-mobile",
+      "name": "no runtime page errors or attempted network mutations",
+      "status": "passed"
+    }
+  ],
+  "viewports": [
+    "1280x900",
+    "1024x600",
+    "390x844",
+    "320x720"
+  ],
+  "page_errors": [],
+  "console_errors": [],
+  "scope": "Fresh headless Edge contexts; local synthetic PIN/profile only. Network mutations blocked. Responsive browser emulation, not physical-device or offline/audio evaluation.",
+  "api_health": {
+    "status": "ok",
+    "model_loaded": true,
+    "email": "neon",
+    "sms": "off"
+  },
+  "real_account_signup_login_reset_tested": false,
+  "physical_devices_tested_by_this_run": false
+}

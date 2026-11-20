@@ -16,11 +16,24 @@ services:
       - key: VUGA_JWT_SECRET
         generateValue: true
       - key: VUGA_CORS_ORIGINS
-        sync: false
+        # Public frontend origin, managed here so Blueprint sync repairs stale dashboard values.
+        value: '["https://vuga-app.onrender.com"]'
       - key: VUGA_MODEL_DIR
         value: /srv/ml/artifacts
       - key: VUGA_DEFAULT_MODEL
         value: kn_trigram.json
+      # Render runs the API; Neon handles PostgreSQL and caregiver authentication.
+      # Set the PRODUCTION branch Auth Base URL before deploying this Blueprint.
+      - key: VUGA_EMAIL_AUTH_PROVIDER
+        value: neon
+      - key: VUGA_NEON_AUTH_URL
+        sync: false
+      - key: VUGA_NEON_AUTH_ORIGIN
+        value: https://vuga-app.onrender.com
+      # Enable only after self-service deletion succeeds on the Neon test branch.
+      - key: VUGA_NEON_DELETE_ENABLED
+        sync: false
+      # Neon mode disables the legacy outbound SMS service.
       - key: VUGA_SMS_LOG_ENABLED
         value: "false"
 
@@ -38,6 +51,11 @@ services:
           type: web
           name: vuga-api
           envVarKey: RENDER_EXTERNAL_URL
+      - key: VITE_EMAIL_AUTH_PROVIDER
+        fromService:
+          type: web
+          name: vuga-api
+          envVarKey: VUGA_EMAIL_AUTH_PROVIDER
     routes:
       - type: rewrite
         source: /*

@@ -1,4 +1,5 @@
 from secrets import token_urlsafe
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -29,6 +30,16 @@ class Settings(BaseSettings):
     africastalking_username: str = "sandbox"
     africastalking_api_key: str | None = None
     africastalking_sender_id: str | None = None  # a registered sender name, if the account has one
+    # Firebase Email/Password (Spark). The web API key is public project configuration, not an
+    # admin credential. It is also used server-side to check current account state and erase it.
+    firebase_project_id: str | None = None
+    firebase_api_key: str | None = None
+    # Switching providers is explicit: Firebase tokens are rejected while Neon is active.
+    email_auth_provider: Literal["firebase", "neon"] = "firebase"
+    neon_auth_url: str | None = None
+    neon_auth_origin: str | None = None
+    # Enable only after self-service deletion has been confirmed on this Neon branch.
+    neon_delete_enabled: bool = False
 
 
 settings = Settings()

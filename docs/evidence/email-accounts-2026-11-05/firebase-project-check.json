@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-11-05T18:17:46.329796+00:00",
+  "requested_project": "vuga-sms-test",
+  "operation": "GET public project configuration",
+  "account_or_email_operations": false,
+  "http_status": 200,
+  "returned_project_id": "582183487024",
+  "authorized_domains": [
+    "localhost",
+    "vuga-sms-test.firebaseapp.com",
+    "vuga-sms-test.web.app"
+  ],
+  "email_password_enabled": null,
+  "expected_project_number": "582183487024",
+  "numeric_project_matches": true,
+  "expected_auth_domain_present": true,
+  "web_app_id_validated": true,
+  "note": "Public API returns the numeric project identifier. Email/Password enablement is not exposed by this unauthenticated response."
+}

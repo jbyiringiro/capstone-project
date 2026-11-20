@@ -4,13 +4,30 @@ Every lookup is scoped to the requesting adult: another account's profile behave
 """
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import models, schemas
+from .backups import BackupService
 from .catalogue import SymbolCatalogue
 from .errors import Conflict, InvalidInput
+
+
+def erase_profiles(db: Session, profile_ids: list[str]) -> None:
+    """Deletes children and all the server keeps for them: synced messages and their taps, boards,
+    word lists and devices. The caller commits, so the erasure is one transaction with whatever
+    goes with it."""
+    messages = select(models.Message.message_id).where(models.Message.profile_id.in_(profile_ids))
+    boards = select(models.Board.board_id).where(models.Board.profile_id.in_(profile_ids))
+    for rows in (delete(models.TapEvent).where(models.TapEvent.message_id.in_(messages)),
+                 delete(models.Message).where(models.Message.profile_id.in_(profile_ids)),
+                 delete(models.BoardCell).where(models.BoardCell.board_id.in_(boards)),
+                 delete(models.Board).where(models.Board.profile_id.in_(profile_ids)),
+                 delete(models.ProfileVocabulary).where(models.ProfileVocabulary.profile_id.in_(profile_ids)),
+                 delete(models.Device).where(models.Device.profile_id.in_(profile_ids)),
+                 delete(models.ChildProfile).where(models.ChildProfile.profile_id.in_(profile_ids))):
+        db.execute(rows.execution_options(synchronize_session=False))
 
 
 class ProfileService:
@@ -38,6 +55,33 @@ class ProfileService:
             raise Conflict("code already used")
         self.db.refresh(profile)
         return profile
+
+    def update(self, profile: models.ChildProfile, body: schemas.ProfileUpdate) -> models.ChildProfile:
+        """A new code or age band for the same child; codes stay unique across accounts."""
+        changes = body.model_dump(exclude_unset=True)
+        code = changes.get("code", profile.code)
+        if code != profile.code and self.db.scalar(select(models.ChildProfile.profile_id).where(
+                models.ChildProfile.code == code)):
+            raise Conflict("code already used")
+        for field, value in changes.items():
+            setattr(profile, field, value)
+        try:
+            self.db.commit()
+        except IntegrityError:
+            self.db.rollback()
+            raise Conflict("code already used")
+        self.db.refresh(profile)
+        return profile
+
+    def delete(self, profile: models.ChildProfile) -> None:
+        """Erases the child with all the server keeps for them, and records the deletion so the
+        account copy leaves the child out from now on."""
+        owner, profile_id = profile.created_by, profile.profile_id
+        # Lock the account before touching child rows, and publish the tombstone and revision
+        # atomically with the erasure. Other devices discover it through /backup/status.
+        BackupService(self.db, self.db.get(models.User, owner)).remember_deletions([profile_id])
+        erase_profiles(self.db, [profile_id])
+        self.db.commit()
 
     def vocabulary(self, profile: models.ChildProfile) -> list[models.Symbol]:
         return [entry.symbol for entry in profile.vocabulary]

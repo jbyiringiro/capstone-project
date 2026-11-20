@@ -27,21 +27,39 @@ describe('grid shape', () => {
   })
 })
 
+// The board's own step (Board.jsx): words hidden for the child are left out, in order, before paging.
+const shown = (all, hidden) => all.split('').filter(key => !hidden.includes(key)).map(word)
+
 describe('grid pages', () => {
-  it('pads a short last page so tiles keep one size and place', () => {
-    const slots = 'ABCDEFGHIJ'.split('').map(word)
-    expect(gridPage(slots, [2, 2], 2)).toMatchObject({ page: 2, pages: 3, empty: 2 })
-    expect(keys(gridPage(slots, [2, 2], 2).cells)).toEqual(['I', 'J'])
-    expect(gridPage(slots, [2, 2], 9).page).toBe(2)
+  it('pads only the end of a short last page, so tiles keep one size', () => {
+    const symbols = 'ABCDEFGHIJ'.split('').map(word)
+    expect(gridPage(symbols, [2, 2], 2)).toMatchObject({ page: 2, pages: 3, empty: 2 })
+    expect(keys(gridPage(symbols, [2, 2], 2).cells)).toEqual(['I', 'J'])
   })
-  it('leaves a hidden word’s slot empty, so the pictures around it do not move', () => {
-    const slots = [word('A'), null, word('C'), word('D')]
-    expect(keys(gridPage(slots, [2, 2]).cells)).toEqual(['A', null, 'C', 'D'])
+  it('closes up behind a hidden picture, keeping the others in order with no gap', () => {
+    expect(keys(gridPage(shown('ABCDE', 'B'), [2, 2]).cells)).toEqual(['A', 'C', 'D', 'E'])
+    // Several hidden across pages: the next page's pictures move up, and a page goes away.
+    const several = shown('ABCDEFGHIJ', 'BDEG')
+    expect(keys(several)).toEqual(['A', 'C', 'F', 'H', 'I', 'J'])
+    expect(gridPage(several, [2, 2])).toMatchObject({ pages: 2, empty: 0 })
+    expect(keys(gridPage(several, [2, 2], 1).cells)).toEqual(['I', 'J'])
+    // Shown again, a picture takes its own place back.
+    expect(keys(gridPage(shown('ABCDE', ''), [2, 2]).cells)).toEqual(['A', 'B', 'C', 'D'])
   })
-  it('skips pages with nothing to show and reports an empty view', () => {
-    const slots = [null, null, null, null, word('E'), null]
-    expect(gridPage(slots, [2, 2])).toMatchObject({ pages: 1, page: 0, empty: 2 })
-    expect(keys(gridPage(slots, [2, 2]).cells)).toEqual(['E', null])
-    expect(gridPage([null, null], [2, 2])).toMatchObject({ cells: [], pages: 1, empty: 4 })
+  it('has no empty page and no gap on any page but the end of the last', () => {
+    const symbols = shown('ABCDEFGHIJKLMNOPQRSTU', 'CFGHIJKLQ')
+    const { pages } = gridPage(symbols, [3, 2])
+    const all = Array.from({ length: pages }, (_, page) => gridPage(symbols, [3, 2], page))
+    expect(all.map(page => page.cells.length)).toEqual([6, 6])
+    expect(all.flatMap(page => keys(page.cells))).toEqual(keys(symbols))
+  })
+  it('keeps a page within the pages there are, as when hiding words removes the open page', () => {
+    const symbols = shown('ABCDEFGHIJ', 'EFGHIJ')
+    expect(gridPage(symbols, [2, 2], 2)).toMatchObject({ page: 0, pages: 1 })
+    expect(gridPage(symbols, [2, 2], -3).page).toBe(0)
+    expect(gridPage(symbols, [2, 2], Number.NaN).page).toBe(0)
+  })
+  it('shows an empty view, one page, when every picture is hidden', () => {
+    expect(gridPage(shown('ABCD', 'ABCD'), [2, 2])).toMatchObject({ cells: [], pages: 1, page: 0, empty: 4 })
   })
 })

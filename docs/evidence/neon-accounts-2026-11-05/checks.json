@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-05",
+  "deployed": false,
+  "frontend": {
+    "passed": 245,
+    "files": 32,
+    "command": "npm.cmd test"
+  },
+  "api": {
+    "passed": 163,
+    "skipped": 5,
+    "provider": "mocked",
+    "database": "disposable SQLite"
+  },
+  "postgresql": {
+    "passed": 5,
+    "version": "17.11",
+    "database": "disposable loopback schemas"
+  },
+  "browser": {
+    "passed": 13,
+    "mockOnly": true,
+    "widths": [
+      320,
+      390
+    ]
+  },
+  "real_email_delivery": "not tested",
+  "provider_account_deletion": "not tested; disabled",
+  "live_test_blocker": "Neon INVALID_ORIGIN; trusted domain and signup/reset configuration pending",
+  "build": {
+    "mode": "production",
+    "provider": "neon",
+    "api": "isolated local test API",
+    "passed": true
+  },
+  "release_build": {
+    "passed": true,
+    "api": "https://vuga-api.onrender.com",
+    "provider": "neon",
+    "assets": [
+      {
+        "file": "index-0b1ElBpk.js",
+        "sha256": "dd31aa41f6bef85845e147022bef2ba273c48ced62878de936db3b71b3dc5ade",
+        "bytes": 526923
+      },
+      {
+        "file": "index-9teyF00N.css",
+        "sha256": "23f04f5b20ea2f78fd4d1cfcca3552e046d930a0c7193d02d3b8007871fef8d0",
+        "bytes": 71700
+      }
+    ],
+    "code_matches_tested_source": true
+  }
+}

@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { db } from '../../src/storage/db.js'
 import { exportLocalData } from '../../src/storage/messages.js'
 import {
-  changeParentPin, getParentAccessStatus, MAX_PIN_ATTEMPTS, PARENT_ACCESS_KEY, PIN_COOLDOWN_MS, recoverParentPin, renewRecoveryCode,
+  changeParentPin, getParentAccessStatus, getParentPinVersion, MAX_PIN_ATTEMPTS, PARENT_ACCESS_KEY, PIN_COOLDOWN_MS, recoverParentPin, renewRecoveryCode,
   resetParentPinWithAccount, setupParentPin, unlockParentAccess
 } from '../../src/parent-access/parent-access.js'
 
@@ -125,4 +125,46 @@ it('sets a new PIN and recovery code after the linked account signed in, keeping
   expect(result.recoveryCode).toMatch(CODE)
   expect((await unlockParentAccess('2468')).ok).toBe(true)
   expect(JSON.stringify(await exportLocalData())).not.toMatch(/recovery|digest|salt/)
+})
+
+const emailAccount = { user_id: 'caregiver-a', email: 'parent@example.test', auth_provider: 'firebase' }
+
+it('recovers the local PIN with fresh proof for the unchanged linked email account', async () => {
+  await setupParentPin('5678', '5678')
+  await db.settings.bulkPut([{ key: 'account', value: emailAccount }, { key: 'token', value: 'fresh-token' }])
+  const proof = { account: emailAccount, token: 'fresh-token', gate: await getParentPinVersion() }
+  const result = await resetParentPinWithAccount('2468', '2468', proof)
+  expect(result.recoveryCode).toMatch(CODE)
+  expect((await unlockParentAccess('2468')).ok).toBe(true)
+})
+
+it.each(['account switch', 'sign out', 'PIN change'])('rejects email PIN recovery when %s happens during hashing', async kind => {
+  await setupParentPin('5678', '5678')
+  await db.settings.bulkPut([{ key: 'account', value: emailAccount }, { key: 'token', value: 'fresh-token' }])
+  const previous = await db.settings.get(PARENT_ACCESS_KEY)
+  const proof = { account: emailAccount, token: 'fresh-token', gate: await getParentPinVersion() }
+  // Prepare another tab's changed credential before blocking Web Crypto below.
+  await changeParentPin('5678', '9753', '9753')
+  const replacement = await db.settings.get(PARENT_ACCESS_KEY)
+  await db.settings.put(previous)
+  let started, resume
+  const hashing = new Promise(resolve => { started = resolve })
+  const release = new Promise(resolve => { resume = resolve })
+  const derive = crypto.subtle.deriveBits.bind(crypto.subtle)
+  const spy = vi.spyOn(crypto.subtle, 'deriveBits').mockImplementation(async (...args) => {
+    started()
+    await release
+    return derive(...args)
+  })
+  const resetting = resetParentPinWithAccount('2468', '2468', proof)
+  const rejected = expect(resetting).rejects.toMatchObject({ code: 'changed' })
+  await hashing
+  if (kind === 'account switch') await db.settings.put({ key: 'account', value: { ...emailAccount, user_id: 'caregiver-b' } })
+  else if (kind === 'sign out') await db.settings.delete('token')
+  else await db.settings.put(replacement)
+  resume()
+  await rejected
+  spy.mockRestore()
+  expect((await unlockParentAccess(kind === 'PIN change' ? '9753' : '5678')).ok).toBe(true)
+  expect((await unlockParentAccess('2468')).ok).toBe(false)
 })

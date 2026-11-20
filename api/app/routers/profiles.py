@@ -18,6 +18,19 @@ def list_profiles(db: DbSession, user: CurrentUser):
     return ProfileService(db).list_for(user)
 
 
+@router.patch("/{profile_id}", response_model=schemas.ProfileOut)
+def update_profile(body: schemas.ProfileUpdate, db: DbSession, profile: OwnedProfile):
+    """A new code or age band; the id, words and synced messages stay the child's (409 if another
+    child has the code)."""
+    return ProfileService(db).update(profile, body)
+
+
+@router.delete("/{profile_id}", status_code=204)
+def delete_profile(db: DbSession, profile: OwnedProfile):
+    """Erases the child and all the server keeps for them; another account's child is 404."""
+    ProfileService(db).delete(profile)
+
+
 @router.put("/{profile_id}/vocabulary")
 def set_vocabulary(body: schemas.VocabularyUpdate, db: DbSession, profile: OwnedProfile):
     enabled = ProfileService(db).replace_vocabulary(profile, body.symbol_ids)

@@ -1,0 +1,57 @@
+{
+  "checked_at": "2026-11-17T18:33:42.660617+00:00",
+  "base_url": "https://vuga-api.onrender.com",
+  "checks": [
+    {
+      "check": "health_neon",
+      "passed": true,
+      "status": 200,
+      "health": {
+        "status": "ok",
+        "model_loaded": true,
+        "sms": "off",
+        "email": "neon"
+      }
+    },
+    {
+      "check": "email_routes",
+      "passed": true,
+      "status": 200
+    },
+    {
+      "check": "frontend_cors",
+      "passed": true,
+      "status": 200,
+      "allowed_origin": "https://vuga-app.onrender.com"
+    },
+    {
+      "check": "empty_login_rejected",
+      "passed": true,
+      "status": 422,
+      "cache_control": "no-store"
+    },
+    {
+      "check": "neon_invalid_login",
+      "passed": true,
+      "status": 401,
+      "provider_error": "INVALID_EMAIL_OR_PASSWORD"
+    },
+    {
+      "check": "unauthenticated_/auth/me",
+      "passed": true,
+      "status": 401
+    },
+    {
+      "check": "unauthenticated_/profiles",
+      "passed": true,
+      "status": 401
+    },
+    {
+      "check": "invalid_session_rejected",
+      "passed": true,
+      "status": 401
+    }
+  ],
+  "real_email_delivery_tested": false,
+  "real_signup_login_reset_tested": false
+}

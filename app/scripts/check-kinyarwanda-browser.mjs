@@ -73,8 +73,8 @@ async function settings() {
   await expect(gate).toBeVisible()
   await expect(gate).toHaveAttribute('data-mode', /setup|unlock/)
   const setup = await gate.getAttribute('data-mode') === 'setup'
-  // A first setup offers the caregiver's number; these checks keep the PIN on this device only.
-  if (setup) await gate.getByRole('button', { name: 'Komeza nta nimero', exact: true }).click()
+  // A first setup offers an online account; these checks keep the PIN on this device only.
+  if (setup) await gate.getByRole('button', { name: 'Komeza nta konti', exact: true }).click()
   await gate.getByLabel('Umubare w’ibanga', { exact: true }).fill('629418')
   if (setup) {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('629418')
@@ -577,9 +577,11 @@ try {
     await auditLanguage('completed message summary')
     await tab('Ohereza')
     await expect(page.getByRole('button', { name: 'Ohereza ubu', exact: true })).toBeDisabled()
-    // The device has no number yet: Ohereza sends the caregiver to Kwinjira to add one.
+    // The device has no account yet: Ohereza sends the caregiver to Kwinjira to add one.
     await page.getByRole('button', { name: 'Jya muri Kwinjira', exact: true }).click()
-    const account = page.getByRole('region', { name: 'Nimero ya telefoni', exact: true })
+    const account = page.getByRole('region', { name: 'Konti y’umurezi', exact: true })
+    await account.getByText('Ubundi buryo bwo kwinjira', { exact: true }).click()
+    await account.getByRole('button', { name: 'Koresha konti ya nimero ya telefoni', exact: true }).click()
     await account.getByRole('button', { name: 'Ohereza kode', exact: true }).click()
     const number = account.getByRole('textbox', { name: /^Nimero ya telefoni/ })
     expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni yawe.')

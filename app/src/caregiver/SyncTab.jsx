@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { API_BASE, api, getLinkedAccount, getToken } from '../server/api-client.js'
 import { syncPending } from '../server/sync.js'
 import { accountBackupState, connectAccount, replaceAccountCopy, restoreFromAccount, saveToAccount } from '../server/account-backup.js'
-import { displayPhone } from '../server/phone.js'
+import { displayAccount } from '../server/account-identity.js'
 import RecoveryCode from '../parent-access/RecoveryCode.jsx'
 import { resetParentPinWithAccount, unlockParentAccess } from '../parent-access/parent-access.js'
 import { countPendingUploads, exportLocalData } from '../storage/messages.js'
@@ -15,7 +15,9 @@ import { Heading, clearValidation, requiredCode } from './components.jsx'
 // messages of server profiles owned by the signed-in account (FR7), or, once signed in, the
 // account backup that brings children's boards set up here to a new phone or tablet.
 const when = iso => new Date(iso).toLocaleString('rw-RW', { dateStyle: 'medium', timeStyle: 'short' })
+const removedText = result => result.removed ? ` Abana ${result.removed} basibwe ku kindi gikoresho bavuye no kuri iki.` : ''
 const brought = result => (result.profiles ? `imyirondoro ${result.profiles} n’igenamiterere ryayo` : 'igenamiterere ry’ikibaho')
+  + (result.removed ? `; abana ${result.removed} basibwe ku kindi gikoresho bavuye no kuri iki` : '')
 const restoredText = (result, updated) => `${updated ? 'Ibyo wahinduye ku kindi gikoresho byazanywe kuri iki gikoresho' : 'Ibyo wabitse kuri konti byagarutse kuri iki gikoresho'}: ${brought(result)}.`
 
 // How this device and the account's copy differ, by child code, before the caregiver chooses.
@@ -25,6 +27,7 @@ function Differences({ value }) {
     value.onlyAccount.length && `Abana bari kuri konti gusa: ${value.onlyAccount.join(', ')}`,
     value.onlyHere.length && `Abana bari kuri iki gikoresho gusa: ${value.onlyHere.join(', ')}`,
     value.changed.length && `Abana bafite amashusho cyangwa igenamiterere bitandukanye: ${value.changed.join(', ')}`,
+    value.removed?.length && `Abana basibwe ku kindi gikoresho: ${value.removed.join(', ')}. «Garura ibyo kuri konti» ibasiba no kuri iki gikoresho; ntibashobora gusubira kuri konti.`,
     value.device && 'Igenamiterere rusange riratandukanye: uburyo bw’ikibaho, umwana ufunguye, ijwi cyangwa ikibaho cy’igerageza.'
   ].filter(Boolean)
   return <ul className="account-backup-differences" aria-label="Ibitandukanye">{rows.map(row => <li key={row}>{row}</li>)}</ul>
@@ -40,6 +43,12 @@ function AccountSignIn({ onSignedIn, onOpenAccess }) {
   async function signIn(event) {
     event.preventDefault(); setBusy(true); setError('')
     try {
+      if (account.email) {
+        await api.reauthenticateEmail(account.email, pin, account)
+        setPin('')
+        await onSignedIn()
+        return
+      }
       await api.login(account.phone, pin)
       if ((await unlockParentAccess(pin)).ok) await onSignedIn()
       else setRecovery((await resetParentPinWithAccount(pin, pin)).recoveryCode)
@@ -50,16 +59,17 @@ function AccountSignIn({ onSignedIn, onOpenAccess }) {
     <p className="muted">Iki gikoresho ubu gikoresha umubare w’ibanga wa konti yawe. Bika kode nshya yo kuwugarura.</p>
     <RecoveryCode code={recovery} onDone={async () => { setRecovery(''); await onSignedIn() }} done="Nayibitse" /></div>
   if (account === undefined) return null
-  if (!account?.phone) return <div className="card"><h2>Konti ya Vuga<small>Konti yo kuri seriveri si ngombwa</small></h2>
-    <p className="muted">Iki gikoresho ntikirahuzwa na nimero ya telefoni. Ongeraho nimero yawe muri «Kwinjira» kugira ngo ibyo washyizeho bibikwe kuri konti yawe, kandi ubibone no ku bindi bikoresho.</p>
+  if (!account?.phone && !account?.email) return <div className="card"><h2>Konti ya Vuga<small>Konti yo kuri seriveri si ngombwa</small></h2>
+    <p className="muted">Iki gikoresho ntikirahuzwa na konti. Ongeraho email yawe muri «Kwinjira» kugira ngo ibyo washyizeho bibikwe kuri konti yawe, kandi ubibone no ku bindi bikoresho.</p>
     <button className="primary" onClick={onOpenAccess}>Jya muri Kwinjira</button></div>
   return <form className="card" onSubmit={signIn}>
-    <h2>Injira<small>Konti ya {displayPhone(account.phone)}</small></h2>
-    <p className="muted">{account.stale ? 'Umubare w’ibanga wa konti yawe wahinduwe ku kindi gikoresho. Andika uwo mushya.' : 'Andika umubare w’ibanga wawe kugira ngo wongere winjire kuri konti yawe.'}</p>
-    <label>Umubare w’ibanga<input type="password" inputMode="numeric" pattern="[0-9]{4,6}" minLength={4} maxLength={6} value={pin} onChange={event => setPin(event.target.value)} disabled={busy}
-      onInvalid={event => event.currentTarget.setCustomValidity('Koresha imibare ine kugeza kuri itandatu gusa.')} onInput={clearValidation} autoComplete="current-password" required /></label>
+    <h2>Injira<small>Konti ya {account.name ? `${account.name} · ` : ''}{displayAccount(account)}</small></h2>
+    <p className="muted">{account.email ? 'Andika ijambo ry’ibanga rya konti ya email. Umubare w’ibanga ufungura iki gikoresho urakomeza gukora nta interineti.' : account.stale ? 'Umubare w’ibanga wa konti yawe wahinduwe ku kindi gikoresho. Andika uwo mushya.' : 'Andika umubare w’ibanga wawe kugira ngo wongere winjire kuri konti yawe.'}</p>
+    <label>{account.email ? 'Ijambo ry’ibanga rya konti' : 'Umubare w’ibanga'}<input type="password" inputMode={account.email ? 'text' : 'numeric'} pattern={account.email ? undefined : '[0-9]{4,6}'} minLength={account.email ? undefined : 4} maxLength={account.email ? 4096 : 6} value={pin} onChange={event => setPin(event.target.value)} disabled={busy}
+      onInvalid={event => { if (!account.email) event.currentTarget.setCustomValidity('Koresha imibare ine kugeza kuri itandatu gusa.') }} onInput={clearValidation} autoComplete="current-password" required /></label>
     {error && <p role="alert" className="dash-form-error">{error}</p>}
     <button className="primary" disabled={busy}>{busy ? 'Birimo guhuza…' : 'Injira'}</button>
+    {account.email && <button type="button" className="secondary" onClick={onOpenAccess}>Kugarura ijambo ry’ibanga</button>}
   </form>
 }
 
@@ -73,10 +83,12 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
   // first choose between the account's set-up and its own (`differences`).
   const [backup, setBackup] = useState(null)
   const [backupMessage, setBackupMessage] = useState('')
+  const [account, setAccount] = useState(null)
   const count = () => countPendingUploads().then(setPending).catch(e => setError(userError(e)))
   useEffect(() => {
     getToken().then(async token => {
       setAuthed(!!token)
+      setAccount(await getLinkedAccount())
       if (!token) return
       const state = await accountBackupState()
       if (state) setBackup({ saved_at: state.saved_at, choose: false })
@@ -91,6 +103,7 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
     const result = await connectAccount()
     if (result.action === 'restored' || result.action === 'updated') {
       await onDeviceRestored?.()
+      await count()
       setBackupMessage(restoredText(result, result.action === 'updated'))
     } else if (result.action === 'saved') setBackupMessage('Ibyo washyizeho kuri iki gikoresho byabitswe kuri konti yawe.')
     setBackup({ saved_at: result.saved_at, choose: result.action === 'choose', differences: result.differences })
@@ -98,6 +111,7 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
   const restore = () => withBusy(async () => {
     const result = await restoreFromAccount()
     await onDeviceRestored?.()
+    await count()
     setBackup({ saved_at: result.saved_at, choose: false })
     setBackupMessage(`Ibyo kuri konti byagaruwe kuri iki gikoresho: ${brought(result)}.`)
   })
@@ -105,8 +119,9 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
     if (!window.confirm('Ibyo wabitse kuri konti bizasimburwa n’ibyo kuri iki gikoresho. Urabyemeza?')) return
     return withBusy(async () => {
       const status = await replaceAccountCopy()
+      if (status.removed) { await onDeviceRestored?.(); await count() }
       setBackup({ saved_at: status.saved_at, choose: false })
-      setBackupMessage('Ibyo kuri iki gikoresho ni byo ubu biri kuri konti yawe.')
+      setBackupMessage('Ibyo kuri iki gikoresho ni byo ubu biri kuri konti yawe.' + removedText(status))
     })
   }
   const saveNow = () => withBusy(async () => {
@@ -117,8 +132,9 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
       setBackupMessage('Ntibyabitswe: konti yawe ifite ibyahinduwe ku kindi gikoresho. Hitamo ibyo ugumana.')
       return
     }
+    if (status.removed) { await onDeviceRestored?.(); await count() }
     setBackup({ saved_at: status.saved_at, choose: false })
-    setBackupMessage(status.unchanged ? 'Nta gishya cyo kubika: konti ifite ibiri kuri iki gikoresho.' : 'Byabitswe kuri konti yawe.')
+    setBackupMessage((status.unchanged ? 'Nta gishya cyo kubika: konti ifite ibiri kuri iki gikoresho.' : 'Byabitswe kuri konti yawe.') + removedText(status))
   })
 
   async function importProfiles() {
@@ -173,8 +189,8 @@ export default function SyncTab({ online, setError, onDeviceRestored, onNavigate
         <p className="muted">Dosiye ikubiyemo kode z’abana n’ibikorwa byo gutegura ubutumwa. Nta magambobanga cyangwa amajwi yafashwe birimo.</p>
         {message && <p role="status">{message}</p>}
       </div>
-      {!authed ? <AccountSignIn onSignedIn={async () => { setAuthed(true); await withBusy(connect); await fetchProfiles() }} onOpenAccess={() => onNavigate?.('access')} /> : <div className="card">
-        <h2>Konti yo kuri seriveri<small>Winjiye kuri iki gikoresho</small></h2>
+      {!authed ? <AccountSignIn onSignedIn={async () => { setAuthed(true); setAccount(await getLinkedAccount()); await withBusy(connect); await fetchProfiles() }} onOpenAccess={() => onNavigate?.('access')} /> : <div className="card">
+        <h2>Konti yo kuri seriveri<small>{account?.phone || account?.email ? `Winjiye nka ${account.name ? `${account.name} · ` : ''}${displayAccount(account)}` : 'Winjiye kuri iki gikoresho'}</small></h2>
         <button className="ghost" disabled={busy || !online} onClick={fetchProfiles}>Zana imyirondoro ya konti yanjye</button>
         <button className="ghost" disabled={busy} onClick={async () => { try { await api.logout(); setAuthed(false); setBackup(null); setBackupMessage('') } catch (e) { setError(userError(e)) } }}>Sohoka</button>
         <section className="account-backup" aria-label="Ibibitswe kuri konti">

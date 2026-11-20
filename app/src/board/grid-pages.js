@@ -16,18 +16,14 @@ export function gridShape(gridSize, width, height, large = false) {
   return [fit(width, 2, 12), fit(height, 2, 7)]
 }
 
-// One page of a board view. A slot is a symbol, or null for a word hidden on this board: hidden
-// words leave their place empty, so the pictures around them never move when a caregiver hides or
-// adds words. Pages with nothing to show are skipped, and a short last page is padded with empty
-// slots so tiles keep one size and position.
-export function gridPage(slots, [columns, rows], page = 0) {
+// One page of a board view. `symbols` are the pictures the board shows, in their fixed order:
+// words a caregiver hid for this child are left out before paging, so the pictures after them move
+// up and no page has a gap or is empty. Only the last page may be short; it is padded with empty
+// slots at its end, so tiles keep one size. A page past the end is the last page.
+export function gridPage(symbols, [columns, rows], page = 0) {
   const size = columns * rows
-  const pages = []
-  for (let start = 0; start < slots.length; start += size) {
-    const cells = slots.slice(start, start + size)
-    if (cells.some(Boolean)) pages.push(cells)
-  }
-  const current = Math.min(Math.max(page, 0), Math.max(pages.length - 1, 0))
-  const cells = pages[current] ?? []
-  return { cells, empty: size - cells.length, page: current, pages: Math.max(pages.length, 1), columns, rows }
+  const pages = Math.max(Math.ceil(symbols.length / size), 1)
+  const current = Math.min(Math.max(Math.trunc(page) || 0, 0), pages - 1)
+  const cells = symbols.slice(current * size, (current + 1) * size)
+  return { cells, empty: size - cells.length, page: current, pages, columns, rows }
 }

@@ -36,7 +36,12 @@ export default function App() {
   const profileRef = useRef(null)
   const preferencesRef = useRef(DEFAULT_PREFERENCES)
   // Leaving the caregiver area keeps the account copy up to date when the adult is signed in.
-  const closeParent = useCallback(() => { setParentUnlocked(false); setView('board'); saveToAccount().catch(() => {}) }, [])
+  // A save may learn that another device deleted the open child. Refresh the keyed board too,
+  // so its old draft cannot keep writing messages for a child just removed from storage.
+  const closeParent = useCallback(() => {
+    setParentUnlocked(false); setView('board')
+    saveToAccount().then(async result => { if (result?.removed) await deviceRestored() }).catch(() => {})
+  }, [])
   useParentLock(parentUnlocked, closeParent)
 
   function applyProfile(next, keys, nextPreferences) {
@@ -51,7 +56,11 @@ export default function App() {
   // A device starts with word suggestions (Birashoboka) on, until a caregiver turns them off.
   async function readDevice() {
     const [savedMode, savedProfile] = await Promise.all([db.settings.get('mode'), db.settings.get('profile'), getSpeechMode()])
-    const selected = savedProfile?.value ?? null
+    // The saved selection is only a reference: a backup or another tab may have changed or
+    // removed that child since it was selected. Never revive a deleted child from this cache.
+    const selectedId = savedProfile?.value?.profile_id
+    const selected = selectedId ? (await db.profiles.get(selectedId)) ?? null : null
+    if (savedProfile?.value) await db.settings.put({ key: 'profile', value: selected })
     const [keys, savedPreferences] = await loadProfile(selected)
     return [savedMode?.value === 'static' ? 'static' : 'predictive', selected, keys, savedPreferences]
   }

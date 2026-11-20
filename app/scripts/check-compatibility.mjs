@@ -58,7 +58,7 @@ async function unlockCaregiver(page, board) {
   await expect(gate).toHaveAttribute('data-mode', /setup|unlock/)
   const setup = await gate.getAttribute('data-mode') === 'setup'
   // A first setup offers the caregiver's number; these checks keep the PIN on this device only.
-  if (setup) await gate.getByRole('button', { name: 'Komeza nta nimero', exact: true }).click()
+  if (setup) await gate.getByRole('button', { name: 'Komeza nta konti', exact: true }).click()
   await gate.getByLabel('Umubare w’ibanga', { exact: true }).fill('583104')
   if (setup) {
     await gate.getByLabel('Ongera wandike umubare w’ibanga', { exact: true }).fill('583104')

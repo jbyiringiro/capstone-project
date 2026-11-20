@@ -1,0 +1,32 @@
+{
+    "bundle":  "dist/assets/index-yY9HMhX4.js",
+    "sha256":  "C7C86CFBC4512131C6DC1BFB42DC4C97C7B50949698C66EA968EF88296A082A6",
+    "apiHosted":  true,
+    "firebaseProjectConfigured":  true,
+    "firebaseKeyConfigured":  true,
+    "localApiAbsent":  true,
+    "testsPassed":  218,
+    "testFilesPassed":  31,
+    "dependencyLockMatches":  true,
+    "postgresql_validation":  {
+                                  "version":  "17.11",
+                                  "checks_passed":  5,
+                                  "email_sqlite_regressions_passed":  26,
+                                  "disposable_local_database":  true,
+                                  "neon_backup_performed":  false,
+                                  "neon_database_modified":  false
+                              },
+    "hosting_deployed":  false,
+    "hosted_before_release":  {
+                                  "api_health":  {
+                                                     "status":  "ok",
+                                                     "model_loaded":  true
+                                                 },
+                                  "frontend_bundle":  "index-zqBQB3D2.js",
+                                  "read_only":  true
+                              },
+    "api_regression":  {
+                           "passed":  133,
+                           "skipped_opt_in_postgresql":  5
+                       }
+}

@@ -1,0 +1,260 @@
+{
+    "deployed_commit":  "266dbfe",
+    "environment":  "Microsoft Edge headless on Windows; not a physical-device test",
+    "initial_browser_check":  {
+                                  "checked_at_utc":  "2026-11-04T14:46:54.872Z",
+                                  "environment":  "Microsoft Edge headless on Windows; not a physical-device test",
+                                  "app_url":  "https://vuga-app.onrender.com",
+                                  "api_url":  "https://vuga-api.onrender.com",
+                                  "checks":  {
+                                                 "online_board":  true,
+                                                 "browser_api":  {
+                                                                     "allowed":  false,
+                                                                     "error":  "Failed to fetch"
+                                                                 }
+                                             },
+                                  "page_errors":  [
+
+                                                  ],
+                                  "error":  "page.waitForFunction: Timeout 120000ms exceeded."
+                              },
+    "cache_progress_check":  {
+                                 "url":  "https://vuga-app.onrender.com",
+                                 "startedAt":  "2026-11-04T14:54:20.191Z",
+                                 "browser":  "Edge headless",
+                                 "freshContext":  true,
+                                 "progress":  [
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  null,
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+
+                                                                 ],
+                                                      "elapsedSeconds":  0
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  91,
+                                                                         "last":  [
+                                                                                      "/photos/MUM.webp",
+                                                                                      "/photos/MOUTH.webp"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  20
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  154,
+                                                                         "last":  [
+                                                                                      "/photos/CUP.webp",
+                                                                                      "/photos/CRY.webp"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  40
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  200,
+                                                                         "last":  [
+                                                                                      "/design/icons/toilet.svg",
+                                                                                      "/design/icons/thanks.svg"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  60
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  244,
+                                                                         "last":  [
+                                                                                      "/audio/rw/TROUSERS.wav",
+                                                                                      "/audio/rw/TOOTH.wav"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  80
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  286,
+                                                                         "last":  [
+                                                                                      "/audio/rw/READ.wav",
+                                                                                      "/audio/rw/RAIN.wav"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  100
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  327,
+                                                                         "last":  [
+                                                                                      "/audio/rw/HURRY.wav",
+                                                                                      "/audio/rw/HUNGRY.wav"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  120
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  368,
+                                                                         "last":  [
+                                                                                      "/audio/rw/DOCTOR.wav",
+                                                                                      "/audio/rw/DO.wav"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  140
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  408,
+                                                                         "last":  [
+                                                                                      "/audio/rw/ANGRY.wav",
+                                                                                      "/audio/rw/ALSO.wav"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  160
+                                                  },
+                                                  {
+                                                      "controller":  null,
+                                                      "registrations":  [
+                                                                            {
+                                                                                "scope":  "https://vuga-app.onrender.com/",
+                                                                                "installing":  "installing",
+                                                                                "waiting":  null,
+                                                                                "active":  null
+                                                                            }
+                                                                        ],
+                                                      "caches":  [
+                                                                     {
+                                                                         "name":  "workbox-precache-v2-https://vuga-app.onrender.com/",
+                                                                         "count":  450,
+                                                                         "last":  [
+                                                                                      "/audio/rw/forms/utangira.mp3",
+                                                                                      "/audio/rw/forms/usukura.mp3"
+                                                                                  ]
+                                                                     }
+                                                                 ],
+                                                      "elapsedSeconds":  180
+                                                  }
+                                              ],
+                                 "httpFailures":  [
+
+                                                  ],
+                                 "requestFailures":  [
+
+                                                     ],
+                                 "consoleErrors":  [
+
+                                                   ],
+                                 "pageErrors":  [
+
+                                                ],
+                                 "offline":  {
+                                                 "tested":  false,
+                                                 "passed":  null,
+                                                 "reason":  "Initial service-worker precache was still progressing at the bounded observation limit; offline reload was not attempted."
+                                             },
+                                 "finishedAt":  "2026-11-04T14:57:23.041Z"
+                             }
+}

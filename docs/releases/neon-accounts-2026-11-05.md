@@ -1,0 +1,53 @@
+# Neon account release — 5 November 2026
+
+**Historical release record, initially implemented and locally tested on 5 November.** This superseded the prepared Firebase release; it was not deployed at that time. The dated checks and rollout checklist below preserve the evidence from that stage, including the subsequent cookie fix and local-login confirmation. For the current deployment, see the [17 November hosted release](neon-hosted-2026-11-17.md): both the app and API are live at `5d5388b`; hosted end-to-end account validation remains pending.
+
+## Changes
+
+Render serves the React PWA and Python API. Neon supplies PostgreSQL and Managed Better Auth. Both services remain on free plans. Account requests go through the Vuga API, so browsers do not depend on third-party Neon cookies. Passwords and verification codes are forwarded over HTTPS and never stored or logged by Vuga.
+
+- Named email signup, six-digit verification codes, resend, login and password recovery.
+- Encrypted session tokens tied to the configured Neon branch; current provider sessions are checked on protected requests.
+- Password reset revokes sessions and handles a successful password change followed by failed cleanup without reusing the consumed code.
+- Device PIN, local child data and account ownership remain separate from cloud credentials. Accounts are not merged by matching email.
+- Account deletion is disabled until managed-provider support is confirmed with a disposable account. After enabling it, local cloud erasure is durable and provider cleanup may be reported as pending. Confirmed deletion is recorded for safe retries.
+- Neon mode rejects Firebase tokens and disables outbound SMS. Previous adapters remain available for controlled rollback.
+
+## Validation
+
+| Check | Result |
+|---|---|
+| Frontend unit/integration tests (`npm.cmd test`) | 245 passed, 32 files |
+| API regression (`pytest api/tests`) | 163 passed; 5 PostgreSQL checks skipped in this SQLite run |
+| PostgreSQL 17.11 migration | 5 passed separately using isolated schemas on a disposable local server |
+| Neon browser checks | 13 passed with simulated API responses, including 320px and 390px layouts |
+| Local Neon API health | `status: ok`, `model_loaded: true`, `sms: off`, `email: neon` |
+| Production-mode frontend build | Passed with hosted API URL and Neon provider; existing large-chunk warning remains (526 kB JavaScript, 163 kB gzip) |
+| Real Neon integration | Public routes respond; `INVALID_ORIGIN` was resolved on 6 November; see the real-account follow-up below |
+
+Evidence: [check summary](../evidence/neon-accounts-2026-11-05/checks.json), [API results](../evidence/neon-accounts-2026-11-05/api.xml), [PostgreSQL results](../evidence/neon-accounts-2026-11-05/postgresql.xml), [browser results](../evidence/neon-accounts-2026-11-05/browser.json).
+
+The browser checks did not create accounts or send email. At the initial release check, real signup, email receipt, password recovery, session-cookie behavior and managed account deletion were unverified; the follow-up below records subsequent results. Passing mocked tests is not evidence of email delivery or hosted availability.
+
+## Remaining rollout steps
+
+1. On `vuga-auth-test`, enable email signup/sign-in, verification codes at signup, session revocation on reset, and the intended trusted origin.
+2. Use a disposable account to test real code delivery, wrong/expired codes, login, reset, old-session rejection and deletion. Confirm the actual provider response before enabling deletion for real users.
+3. Resolve any existing cloud identity migration using proof of both identities. Preserve Vuga ownership and device data.
+4. Create a recoverable production database copy and configure Auth on the production branch. Use its Auth Base URL, never the disposable branch URL.
+5. Apply the [Neon environment settings](../neon-auth.md), deploy the API first, then rebuild the frontend. Keep the existing JWT secret and database URL.
+6. Record the deployed commit and actual hosted checks before describing the migration as live.
+
+Neon's shared email sender is documented for development/testing. This two-provider free configuration is suitable for the capstone test; production email delivery has not been established. See the [provider limitation and setup](../neon-auth.md#shared-email-limitation).
+
+## Session-cookie correction - 10 November 2026
+
+The user received the real Neon verification email. The local API recorded successful registration (201) and code verification (200), followed by login failures (503). Python 3.11's cookie parser discarded a full `Set-Cookie` header containing Neon's `Partitioned` attribute. The earlier synthetic headers omitted this attribute.
+
+The API now parses only the cookie name/value pair, preserving the encoded signature. It rejects line breaks, malformed pairs, ambiguous session tokens and oversized values, and continues to exclude cached user cookies. No passwords, codes or provider cookies were copied into this evidence.
+
+Four new regression cases reproduced the failure before the fix. Afterward, **175 API checks passed; 5 PostgreSQL-only checks were skipped**. New coverage includes login, password-reset cleanup, encoded values and multiple transport headers. Ruff passed. The isolated local API was restarted and its health check passed. Frontend and database schema files were unchanged, so their earlier checks were not rerun.
+
+On 15 November, the user confirmed that real login works in the local preview after this fix. Password recovery, revocation and deletion remain pending. Account deletion stays disabled and this candidate has not been deployed to Render.
+
+Evidence: [check summary](../evidence/neon-session-cookie-2026-11-10/checks.json), [API results](../evidence/neon-session-cookie-2026-11-10/api.xml).

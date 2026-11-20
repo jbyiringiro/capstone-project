@@ -17,6 +17,30 @@ class InvalidCredentials(ServiceError):
     """Unknown phone or wrong PIN (401)."""
 
 
+class EmailAuthUnavailable(ServiceError):
+    """Email sign-in is unconfigured or its provider cannot currently be reached (503)."""
+
+
+class EmailNotVerified(ServiceError):
+    """The email must be verified with the identity provider before cloud access (403)."""
+
+
+class EmailDeletionPending(EmailAuthUnavailable):
+    """Vuga data is erased; provider identity cleanup is not confirmed (503)."""
+
+
+class EmailProviderError(ServiceError):
+    """Allowlisted provider error information, never a raw provider response."""
+
+    def __init__(self, detail: str, code: str, status: int, *, account_created: bool = False,
+                 password_reset: bool = False):
+        super().__init__(detail)
+        self.code = code
+        self.status = status
+        self.account_created = account_created
+        self.password_reset = password_reset
+
+
 class NotOwned(ServiceError):
     """The record exists but belongs to another account (403)."""
 
@@ -48,7 +72,14 @@ class TooLarge(ServiceError):
 
 
 class InvalidCode(ServiceError):
-    """A wrong, used or expired SMS code (400)."""
+    """A wrong, used or expired SMS code (400). `reason` tells the caregiver what to do: `wrong`
+    (type it again; `attempts_left` tries remain), `spent` (too many wrong tries) or `expired`
+    (used, timed out, or never sent): both of the last two need a new code."""
+
+    def __init__(self, detail: str, reason: str, attempts_left: int | None = None) -> None:
+        super().__init__(detail)
+        self.reason = reason
+        self.attempts_left = attempts_left
 
 
 class RetryLater(ServiceError):
@@ -60,7 +91,12 @@ class RetryLater(ServiceError):
 
 
 class TooManyCodes(RetryLater):
-    """Another SMS code asked for too soon (429)."""
+    """Another SMS code asked for too soon (429). `reason` is `wait` for the minute between two
+    codes, or `limit` when the number had its five codes for the hour."""
+
+    def __init__(self, detail: str, retry_after: int, reason: str = "wait") -> None:
+        super().__init__(detail, retry_after)
+        self.reason = reason
 
 
 class TooManyTries(RetryLater):
@@ -68,4 +104,17 @@ class TooManyTries(RetryLater):
 
 
 class SmsFailed(ServiceError):
-    """The SMS service did not take the message (502)."""
+    """The provider refused the message, or acceptance could not be confirmed (502).
+
+    An uncertain delivery keeps the OTP send reservation: a timeout or malformed response
+    does not prove that the provider never sent the text. This flag is internal, not a code
+    or credential returned to the browser.
+    """
+
+    def __init__(self, detail: str, *, delivery_uncertain: bool = False) -> None:
+        super().__init__(detail)
+        self.delivery_uncertain = delivery_uncertain
+
+
+class SmsUnavailable(SmsFailed):
+    """This server has no way to send texts: no provider key, and codes may not go to its log (503)."""
