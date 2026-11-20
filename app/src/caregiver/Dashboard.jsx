@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_PREFERENCES } from '../storage/board-preferences.js'
 import ParentPinSettings from '../parent-access/ParentPinSettings.jsx'
 import { Brand } from '../shared/ui.jsx'
@@ -39,6 +39,24 @@ function useOnline() {
   return online
 }
 
+// The header stays at the top of the screen, and the section menu sticks just below it. The menu's
+// offset follows the header's real height (it grows with larger text), stored as --dash-header-h.
+function useHeaderHeight(ref) {
+  useEffect(() => {
+    const header = ref.current
+    if (!header) return
+    const measure = () => header.parentElement?.style.setProperty('--dash-header-h', `${header.offsetHeight}px`)
+    measure()
+    if (!('ResizeObserver' in window)) {
+      addEventListener('resize', measure)
+      return () => removeEventListener('resize', measure)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [ref])
+}
+
 // The caregiver area: navigation, shared error banner and the tab being shown. Each tab owns its
 // own data loading and saving.
 export default function Dashboard({ catalogue, onClose, onSelectProfile, onDeviceRestored, activeProfile, mode, setMode, onVocabularyChanged, predictor, bench, runBench, preferences = DEFAULT_PREFERENCES, setPreferences, onStartGame, initialTab = 'children' }) {
@@ -47,22 +65,26 @@ export default function Dashboard({ catalogue, onClose, onSelectProfile, onDevic
   const online = useOnline()
   const [error, setError] = useState(''), [working, setWorking] = useState(false)
   const { symbols, byKey } = catalogue
+  const headerRef = useRef(null)
+  useHeaderHeight(headerRef)
+  // The menu stays visible while scrolling, so a new section opens at its top, not mid-page.
+  function showTab(next) { setTab(next); if (window.scrollY > 0) window.scrollTo(0, 0) }
   async function select(profile) {
     setWorking(true); setError('')
-    try { await onSelectProfile(profile); if (profile) setTab('vocab') }
+    try { await onSelectProfile(profile); if (profile) showTab('vocab') }
     catch (e) { setError(userError(e)) }
     finally { setWorking(false) }
   }
-  function navigate(next, { key = null } = {}) { setTab(next); setAudioKey(key); setError('') }
+  function navigate(next, { key = null } = {}) { showTab(next); setAudioKey(key); setError('') }
   return <div className={`dash ${preferences.motion ? '' : 'dash-still'}`}>
-    <header className="app-header dash-header"><Brand onClick={onClose} disabled={working} />
+    <header ref={headerRef} className="app-header dash-header"><Brand onClick={onClose} disabled={working} />
       <div className="app-title"><b>Umubyeyi / Umurezi</b><small>Dufashe buri mwana kuvuga icyo ashaka.</small></div>
       <div className="header-actions"><span className="dash-device-status">{activeProfile?.code ?? 'Igerageza'} · {online ? 'Interineti irahari' : 'Nta interineti'}</span><button className="button-outline" onClick={onClose} disabled={working}>Subira ku kibaho</button></div>
     </header>
     <div className="dash-layout"><aside className="dash-sidebar"><p className="dash-eyebrow">Ahagenewe umurezi</p>
       <nav aria-label="Ibyiciro by’umurezi">{TABS.map(t => <button key={t.id} className={`dash-nav-button ${tab === t.id ? 'active' : ''}`} aria-current={tab === t.id ? 'page' : undefined} disabled={working} onClick={() => navigate(t.id)}><span>{t.rw}</span></button>)}</nav>
       <div className="dash-device-note"><b>Ikibaho umwana amenyereye, aho ari hose.</b><p>Imyirondoro n’amashusho bibikwa kuri iki gikoresho. Konti si ngombwa.</p></div>
-    </aside><main className="dash-main" aria-label={TABS.find(t => t.id === tab)?.rw}>
+    </aside><div className="dash-content"><main className="dash-main" aria-label={TABS.find(t => t.id === tab)?.rw}>
       {error && <div className="dash-error" role="alert">{error}<button onClick={() => setError('')} aria-label="Funga ubutumwa bw’ikibazo">×</button></div>}
       {tab === 'children' && <ChildrenTab symbols={symbols} byKey={byKey} activeProfile={activeProfile} onSelect={select} onProfilesChanged={onDeviceRestored} setError={setError} working={working} onNavigate={navigate} preferences={preferences} />}
       {tab === 'vocab' && <VocabularyTab symbols={symbols} byKey={byKey} activeProfile={activeProfile} setError={setError} setWorking={setWorking} onSaved={onVocabularyChanged} onNavigate={navigate} preferences={preferences} />}
@@ -75,7 +97,8 @@ export default function Dashboard({ catalogue, onClose, onSelectProfile, onDevic
       {tab === 'summary' && <SummaryTab activeProfile={activeProfile} byKey={byKey} setError={setError} onClose={onClose} />}
       {tab === 'sync' && <SyncTab online={online} setError={setError} onDeviceRestored={onDeviceRestored} onNavigate={navigate} />}
       {tab === 'access' && <ParentPinSettings onDeviceRestored={onDeviceRestored} />}
-    </main></div>
-    <footer className="dash-footer"><p><b>Bibitswe kuri iki gikoresho.</b> Gusiba amakuru ya mushakisha bisiba ibibitswe kuri iki gikoresho. Banza ukuremo ubutumwa mbere yo guhindura igikoresho. <a href="/privacy.html" target="_blank" rel="noreferrer">Uko Vuga ibika amakuru (Privacy policy)</a>.</p><p>Porogaramu y’igerageza · Ururimi, amashusho n’amajwi biracyakeneye gusuzumwa n’abazabikoresha. Amafoto yaturutse kuri interineti kandi afite uruhushya rwo gukoreshwa. Abantu bari ku mafoto si abana bakoresha Vuga. Hitamo amashusho umwana yumva kandi amenyereye. <a href="/photos/credits.html" target="_blank" rel="noreferrer">Abafashe amafoto n’uburenganzira bwo kuyakoresha</a>.</p><p>Ibishushanyo bisanzwe ushobora guhitamo: Sergio Palao / Government of Aragon, <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a>, <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>. <a href="/symbols/ATTRIBUTION.txt">Abakoze amashusho</a>. <a href="/third-party-licenses.txt">Impushya za porogaramu Vuga yifashisha (licences)</a>.</p></footer>
+    </main>
+    {/* The footer sits in the content column, so the section menu stays beside it as well. */}
+    <footer className="dash-footer"><p><b>Bibitswe kuri iki gikoresho.</b> Gusiba amakuru ya mushakisha bisiba ibibitswe kuri iki gikoresho. Banza ukuremo ubutumwa mbere yo guhindura igikoresho. <a href="/privacy.html" target="_blank" rel="noreferrer">Uko Vuga ibika amakuru (Privacy policy)</a>.</p><p>Porogaramu y’igerageza · Ururimi, amashusho n’amajwi biracyakeneye gusuzumwa n’abazabikoresha. Amafoto yaturutse kuri interineti kandi afite uruhushya rwo gukoreshwa. Abantu bari ku mafoto si abana bakoresha Vuga. Hitamo amashusho umwana yumva kandi amenyereye. <a href="/photos/credits.html" target="_blank" rel="noreferrer">Abafashe amafoto n’uburenganzira bwo kuyakoresha</a>.</p><p>Ibishushanyo bisanzwe ushobora guhitamo: Sergio Palao / Government of Aragon, <a href="https://arasaac.org" target="_blank" rel="noreferrer">ARASAAC</a>, <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noreferrer">CC BY-NC-SA 4.0</a>. <a href="/symbols/ATTRIBUTION.txt">Abakoze amashusho</a>. <a href="/third-party-licenses.txt">Impushya za porogaramu Vuga yifashisha (licences)</a>.</p></footer></div></div>
   </div>
 }
