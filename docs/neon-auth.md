@@ -1,5 +1,7 @@
 # Render and Neon email accounts
 
+**Account management release, 21 November 2026:** both hosted services run `527a84e`. Name editing and confirmed cloud-account deletion are enabled. Validation: 261 frontend tests, 248 API tests, 13 real isolated Neon API checks, a production disposable-user deletion, seven hosted API checks and 24 live browser checks. See the [release and evidence](releases/account-management-2026-11-21.md) for scope and limits.
+
 **Dashboard update, 20 November 2026:** the frontend now runs `73ec88c`; the API and authentication configuration remain at `5d5388b`. The release passed 245 frontend tests and 25 live browser checks. See [deployment results](evidence/dashboard-hosted-2026-11-20/checks.json). The authentication setup and dated 17 November record below remain applicable.
 
 This configuration uses two hosted providers: Render for the React app and Python API, and Neon for PostgreSQL and Managed Better Auth. Both remain on their Free plans.
@@ -18,7 +20,7 @@ The child's board, custom pictures/voices, predictions and local caregiver PIN c
 
 ## Account settings
 
-The account-management changes below are prepared in source. The dated hosted release records above are not confirmation that these changes have been deployed.
+These account settings are available in the 21 November hosted release above. Older dated records describe earlier deployments.
 
 In **Umurezi → Kwinjira**, a linked email account has a **Hindura izina** action. The caregiver edits their own name and selects **Bika izina**. The browser sends `PATCH /auth/me` with the current bearer session and `{ "name": "..." }`. The API updates Neon and confirms the returned identity before saving the Vuga name. The immutable account ID, email, child ownership and local backup link remain the same. An expired session prompts for the account password within the editor; it does not ask for the device PIN. Empty names, names over 120 characters and control characters are rejected. A failed or interrupted save does not replace the local name with an unconfirmed value.
 
@@ -28,9 +30,9 @@ Deletion failures have distinct responses. `ACCOUNT_DELETION_DISABLED` means no 
 
 ### Managed Neon deletion
 
-An isolated Neon check on 21 November found that `/update-user` accepted name updates but `/delete-user` returned HTTP 404. The managed user-deletion endpoint succeeded, and a follow-up check found neither the disposable user nor its session. This integration therefore uses `VUGA_NEON_DELETE_MODE=management`, calling `DELETE /projects/{project_id}/branches/{branch_id}/auth/users/{uid}` from the Vuga API. This isolated check does not establish that the hosted application has received the change.
+An isolated Neon check on 21 November found that `/update-user` accepted name updates but `/delete-user` returned HTTP 404. The managed user-deletion endpoint succeeded, and a follow-up check found neither the disposable user nor its session. This integration therefore uses `VUGA_NEON_DELETE_MODE=management`, calling `DELETE /projects/{project_id}/branches/{branch_id}/auth/users/{uid}` from the Vuga API. The hosted deployment and its separate production checks are recorded in the 21 November release above.
 
-The API still requires the caregiver's fresh password authentication and validates ownership before deletion. It obtains the provider user ID from the verified identity, rather than accepting an arbitrary Neon user ID from the browser. Before erasing Vuga data, it checks that the configured project and branch resolve to exactly the configured Auth Base URL. A missing credential or mismatched branch must stop deletion before any Vuga account data is erased. Keep `VUGA_NEON_DELETE_ENABLED=false` until the complete flow is verified with a disposable account on the intended branch.
+The API still requires the caregiver's fresh password authentication and validates ownership before deletion. It obtains the provider user ID from the verified identity, rather than accepting an arbitrary Neon user ID from the browser. Before erasing Vuga data, it checks that the configured project and branch resolve to exactly the configured Auth Base URL. A missing credential or mismatched branch must stop deletion before any Vuga account data is erased. Keep `VUGA_NEON_DELETE_ENABLED=false` until the complete flow passes isolated fixture tests and management permissions and branch binding are confirmed on the intended deployment.
 
 `VUGA_NEON_MANAGEMENT_API_KEY` is a backend-only secret scoped to the Vuga project. Store it in Render's **vuga-api → Environment** and use `sync: false` in the Blueprint. Never put it in a `VITE_` variable, the frontend, source control, screenshots or logs. A dedicated runtime key with the same project scope is preferred. Reusing the existing project-scoped local deployment key is possible; in that case its rotation or revocation must also update the local deployment credential and the Render API variable. Project and branch IDs are public configuration, not secrets. The production IDs in `render.yaml` must be replaced with the matching test IDs when configuring an isolated test deployment.
 

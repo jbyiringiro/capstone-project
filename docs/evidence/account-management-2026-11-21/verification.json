@@ -1,0 +1,260 @@
+{
+  "date": "2026-11-21",
+  "runtime_commit": "527a84e94ee40ce4669da546f0ddacf36d101840",
+  "source_code_commit": "6a48f50",
+  "api_deploy": "dep-dc0r4jm7bikc73bl76vg",
+  "frontend_deploy": "dep-dc0r5517lnhs739h0s30",
+  "frontend_unit_tests": {
+    "passed": 261,
+    "command": "npm test",
+    "files": 32
+  },
+  "api_tests": {
+    "passed": 248,
+    "skipped": 5,
+    "failures": 0,
+    "skip_reason": "Separate PostgreSQL migration test database not configured"
+  },
+  "mocked_production_build_browser_scenarios": 15,
+  "real_neon_isolated_api": {
+    "branch": "br-summer-fire-b9n5ps44",
+    "synthetic_account": true,
+    "verification_email_tested": false,
+    "checks": [
+      "real Vuga API rename and managed deletion succeeded"
+    ],
+    "vuga_api": {
+      "passed": true,
+      "checks": [
+        "real provider login",
+        "Vuga account creation",
+        "unauthenticated rename rejected",
+        "real provider and Vuga rename",
+        "renamed account signs in",
+        "owned synthetic child profile creation",
+        "wrong account deletion rejected",
+        "account preserved after rejected deletion",
+        "confirmed account deletion through Vuga",
+        "confirmed deletion retry succeeds",
+        "old Vuga session rejected",
+        "deleted provider account cannot log in",
+        "Vuga user/profile erased and provider completion durable"
+      ],
+      "production_users_changed": false,
+      "mailbox_delivery_tested": false
+    },
+    "test_user_remaining": 0
+  },
+  "production_disposable_directory_account": {
+    "date": "2026-11-21",
+    "existing_accounts_changed": false,
+    "real_mailbox_used": false,
+    "production_directory_fixture": true,
+    "created_status": 201,
+    "deleted_status": 204,
+    "fixture_removed": true
+  },
+  "live_api": {
+    "base_url": "https://vuga-api.onrender.com",
+    "checks": [
+      {
+        "check": "healthy Neon API with model loaded",
+        "passed": true
+      },
+      {
+        "check": "name edit and deletion routes published",
+        "passed": true
+      },
+      {
+        "check": "hosted frontend PATCH CORS allowed",
+        "passed": true
+      },
+      {
+        "check": "unauthenticated name edit rejected",
+        "passed": true
+      },
+      {
+        "check": "invalid-session name edit rejected",
+        "passed": true
+      },
+      {
+        "check": "authentication validation redacts submitted input",
+        "passed": true
+      },
+      {
+        "check": "invalid deletion authorization rejected before erasure",
+        "passed": true
+      }
+    ],
+    "real_production_account_changed": false
+  },
+  "production_configuration": {
+    "deletion_enabled": true,
+    "management_mode": true,
+    "correct_project": true,
+    "correct_branch": true,
+    "correct_auth_url": true,
+    "project_key_matches_tested_key": true,
+    "management_key_absent_from_frontend": true,
+    "production_auth_binding_verified": true
+  },
+  "live_browser": {
+    "scope": "Live frontend assets and navigation. Account settings are shown using a synthetic local IndexedDB identity and PIN only; no real authentication or server mutations. Mobile widths are emulated.",
+    "checks": [
+      {
+        "viewport": "desktop",
+        "name": "Hosted page and board load",
+        "status": "passed"
+      },
+      {
+        "viewport": "desktop",
+        "name": "Email signup loads without submitting a form",
+        "status": "passed"
+      },
+      {
+        "viewport": "desktop",
+        "name": "Login and password-reset navigation fit without requesting mail",
+        "status": "passed"
+      },
+      {
+        "viewport": "desktop",
+        "name": "Synthetic local identity exposes name edit and deletion settings",
+        "status": "passed"
+      },
+      {
+        "viewport": "desktop",
+        "name": "Name editor fits and cancels without saving",
+        "status": "passed"
+      },
+      {
+        "viewport": "desktop",
+        "name": "Deletion asks for password and can be cancelled without a request",
+        "status": "passed"
+      },
+      {
+        "viewport": "desktop",
+        "name": "Caregiver navigation returns to account settings",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Hosted page and board load",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Email signup loads without submitting a form",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Login and password-reset navigation fit without requesting mail",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Synthetic local identity exposes name edit and deletion settings",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Name editor fits and cancels without saving",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Deletion asks for password and can be cancelled without a request",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-390",
+        "name": "Caregiver navigation returns to account settings",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Hosted page and board load",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Email signup loads without submitting a form",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Login and password-reset navigation fit without requesting mail",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Synthetic local identity exposes name edit and deletion settings",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Name editor fits and cancels without saving",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Deletion asks for password and can be cancelled without a request",
+        "status": "passed"
+      },
+      {
+        "viewport": "mobile-320",
+        "name": "Caregiver navigation returns to account settings",
+        "status": "passed"
+      },
+      {
+        "viewport": "all",
+        "name": "Deployed JavaScript includes account editor, PATCH route and deletion states",
+        "status": "passed"
+      },
+      {
+        "viewport": "all",
+        "name": "No server write or real authentication request attempted",
+        "status": "passed"
+      },
+      {
+        "viewport": "all",
+        "name": "No browser request went directly to Firebase or Neon authentication",
+        "status": "passed"
+      }
+    ],
+    "status": "passed",
+    "browser": {
+      "channel": "msedge",
+      "version": "157.0.4341.60"
+    },
+    "buildAssets": [
+      {
+        "path": "/assets/index-Dn9SYKh2.css",
+        "status": 200,
+        "bytes": 72780,
+        "sha256": "2ebd01a625b154b88fcdf276f5bc77a4b4098ea82242a9f6fb8e98906b749f72"
+      },
+      {
+        "path": "/assets/index-Con3ygGK.js",
+        "status": 200,
+        "bytes": 530601,
+        "sha256": "39b3621fc1820878a151b05cfe961939636434fbe4432510640498a7b5fa1642",
+        "newAccountEditor": true,
+        "namePatchRoute": true,
+        "deletionStates": true
+      }
+    ],
+    "pageErrors": [],
+    "consoleErrors": [],
+    "httpErrors": [],
+    "resourceFailures": [],
+    "blockedWrites": []
+  },
+  "test_branch_removed": true,
+  "limits": [
+    "No existing user account was changed.",
+    "Real mailbox delivery and physical devices were not retested.",
+    "Browser settings checks used a synthetic local identity; real account API operations used isolated Neon and a temporary local application database.",
+    "Production management deletion was checked separately with one newly created disposable directory user."
+  ]
+}
