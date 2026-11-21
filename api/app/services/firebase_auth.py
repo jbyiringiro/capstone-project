@@ -169,6 +169,17 @@ class FirebaseAuth:
             raise EmailNotVerified("verify your email before signing in")
         return identity
 
+    def update_name(self, token: str, name: str) -> None:
+        """Keep rollback-mode Firebase's display name aligned without replacing its identity."""
+        identity = self.verify(token)
+        try:
+            result, _ = self._request(IDENTITY_URL + "accounts:update?" + urlencode({"key": self.api_key}),
+                                      {"idToken": token, "displayName": name, "returnSecureToken": False})
+        except _ProviderAccountMissing:
+            raise InvalidCredentials("invalid or expired email session") from None
+        if result.get("localId") != identity.uid or result.get("displayName") != name:
+            raise EmailAuthUnavailable("email account name update was not confirmed; retry to save")
+
     def delete(self, token: str) -> None:
         try:
             self._account_request("accounts:delete", token)

@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from .. import schemas
 from ..config import settings
 from ..dependencies import CurrentUser, DbSession, Sms
-from ..security import create_token
+from ..security import create_token, oauth2
 from ..services import AccountService
 from ..services.email_accounts import EmailAccountService
 from ..services.errors import EmailAuthUnavailable, SmsUnavailable
@@ -81,7 +81,8 @@ def delete_email_account(body: schemas.EmailDelete, db: DbSession):
 
     Retry a partial provider cleanup with the same recent token and user_id. Vuga tombstones
     prevent a deleted UID from recreating an account, including after provider outages. Neon
-    self-service deletion must first be enabled. Unconfirmed remote cleanup remains pending.
+    deletion must first be enabled, using a verified self-service route or bound management
+    configuration. Unconfirmed remote cleanup remains pending.
     """
     EmailAccountService(db).delete_account(body)
 
@@ -113,6 +114,15 @@ def me(user: CurrentUser):
     """The signed-in account: its name (empty for accounts opened before names were asked for)
     and number."""
     return user
+
+
+@router.patch("/me", response_model=schemas.UserOut)
+def update_me(body: schemas.AccountUpdate, user: CurrentUser, db: DbSession,
+              token: Annotated[str, Depends(oauth2)]):
+    """Update the signed-in adult's name without changing email, role or profile ownership."""
+    if user.auth_provider in {"neon", "firebase"}:
+        return EmailAccountService(db).update_name(token, body.name)
+    return AccountService(db).update_name(user, body.name)
 
 
 @router.post("/reset-pin", status_code=204)

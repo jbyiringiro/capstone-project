@@ -89,9 +89,32 @@ class EmailAccountService:
             raise InvalidCredentials("invalid or expired email session")
         return user
 
+    def update_name(self, token: str, name: str) -> models.User:
+        identity = self.provider.verify(token)
+        record = self._lock_identity(identity)
+        user = self._user(identity)
+        if record.deleted or user is None or record.user_id != user.user_id:
+            self.db.rollback()
+            raise InvalidCredentials("invalid or expired email session")
+        # Same identity -> account lock order as deletion. No other user's identifier or
+        # email comes from the request. A provider failure leaves the Vuga name unchanged.
+        lock_account(self.db, user.user_id)
+        # Authentication may have loaded this ORM instance before another edit acquired the
+        # lock. Refresh now so changing back to that old name still issues a database write.
+        self.db.refresh(user)
+        try:
+            self.provider.update_name(token, name)
+            user.name = name
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            # A lost provider response can have saved its name. Repeating the same name
+            # update is safe and reconciles the two stores; never report an unconfirmed save.
+            raise
+        self.db.refresh(user)
+        return user
+
     def delete_account(self, body: schemas.EmailDelete) -> None:
-        if self.is_neon:
-            self.provider.ensure_deletion_available()
         # Signatures are checked even for retries. A tombstone permits only cleanup of the exact
         # previously erased account, never new sign-in/access or an arbitrary provider identity.
         identity = self.provider.verify_signature(body.id_token, recent=True)
@@ -102,6 +125,10 @@ class EmailAccountService:
             return  # A confirmed provider response was durably recorded; no revoked cookie needed.
         if not record.deleted:
             self.provider.verify(body.id_token, recent=True)
+            if self.is_neon:
+                # Bound management configuration is checked before destructive database writes,
+                # after authentication/ownership checks. Junk tokens cannot spend API quota.
+                self.provider.preflight_deletion(body.id_token)
             record = self._lock_identity(identity)
             if record.user_id != body.user_id:
                 raise InvalidCredentials("email session does not match this account")

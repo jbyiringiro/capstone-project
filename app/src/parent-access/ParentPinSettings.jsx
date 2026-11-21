@@ -10,6 +10,7 @@ import {
 import AccountLink, { connectBackup } from './AccountLink.jsx'
 import RecoveryCode from './RecoveryCode.jsx'
 import EmailPasswordReset from './EmailPasswordReset.jsx'
+import AccountNameEditor from './AccountNameEditor.jsx'
 import { Cooldown, MESSAGES, PasswordField, PinField, errorText, usePinForm } from './forms.jsx'
 import './parent-access.css'
 
@@ -24,6 +25,7 @@ export default function ParentPinSettings({ onDeviceRestored }) {
   const eraseForm = usePinForm(), [erasing, setErasing] = useState(false)
   const [erasePassword, setErasePassword] = useState(''), [resetBusy, setResetBusy] = useState(false), [resetError, setResetError] = useState('')
   const [resetOpen, setResetOpen] = useState(false)
+  const [nameBusy, setNameBusy] = useState(false)
   const [unlinking, setUnlinking] = useState(false), [unlinkBusy, setUnlinkBusy] = useState(false)
   const accountAddress = account?.email || (account?.phone ? displayPhone(account.phone) : '')
   useEffect(() => {
@@ -108,12 +110,14 @@ export default function ParentPinSettings({ onDeviceRestored }) {
           <p>Iki gikoresho gihujwe na konti ya Vuga ya {account.name ? <><b>{account.name}</b> ({accountAddress})</> : <b>{accountAddress}</b>}. {account.email ? 'Kwinjira kuri konti ku kindi gikoresho bisaba email n’ijambo ry’ibanga rya konti. Umubare w’ibanga w’imibare 4–6 urinda iki gikoresho gusa.' : 'Umubare w’ibanga wawe ni wo winjiza kuri iyo konti ku bindi bikoresho, kandi niwawibagirwa, uwuhindura ukoresheje SMS.'}</p>
           {linkNote && <p role="status">{linkNote}</p>}
           {account.email && <>
+            <AccountNameEditor key={account.user_id} account={account} disabled={unlinkBusy || eraseForm.busy || resetBusy || resetOpen || erasing || unlinking}
+              onBusyChange={setNameBusy} onSaved={saved => { setAccount(saved); setLinkNote('Izina rya konti ryahinduwe.'); }} />
             {resetError && <p role="alert" className="parent-form-error">{resetError}</p>}
             {resetOpen ? <EmailPasswordReset initialEmail={account.email} readOnly onBusyChange={setResetBusy}
               onBack={() => setResetOpen(false)} onDone={() => { setResetOpen(false); setLinkNote('Ijambo ry’ibanga rya konti ryahinduwe. Umubare w’ibanga w’iki gikoresho ntiwahindutse.') }} />
-              : <button type="button" className="parent-text-button" disabled={resetBusy || unlinkBusy || eraseForm.busy} onClick={resetEmailPassword}>{resetBusy ? 'Birimo kohereza…' : 'Hindura ijambo ry’ibanga rya konti ukoresheje email'}</button>}
+              : <button type="button" className="parent-text-button" disabled={resetBusy || unlinkBusy || eraseForm.busy || nameBusy} onClick={resetEmailPassword}>{resetBusy ? 'Birimo kohereza…' : 'Hindura ijambo ry’ibanga rya konti ukoresheje email'}</button>}
             {unlinking && <p role="status">Guhagarika guhuza iki gikoresho na konti ntibisiba konti yo kuri seriveri cyangwa amakuru y’abana ari hano. Kubika no kugarura iby’iyi konti bizasaba kongera kwinjira.</p>}
-            <button type="button" className="parent-text-button" disabled={unlinkBusy || resetBusy || eraseForm.busy} onClick={unlink}>{unlinkBusy ? 'Birimo guhagarikwa…' : unlinking ? 'Yego, hagarika guhuza iki gikoresho' : 'Hagarika guhuza iki gikoresho na konti'}</button>
+            <button type="button" className="parent-text-button" disabled={unlinkBusy || resetBusy || eraseForm.busy || nameBusy} onClick={unlink}>{unlinkBusy ? 'Birimo guhagarikwa…' : unlinking ? 'Yego, hagarika guhuza iki gikoresho' : 'Hagarika guhuza iki gikoresho na konti'}</button>
             {unlinking && <button type="button" className="parent-text-button" disabled={unlinkBusy} onClick={() => setUnlinking(false)}>Reka, gumana konti ihujwe</button>}
           </>}
         </> : account === null && <>
@@ -133,7 +137,7 @@ export default function ParentPinSettings({ onDeviceRestored }) {
       {eraseForm.error && <p className="parent-form-error" role="alert">{eraseForm.error}</p>}
       <Cooldown form={eraseForm} />
       <div className="account-delete-actions">
-        <button className="button-outline audio-delete" disabled={eraseForm.busy || !!eraseForm.remaining || unlinkBusy || resetBusy}>{eraseForm.busy ? 'Birimo gusibwa…' : erasing ? 'Siba konti burundu' : 'Siba konti yanjye'}</button>
+        <button className="button-outline audio-delete" disabled={eraseForm.busy || !!eraseForm.remaining || unlinkBusy || resetBusy || nameBusy}>{eraseForm.busy ? 'Birimo gusibwa…' : erasing ? 'Siba konti burundu' : 'Siba konti yanjye'}</button>
         {erasing && <button type="button" className="button-outline" onClick={cancelErase} disabled={eraseForm.busy}>Reka, gumana konti</button>}
       </div>
     </form>}

@@ -23,7 +23,7 @@ const OFFLINE = 'Nta interineti iri kuri iki gikoresho. Yifungure, wongere ugera
 
 // A request's own messages, by status, come before the general ones; a function receives the
 // server's reply, which the error also carries as `reply`.
-async function req(path, { method = 'GET', body, form, auth = true, bearer, errors = {} } = {}) {
+async function req(path, { method = 'GET', body, form, auth = true, bearer, errors = {}, expectedStatus } = {}) {
   const headers = {}
   const token = bearer ?? (auth ? await getToken() : null)
   if (token) headers.Authorization = `Bearer ${token}`
@@ -58,6 +58,7 @@ async function req(path, { method = 'GET', body, form, auth = true, bearer, erro
     error.reply = reply
     throw error
   }
+  if (expectedStatus && r.status !== expectedStatus) throw localizedError('Seriveri ntiyemeje ko icyifuzo cyarangiye. Ongera ugerageze.')
   return r.status === 204 ? null : r.json()
 }
 
@@ -84,6 +85,14 @@ const EMAIL_ERRORS = {
   503: 'Kwinjira ukoresheje email ntibiraboneka. Ongera ugerageze nyuma; ibiri kuri iki gikoresho birakomeza gukora.'
 }
 const WRONG_ACCOUNT = 'Injira kuri konti ya email ihujwe n’iki gikoresho. Indi konti ntishobora guhindura umubare w’ibanga wacyo.'
+const ACCOUNT_CHANGED = 'Konti ihujwe n’iki gikoresho yahindutse. Ongera winjire.'
+const ACCOUNT_NAME_ERROR = 'Andika izina ryawe nk’umurezi, inyuguti zitarenze 120.'
+const deletionCode = reply => reply?.code || reply?.detail?.code
+const deletionUnavailable = reply => {
+  if (deletionCode(reply) === 'ACCOUNT_DELETION_DISABLED') return 'Gusiba konti ntibirafungurwa kuri seriveri. Nta makuru yasibwe. Vugana n’ushinzwe Vuga.'
+  if (deletionCode(reply) === 'ACCOUNT_DELETION_PENDING') return 'Amakuru ya Vuga yo kuri seriveri yasibwe, ariko gusiba konti ntibirarangira. Ongera ukande «Siba konti burundu».'
+  return 'Gusiba konti ntibirarangira cyangwa ntibyemejwe. Ongera ukande «Siba konti burundu» kugira ngo ugenzure ko byarangiye.'
+}
 // Only kept in memory, to finish a provider deletion if the server response was interrupted.
 const pendingEmailDeletions = new Map()
 
@@ -139,6 +148,24 @@ export const api = {
     await storeEmailSession(identity.idToken, user, expected)
     return { access_token: identity.idToken, token_type: 'bearer', user }
   },
+  updateAccountName: async (value, expectedAccount) => {
+    if (globalThis.navigator?.onLine === false) throw localizedError(OFFLINE)
+    const name = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : ''
+    if (!name || name.length > 120 || /\p{Cc}/u.test(name)) throw localizedError(ACCOUNT_NAME_ERROR)
+    const previous = await db.transaction('r', db.settings, async () => ({ account: await getLinkedAccount(), token: await getToken() }))
+    if (!previous.account?.email || !previous.account.user_id || (expectedAccount && !sameAccount(previous.account, expectedAccount))) throw localizedError(ACCOUNT_CHANGED)
+    if (!previous.token) throw Object.assign(localizedError(EMAIL_ERRORS[401]), { status: 401 })
+    const user = await req('/auth/me', {
+      method: 'PATCH', bearer: previous.token, body: { name },
+      errors: { ...EMAIL_ERRORS, 422: ACCOUNT_NAME_ERROR, 503: 'Ntibyashobotse kwemeza ko izina ryahinduwe. Ongera ugerageze nyuma gato.' }
+    })
+    const account = checkedEmailAccount(user)
+    if (!sameAccount(previous.account, account) || account.email !== previous.account.email || account.auth_provider !== previous.account.auth_provider
+      || account.name !== name) throw localizedError('Seriveri ntiyemeje izina rya konti. Ongera ugerageze.')
+    // A delayed save must never replace a newly linked account or signed-out session.
+    await storeEmailSession(previous.token, account, previous.account, previous)
+    return account
+  },
   deleteEmailAccount: async (email, password) => {
     if (globalThis.navigator?.onLine === false) throw localizedError(OFFLINE)
     const expected = await getLinkedAccount()
@@ -153,12 +180,12 @@ export const api = {
     }
     try {
       await req('/auth/email/delete-account', {
-        method: 'POST', auth: false,
+        method: 'POST', auth: false, expectedStatus: 204,
         body: { id_token: pending.idToken, user_id: expected.user_id },
-        errors: { ...EMAIL_ERRORS, 503: 'Gusiba konti ntibirarangira. Ongera ukande «Siba konti burundu» kugira ngo birangire.' }
+        errors: { ...EMAIL_ERRORS, 503: deletionUnavailable }
       })
     } catch (error) {
-      if (error.status === 401 || error.status === 403) pendingEmailDeletions.delete(expected.user_id)
+      if (error.status === 401 || error.status === 403 || deletionCode(error.reply) === 'ACCOUNT_DELETION_DISABLED') pendingEmailDeletions.delete(expected.user_id)
       throw error
     }
     pendingEmailDeletions.delete(expected.user_id)

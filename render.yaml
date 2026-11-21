@@ -30,9 +30,19 @@ services:
         sync: false
       - key: VUGA_NEON_AUTH_ORIGIN
         value: https://vuga-app.onrender.com
-      # Enable only after self-service deletion succeeds on the Neon test branch.
+      # Enable only after deletion succeeds on a disposable account on the intended branch.
       - key: VUGA_NEON_DELETE_ENABLED
         sync: false
+      # This Neon deployment uses its management API for deletion; the browser never receives
+      # the project-scoped credential. Auth URL and project/branch must identify the same branch.
+      - key: VUGA_NEON_DELETE_MODE
+        value: management
+      - key: VUGA_NEON_MANAGEMENT_API_KEY
+        sync: false
+      - key: VUGA_NEON_PROJECT_ID
+        value: broad-shape-23302181
+      - key: VUGA_NEON_BRANCH_ID
+        value: br-dawn-tooth-b97xsvmu
       # Neon mode disables the legacy outbound SMS service.
       - key: VUGA_SMS_LOG_ENABLED
         value: "false"
