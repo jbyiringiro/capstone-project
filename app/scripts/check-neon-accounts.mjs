@@ -229,8 +229,11 @@ try {
     const before = count('/auth/neon/resend')
     const resend = gate.getByRole('button', { name: /^Saba indi kode/ })
     await expect(resend).toBeDisabled(); expect(count('/auth/neon/resend')).toBe(before)
-    await page.clock.fastForward(61_000); await resend.click(); await expect(resend).toBeDisabled()
-    expect(count('/auth/neon/resend')).toBe(before + 1); await expect(password(gate)).toHaveCount(0)
+    await page.clock.fastForward(61_000); await resend.click()
+    // Disabled can mean the request is still in flight; wait for the actual response.
+    await expect(gate.getByRole('status')).toContainText('Twasabye indi kode')
+    await expect.poll(() => count('/auth/neon/resend')).toBe(before + 1)
+    await expect(resend).toBeDisabled(); await expect(password(gate)).toHaveCount(0)
   })
   await check('A correct verification code requires explicit password login afterward', async () => {
     await gate.getByLabel('Kode yo muri email', { exact: true }).fill('123456')
