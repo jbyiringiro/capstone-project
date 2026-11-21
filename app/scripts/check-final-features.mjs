@@ -1,6 +1,7 @@
 import { chromium, expect } from '@playwright/test'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { LOCKED_KEYS } from '../src/symbols/categories.js'
 
 // End-to-end checks for the final-version features on the production build: caregiver custom
 // words (FR3), fixed grid pages of 4 to 40 cells and a grid that fits the screen (NFR3), swiping
@@ -700,7 +701,7 @@ try {
   }
   let full = [], second = []
 
-  await check('Hidden pictures leave an empty key: every other picture keeps its place on each page, for that child only, after a reload, and all come back in place when shown again', async () => {
+  await check('Hidden pictures leave an empty key: every other picture keeps its place on each page, for that child only, after a reload; oya, gufasha, kubabara and umusarani cannot be hidden, even by Kuraho yose; all come back in place when shown again', async () => {
     await caregiver()
     await addChild('Keza')
     await tab('Ikibaho')
@@ -713,12 +714,22 @@ try {
     await board.getByRole('button', { name: 'Urupapuro rukurikira', exact: true }).click()
     second = await keysOnPage()
     await board.getByRole('button', { name: 'Urupapuro rubanziriza', exact: true }).click()
-    // Two pictures hidden on the first page: their keys are blank and no other picture moves.
+    // The four locked words are ticked and cannot be unticked. Two other pictures hidden on the
+    // first page: their keys are blank and no other picture moves.
+    const hide = full.filter((key, index) => index > 0 && !LOCKED_KEYS.includes(key)).slice(0, 2)
     await caregiver()
     await tab('Amashusho')
-    for (const key of full.slice(1, 3)) await showWord(key, false)
+    for (const key of LOCKED_KEYS) {
+      const box = page.getByRole('checkbox', { name: `Hitamo ${labels[key]}`, exact: true })
+      await expect(box).toBeChecked()
+      await expect(box).toBeDisabled()
+    }
+    await expect(page.locator('.dash-locked-note')).toContainText('umusarani')
+    await page.locator('.dash-vocab-tile.locked').first().scrollIntoViewIfNeeded()
+    await screenshot('caregiver-locked-words')
+    for (const key of hide) await showWord(key, false)
     await back()
-    const kept = [full[0], null, null, ...full.slice(3)]
+    const kept = full.map(key => (hide.includes(key) ? null : key))
     expect(await slotsOnPage()).toEqual(kept)
     await expect(board.locator('.symbol-grid .hidden-slot')).toHaveCount(2)
     await screenshot('board-hidden-words-in-place')
@@ -737,16 +748,42 @@ try {
     await page.reload()
     await expect(board.locator('.profile-code')).toHaveText('Keza')
     expect(await slotsOnPage()).toEqual(kept)
-    // Every picture hidden: one empty board with its message, no pages and no blank keys.
+    // Kuraho yose clears every other choice: only the four locked words stay, each in its own
+    // place, and the pages left with nothing to show are skipped.
     await caregiver()
     await tab('Amashusho')
     await page.getByRole('button', { name: 'Kuraho yose', exact: true }).click()
     await expect(page.locator('.dash-save-note')).toHaveText('Bibitswe kuri iki gikoresho')
+    for (const key of LOCKED_KEYS) await expect(page.getByRole('checkbox', { name: `Hitamo ${labels[key]}`, exact: true })).toBeChecked()
     await back()
-    await expect(board.locator('.board-empty')).toBeVisible()
-    await expect(tiles()).toHaveCount(0)
-    await expect(board.locator('.page-controls')).toHaveCount(0)
-    await expect(board.locator('.symbol-grid .grid-slot')).toHaveCount(0)
+    const lockedOnly = keys => keys.map(key => (LOCKED_KEYS.includes(key) ? key : null))
+    await expect(board.locator('.board-empty')).toHaveCount(0)
+    expect(await slotsOnPage()).toEqual(lockedOnly(full))
+    await board.getByRole('button', { name: 'Urupapuro rukurikira', exact: true }).click()
+    expect(await slotsOnPage()).toEqual(lockedOnly(second))
+    await expect(board.locator('.page-controls')).toContainText('2/2')
+    expect([...lockedOnly(full), ...lockedOnly(second)].filter(Boolean).sort()).toEqual([...LOCKED_KEYS].sort())
+    await screenshot('board-locked-words-only')
+    await board.getByRole('button', { name: 'Urupapuro rubanziriza', exact: true }).click()
+    // A fixed section has no child-facing route back to Ingenzi. Its protected words
+    // remain reachable even when every animal was hidden, including after a reload.
+    await category('Inyamaswa')
+    async function fixedSectionWords() {
+      const seen = [...await keysOnPage()]
+      const next = board.getByRole('button', { name: 'Urupapuro rukurikira', exact: true })
+      while (await next.count() && await next.isEnabled()) {
+        await next.click(); seen.push(...await keysOnPage())
+      }
+      return seen.sort()
+    }
+    await expect(board.locator('.category-bar')).toHaveCount(0)
+    await expect(board.locator('.board-empty')).toHaveCount(0)
+    expect(await fixedSectionWords()).toEqual([...LOCKED_KEYS].sort())
+    await page.reload()
+    await expect(board.locator('.profile-code')).toHaveText('Keza')
+    expect(await fixedSectionWords()).toEqual([...LOCKED_KEYS].sort())
+    await screenshot('board-fixed-animals-locked-words')
+    await category('Ingenzi')
     // Shown again, each picture is back in its own place.
     await caregiver()
     await tab('Amashusho')
@@ -760,7 +797,8 @@ try {
   await check('A caregiver edits a child’s name and age band in Abana; the child keeps their id, pictures and board, and the change survives a reload', async () => {
     await caregiver()
     await tab('Amashusho')
-    await showWord(full[1], false)
+    const hidden = full.find((key, index) => index > 0 && !LOCKED_KEYS.includes(key))
+    await showWord(hidden, false)
     const before = (await children()).find(child => child.code === 'Keza')
     await addChild('Ganza')
     await tab('Abana')
@@ -789,7 +827,7 @@ try {
     await page.reload()
     await expect(board.locator('.profile-code')).toHaveText('Keza Uwase')
     // The same pictures in the same places on the same 3 x 3 pages, with the hidden one's key blank.
-    expect(await slotsOnPage()).toEqual([full[0], null, ...full.slice(2)])
+    expect(await slotsOnPage()).toEqual(full.map(key => (key === hidden ? null : key)))
     expect(pageErrors).toEqual([])
   })
 

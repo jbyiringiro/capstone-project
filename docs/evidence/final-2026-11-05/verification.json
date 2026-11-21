@@ -1,0 +1,62 @@
+{
+  "checked_at_utc": "2026-11-05T11:34:50.994038+00:00",
+  "git_head": "133119ded6e801c486d112388322632777c2a734",
+  "branch": "final-version",
+  "worktree": "Uncommitted changes included; identify tested source using source-hashes.json.",
+  "frontend": {
+    "passed": 170,
+    "files": 28,
+    "report": "frontend.json"
+  },
+  "python": {
+    "passed": 148,
+    "ml_passed": 41,
+    "api_passed": 107,
+    "reports": [
+      "python.xml",
+      "api.xml"
+    ],
+    "method": "Initial combined run: 146 passed. After two provider-status cases were added, final API rerun: 107 passed. The 41 ML tests are unchanged from the combined run."
+  },
+  "browser": {
+    "passed": 75,
+    "engine": "Headless Microsoft Edge on Windows",
+    "base_url": "http://127.0.0.1:4195/",
+    "reports": {
+      "browser-report": 25,
+      "parent-access-report": 17,
+      "final-features-report": 24,
+      "child-mode-report": 9
+    },
+    "api": "Stand-in API; no provider delivery."
+  },
+  "production_build": {
+    "passed": true,
+    "api_base": "http://localhost:8000",
+    "precache_entries": 3724,
+    "asset_sha256": {
+      "index.html": "3ad3e93c542baca7f6ab8a6121e200add383389815d9c60b4ae1a4061a7f0a89",
+      "sw.js": "5eca1c84d02440adadb0850c4ded4c0c621b691df9f39575c397d4c272835a10",
+      "assets/index-BLtXr5p9.css": "3772d70ac072b4261561f5e670cff85497cf157b470f4bcac753a999997ba107",
+      "assets/index-fs7Ep5Ey.js": "6bac7ac68467c760b0633072088b76cf511f948ccfbe414e9e7560e5489a8290"
+    }
+  },
+  "lint": {
+    "tool": "Ruff",
+    "result": "passed",
+    "scope": "10 changed Python service/test files"
+  },
+  "technical_report": {
+    "pages": 5,
+    "font": "Existing 12 pt format",
+    "sha256": "c36ac2dd7afe8dd01b962d91fee68641029c53c7f017b7ac633d832a4831b295"
+  },
+  "known_limits": [
+    "No live SMS provider configured or handset delivery tested",
+    "No physical Android/iPhone testing performed",
+    "PostgreSQL concurrency not executed",
+    "Live CORS still 400 on 5 November; correction is local in render.yaml",
+    "Changes not committed or deployed",
+    "Earlier compatibility/performance/model results were not rerun or improved by these fixes"
+  ]
+}

@@ -63,7 +63,8 @@ logged here.
 
 | 2026-09-21 | v3 | Unigram frequency | 0.090 | 0.220 | 0.305 | 43.4 | 3 kB | 1,20x events |
 | 2026-09-21 | v3 | Kneser-Ney trigram | 0.220 | 0.458 | 0.592 | 17.4 | 103 kB | vs unigram +0.238, 95% CI [0.212, 0.263] |
-| 2026-09-21 | v3 | GRU 128 (3 seeds) | 0.240 ± 0.001 | 0.466 ± 0.004 | 0.592 ± 0.005 | 15.31 ± 0.13 | 442 kB ONNX | transformer not yet rerun on v3 |
+| 2026-09-21 | v3 | GRU 128 (3 seeds) | 0.240 ± 0.001 | 0.466 ± 0.004 | 0.592 ± 0.005 | 15.31 ± 0.13 | 442 kB ONNX | transformer rerun on v3 on 2026-11-18 (next row) |
+| 2026-11-18 | v3 | AfriBERTa-small fine-tune (3 seeds, max 8 epochs) | 0.235 ± 0.008 | 0.468 ± 0.005 | 0.585 ± 0.007 | 15.73 ± 0.20 | 338 MB | epochs 7/6/6; 45/37/38 min per seed on laptop CPU; same 181 output symbols as the GRU; top-3 vs trigram paired bootstrap 95% CI per seed [-0.002, 0.034]; [-0.009, 0.029]; [-0.014, 0.024]; `ml/notebooks/evidence/transformer_v3_validation.json` |
 
 Local latency on v3 artefacts: KN 1.1 ms median / 1.8 ms p95; GRU ONNX 0.09 / 0.28 ms; the v2
 AfriBERTa artefact on laptop CPU (4 threads) 29.6 / 44.0 ms, 83 M parameters, 338 MB, far above

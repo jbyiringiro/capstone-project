@@ -1,6 +1,8 @@
 # Vuga AAC deployment plan
 
-**4 November 2026 update:** the [public app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health) are live on Render with Neon PostgreSQL. API health/model loading and the 188-symbol catalogue have been verified; browser CORS configuration and live SMS remain pending. Use the [hosting guide](hosting.md) and [render.yaml](../render.yaml) on branch `deploy/vuga-cloud`; they supersede the provider choices and rollout instructions below for the selected free deployment.
+**Current setup, 21 November 2026:** the [public app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health) run on Render Free; Neon Free hosts PostgreSQL and Managed Better Auth. Email verification, password reset, account name editing and cloud account deletion replace the original SMS account flow. Sign-in checks the account password before a separate device-PIN screen. Hosted API/browser checks include CORS; physical-device engineering checks remain a separate activity. Use the [consolidated release record](releases/consolidated-2026-11-21.md), [Neon account guide](neon-auth.md), [hosting guide](hosting.md) and [render.yaml](../render.yaml) for the current configuration.
+
+**Historical update, 4 November 2026:** the app and API had first become available on Render with Neon PostgreSQL. API health/model loading and the 188-symbol catalogue were verified; CORS configuration and live SMS were still pending at that milestone. These pending items describe that date, not the current email-authentication deployment.
 
 **Historical status, 2 November 2026.** Vuga ran only as a local production preview (`npm run preview`), with no public hosting. The original plan below describes the proposed deployment and verification steps at that time.
 
@@ -89,7 +91,7 @@ Free tiers have limits: services sleep when idle, and free databases have size a
 
 | When | Check |
 |---|---|
-| Every deploy | Build command runs the 145 Vitest tests. API changes run `python -m pytest ml/tests api/tests` before merging |
+| Every deploy | Build command runs the 146 Vitest tests. API changes run `python -m pytest ml/tests api/tests` before merging |
 | After a PWA deploy | Airplane-mode test on a real device: board, **Vuga** speech, **Erekana**, parent PIN lock |
 | After an API deploy | `/health` shows `model_loaded: true`, plus one Swagger request each to `/auth/login` and `/predict` |
 | Ongoing | The host's uptime check on `/health`, the host's logs, and a weekly `pg_dump` export kept outside the host |

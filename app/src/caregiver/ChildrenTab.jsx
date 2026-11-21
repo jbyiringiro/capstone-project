@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { PROFILE_CODE, PROFILE_NAME_MAX, createLocalProfile, deleteProfile, getProfiles, prepareProfileEdit, updateProfile } from '../storage/profiles.js'
 import { getVocabulary } from '../storage/vocabulary.js'
+import { withLockedKeys } from '../symbols/categories.js'
 import { api, getToken } from '../server/api-client.js'
 import { SymbolArtwork } from '../shared/ui.jsx'
 import { localizedError, userError } from '../shared/errors-rw.js'
@@ -28,7 +29,7 @@ export default function ChildrenTab({ symbols, byKey, activeProfile, onSelect, o
   useEffect(() => {
     let current = true; setEnabledCount(null)
     const task = activeProfile ? getVocabulary(activeProfile.profile_id) : Promise.resolve(null)
-    task.then(keys => { if (current) setEnabledCount(keys?.length ?? symbols.length) }).catch(e => setError(userError(e)))
+    task.then(keys => { if (current) setEnabledCount(keys ? withLockedKeys(keys).length : symbols.length) }).catch(e => setError(userError(e)))
     return () => { current = false }
   }, [activeProfile, symbols])
   function openForm(profile = null) {

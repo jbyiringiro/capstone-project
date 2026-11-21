@@ -52,8 +52,9 @@ app/public/audio/*
 # app/tests/prediction/fixtures/*.json are committed: small snapshots used by the JS parity tests
 device/bundle/*.json
 
-# ARASAAC pictograms are fetched by ml/scripts/fetch_pictograms.py (CC BY-NC-SA), not committed
-app/public/symbols/*.png
+# Bundled catalogue fallback pictograms ship with the app and their CC BY-NC-SA attribution.
+# This exception is limited to their asset directory, not generated screenshots elsewhere.
+!app/public/symbols/*.png
 
 # Linters
 .ruff_cache/

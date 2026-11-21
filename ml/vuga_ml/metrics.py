@@ -85,7 +85,7 @@ class BoardLayout:
     section, and each page arrow or swipe turns one page. A hidden word keeps its slot (None) and
     a page with nothing to show is skipped, as in grid-pages.js. The board opens at the first
     section, and Speak takes it back there. app/scripts/export-board-layout.mjs writes the app's
-    own sections for `from_json`."""
+    own sections for `from_json`, with every word shown."""
 
     sections: dict[str, list[str | None]]
     page_size: int = 20  # columns x rows: 4 to 40 keys (NFR3)

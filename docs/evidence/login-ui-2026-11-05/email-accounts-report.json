@@ -1,0 +1,110 @@
+{
+  "recorded_at": "2026-11-05T19:11:15.318Z",
+  "baseURL": "http://localhost:5173/",
+  "mockOnly": true,
+  "buildAssets": [
+    {
+      "path": "/assets/index-9teyF00N.css",
+      "sha256": "23f04f5b20ea2f78fd4d1cfcca3552e046d930a0c7193d02d3b8007871fef8d0"
+    },
+    {
+      "path": "/assets/index-DJ1O_GiM.js",
+      "sha256": "02a0d38e7876b8fcc8fafca6de754eddac7549ce348f10afc8eaa2ff40f4d110"
+    }
+  ],
+  "checks": [
+    {
+      "name": "Signup password visibility is explicit, accessible and off by default",
+      "status": "passed"
+    },
+    {
+      "name": "Email signup is default; password confirmation prevents an invalid provider request",
+      "status": "passed"
+    },
+    {
+      "name": "Signup sends one verification message into a separate waiting panel that fits narrow screens",
+      "status": "passed"
+    },
+    {
+      "name": "Verification resend waits for the cooldown without sending duplicate requests",
+      "status": "passed"
+    },
+    {
+      "name": "Continue opens a compact login; an unverified email still creates neither a Vuga session nor local PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Provider throttling shows the retry countdown and suppresses further requests until the wait ends",
+      "status": "passed"
+    },
+    {
+      "name": "Resending requests only the account password; bad credentials and provider failure remain recoverable",
+      "status": "passed"
+    },
+    {
+      "name": "A pending resend cannot submit twice, and success starts a new cooldown",
+      "status": "passed"
+    },
+    {
+      "name": "An already verified email switches back to login without another verification message",
+      "status": "passed"
+    },
+    {
+      "name": "Forgot-password opens an email-only reset form and returns to login without changing the device PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Verified email login stores account identity and a separate hashed local PIN, never password or refresh token",
+      "status": "passed"
+    },
+    {
+      "name": "Local PIN works offline without invoking phone login or email-password sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "Password reset uses generic wording and leaves local PIN unchanged",
+      "status": "passed"
+    },
+    {
+      "name": "Explicit local unlink leaves cloud account, local child and PIN intact",
+      "status": "passed"
+    },
+    {
+      "name": "Relinking checks existing local PIN before any cloud login and preserves that PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Email recovery refuses a different Vuga identity and leaves linked identity and PIN intact",
+      "status": "passed"
+    },
+    {
+      "name": "Fresh matching email authentication permits local PIN recovery",
+      "status": "passed"
+    },
+    {
+      "name": "Email settings fit a mobile viewport and cloud deletion requests password, not local PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Failed deletion keeps local account; explicit retry clears only cloud linkage and preserves child/PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Legacy phone flow remains explicitly accessible",
+      "status": "passed"
+    },
+    {
+      "name": "A pending legacy phone request disables switching to email until it finishes",
+      "status": "passed"
+    }
+  ],
+  "counts": {
+    "signUp": 1,
+    "signInWithPassword": 12,
+    "VERIFY_EMAIL": 4,
+    "PASSWORD_RESET": 2,
+    "sessions": 2,
+    "delete": 2
+  },
+  "errors": []
+}

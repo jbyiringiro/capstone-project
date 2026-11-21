@@ -1,0 +1,90 @@
+{
+  "generated_at": "2026-11-05T17:42:22.794Z",
+  "baseURL": "http://127.0.0.1:4196/",
+  "checks": [
+    {
+      "name": "Child can communicate before adult setup; setup can be dismissed without losing the message",
+      "status": "passed"
+    },
+    {
+      "name": "Adult must confirm a PIN; no profiles, settings, audio or export are mounted before success",
+      "status": "passed"
+    },
+    {
+      "name": "Returning to the child board locks parent access and preserves the message draft",
+      "status": "passed"
+    },
+    {
+      "name": "Reload always returns to child access and never persists an authenticated parent session",
+      "status": "passed"
+    },
+    {
+      "name": "Five failed attempts cause a persisted cooldown, including after reload; child board stays available",
+      "status": "passed"
+    },
+    {
+      "name": "Parent-only PIN change requires current PIN and the new credential replaces the old one",
+      "status": "passed"
+    },
+    {
+      "name": "Five minutes without input locks parent access while retaining the child message",
+      "status": "passed"
+    },
+    {
+      "name": "Backgrounding locks the adult area and parent access works without network",
+      "status": "passed"
+    },
+    {
+      "name": "A forgotten PIN is replaced with the written-down recovery code; the child’s message stays",
+      "status": "passed"
+    },
+    {
+      "name": "Kwinjira links the device to the caregiver’s number and takes the account’s PIN; a forgotten PIN is then replaced with a texted code",
+      "status": "passed"
+    },
+    {
+      "name": "A new device that signs in to the account gets the caregiver’s settings back",
+      "status": "passed"
+    },
+    {
+      "name": "Alternate adult entries require a PIN, mobile gate fits, and damaged storage fails closed",
+      "status": "passed"
+    },
+    {
+      "name": "A caregiver opens an account at the first setup with the code texted to their number and the PIN they choose",
+      "status": "passed"
+    },
+    {
+      "name": "On another new device the number signs in with its PIN; wrong PINs lock it, and a texted code sets a new PIN",
+      "status": "passed"
+    },
+    {
+      "name": "A device with an older account copy never replaces the newer one: it signs in again with the new PIN, sees what differs and keeps the account’s",
+      "status": "passed"
+    },
+    {
+      "name": "Remote deletion returned after replace, Save now or closing the caregiver area removes the active child and draft immediately, refreshes pending counts and survives reload",
+      "status": "passed"
+    },
+    {
+      "name": "“Siba konti yanjye” in Kwinjira says what goes and what stays, asks again with the PIN, and only a server that erased the account clears this device’s link; the other device’s session ends",
+      "status": "passed"
+    }
+  ],
+  "screenshots": [
+    "parent-first-setup.png",
+    "parent-recovery-code.png",
+    "parent-unlock.png",
+    "parent-forgot-account.png",
+    "parent-new-device-restored.png",
+    "parent-unlock-mobile.png",
+    "account-register-code.png",
+    "parent-forgot-account-sms.png",
+    "account-backup-choose.png",
+    "account-delete-confirm.png"
+  ],
+  "pageErrors": [],
+  "total": 17,
+  "status": "passed",
+  "note": "Isolated test context; test PINs are disposable. Background event is simulated; idle clock is advanced. This local gate does not authenticate an adult identity or protect against browser-storage access."
+}

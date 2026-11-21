@@ -7,12 +7,13 @@
 | | |
 |---|---|
 | **Walkthrough video** | [Final product walkthrough (Google Drive)](https://drive.google.com/file/d/11ALnAjvop92pTYnx-89AKJn1B6W2rRHp/view?usp=drive_link) |
-| **Technical report (PDF, 4 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
+| **Technical report (PDF, 5 pages)** | [docs/report/Vuga_Final_Technical_Report.pdf](docs/report/Vuga_Final_Technical_Report.pdf) |
 | **Testing and performance evidence** | [docs/testing_report.md](docs/testing_report.md) |
 | **Public app** | [Open Vuga](https://vuga-app.onrender.com) |
-| **Public API** | [API health](https://vuga-api.onrender.com/health); Neon email API live at `5d5388b` on 17 November 2026 |
+| **Public API** | [API health](https://vuga-api.onrender.com/health); Neon email authentication configured |
 | **Public hosting setup** | [Render + Neon deployment guide](docs/hosting.md), branch `deploy/vuga-cloud` |
-| **Email account setup** | [Neon email accounts](docs/neon-auth.md); [hosted release and checks](docs/releases/neon-hosted-2026-11-17.md), live on 17 November 2026 |
+| **Email account setup** | [Neon email accounts](docs/neon-auth.md); [hosted authentication release](docs/releases/neon-hosted-2026-11-17.md); [account management release](docs/releases/account-management-2026-11-21.md) |
+| **Current release and validation** | [Consolidated release, 21 November 2026](docs/releases/consolidated-2026-11-21.md) |
 | **GitHub repository** | https://github.com/jbyiringiro/capstone-project |
 | **Project** | A Kinyarwanda-First Predictive Picture-to-Speech Communication System for Minimally Verbal Children with Disabilities in Rwandan Special Schools: Design and Preliminary Adult-Task Evaluation |
 | **Evaluation** | Adults only (teachers, therapists, caregivers) in a preliminary usability and task study; no children take part. Approved by the ALU Research Ethics Committee on 2 November 2026 (approval code SEPT26-BSE-048) |
@@ -35,9 +36,9 @@ Many disabled children cannot use speech to ask for help, make a choice, say "no
 - Three suggested next words in a separate row, from a Kneser-Ney trigram running in the browser, so the main board never moves.
 
 **For the parent, teacher or therapist** (the **Umurezi** area, behind a long press and a PIN)
-- One profile per child, with its own vocabulary and board settings.
+- One profile per child, with its own vocabulary and board settings. Under **Abana**, each child has **Hindura** (edit the name or code and age band; the child keeps their words, settings and messages) and **Siba** (delete, after a confirmation that names the child and says what goes: their words, settings, messages and game results on this device, and on the server too for a server child; custom words and recordings shared with other children stay). A deleted child cannot come back through the account copy from another device.
 - **Amagambo mashya** (new in the final version): add a word from the child's life: take a photo, name it in Kinyarwanda, record it in a familiar voice. The word, its photo and its voice stay on the device: they are never sent to the server.
-- **Board size** (new): fixed pages of 4, 6, 9, 12, 20, 24 or 40 pictures with page buttons, or **Byikora**, which fits as many large pictures as the screen holds (fewer on a phone, more on a tablet). Every picture keeps its place. On a tablet, a sideways swipe across the pictures also turns the page; a caregiver can switch swiping off for a child who turns pages by accident.
+- **Board size** (new): fixed pages of 4, 6, 9, 12, 20, 24 or 40 pictures with page buttons, or **Byikora**, which fits as many large pictures as the screen holds (fewer on a phone, more on a tablet). Every picture keeps its place: a word hidden for a child leaves a blank key, so the pictures after it never move, and a page with nothing left to show is skipped. Four words can never be hidden, even with **Kuraho yose**: *oya*, *gufasha*, *kubabara* and *umusarani*, so a child can always refuse, ask for help, say it hurts and ask for the toilet. Child mode, which shows only the pictures a caregiver picks, is unchanged. On a tablet, a sideways swipe across the pictures also turns the page; a caregiver can switch swiping off for a child who turns pages by accident.
 - **Aho umwana ari** (new): choose where the child is (home, school, a meal, play, the clinic, outside). That place's naming words then come first on the board, followed by the core words, actions, feelings and the body, which stay everywhere; naming words for other places leave the board. The toolbar names the place on every screen size. Each place's list can be edited per child.
 - **Amagambo akurikira** (new): switch next-word pages on or off per child and choose which pictures follow which, for example remove *amata* after *kunywa*, or give a new picture its own next words.
 - **Icyiciro umwana abona** (new, in Ikibaho): the section tabs are on by default, so the child picks a section, starting at Ingenzi. With the tabs switched off, the child sees every picture in pages, or the one section the caregiver chooses.
@@ -48,16 +49,16 @@ Many disabled children cannot use speech to ask for help, make a choice, say "no
 - **Child mode** (new, per child): for young or early communicators the child sees only the pictures the caregiver chose (a ready-made board such as *Igihe cyo kurya*, or up to 12 picked pictures), with no categories or buttons to manage. Each tap says the word at once and shows it large, with a friendly character reacting. The caregiver can start **Shakisha**, a picture-finding game on the child's own board that awards stars, highlights the answer after two misses and shows progress to the caregiver. Game play is never counted as communication, and child-mode data stays on the device.
 - **Gusuzuma amagambo** (new, in Amashusho): for the vocabulary review interviews, the 32 words on the paper review sheet shown one at a time in the sheet's order, with the picture, label and voice exactly as the board has them. Answers go on the paper sheet; the screen stores nothing.
 - **Nibagiwe umubare w’ibanga**: setting the device PIN shows a recovery code to write down. Recover a forgotten PIN with that code offline, or by freshly signing in to the exact email account linked to this device. Every child's data stays. **Kwinjira** makes a new recovery code. The Neon deployment uses email recovery; the offline recovery code remains available.
-- **Email caregiver accounts**: supply the adult's name, email and a password of at least eight characters, then enter the verification code emailed by Neon. Render hosts the app and API; Neon manages the database, passwords and sessions. Password reset also uses an emailed code. The separate device PIN works offline, and **Komeza nta konti** sets up local access without a cloud account. Linking an account preserves the existing device PIN. Account deletion requires fresh password authentication and confirmed provider support; it is disabled until a disposable-account test succeeds. Local children, words, recordings and PIN remain after cloud deletion. [Setup, testing and migration](docs/neon-auth.md).
+- **Email caregiver accounts**: supply the adult's name, email and a password of 8–128 characters containing an uppercase letter, a digit and a symbol, then enter the verification code emailed by Neon. These password rules apply to signup and password reset; existing passwords remain usable for sign-in. Render hosts the app and API; Neon manages the database, passwords and sessions. Password reset also uses an emailed code. Sign-in first checks the email and account password, then opens a separate device-PIN screen. The 4–6 digit device PIN works offline, and **Komeza nta konti** sets up local access without a cloud account. Linking an account preserves the existing device PIN. In **Kwinjira**, **Hindura izina → Bika izina** changes the adult's name in Neon and Vuga; the email, account ID and children stay the same. **Siba konti yanjye → Siba konti burundu** asks for the account password, then permanently deletes the Vuga cloud data and the Neon login through Neon's management API. Deletion has been enabled on the live deployment since 21 November 2026, after tests on a disposable account. Only an HTTP 204 response from Neon confirms deletion; otherwise the app reports cleanup as pending and offers a retry. Local children, words, recordings and PIN remain after cloud deletion. [Setup, testing and migration](docs/neon-auth.md).
 - **Legacy accounts**: the previous Firebase and phone implementations remain in source for controlled rollback. The Neon deployment hides phone signup and disables outbound SMS. Accounts are not merged solely because their email addresses match.
 - **Ibibitswe kuri konti** (new, optional, in Ohereza): once the device is linked to the caregiver's account, each child known by a code (such as P-01) is saved to their account with their words and their board, place, next-word and child-mode settings each time they return to the board, and signing in on a new phone or tablet brings them back. As the proposal requires (NFR4: no child names or media on the server), a child the family calls by name, custom words with their photos, recorded voices, messages and the PIN stay on the device, and the server refuses them. Each save names the revision it builds on, so a device holding an older copy never replaces a newer one: a device that changed nothing takes the newer copy, and otherwise Ohereza lists what differs, child by child, and the caregiver keeps the account's copy or this device's.
 - Large tiles, reduced motion, photos or pictograms, recorded familiar voices, a summary of completed messages, and export or sync only when the adult chooses.
 
 **Optional server**: FastAPI provides verified adult accounts, child profiles, vocabulary, message sync, account backups, summaries and server-side prediction, with Swagger documentation. In Neon mode, the API forwards credentials over HTTPS without storing or logging them and checks the current Neon session on each protected request. The child's board continues to work offline.
 
-**Hosted authentication release, 17 November 2026.** The app and API are live at `5d5388b` with Neon authentication on the production database branch. Eight live API checks and 11 browser navigation checks passed, with no observed browser errors. A recovery branch was created, and the production database URL and JWT secret were retained. The user confirmed real email receipt and local-preview login after the session-cookie fix; hosted signup, email receipt, successful login, password reset and session revocation still need an end-to-end test. An account created on the earlier test Auth branch does not automatically exist on production. Account deletion remains disabled. See the [hosted release record](docs/releases/neon-hosted-2026-11-17.md) and [earlier validation evidence](docs/releases/neon-accounts-2026-11-05.md): 245 frontend tests, 13 browser checks with simulated API responses, five real PostgreSQL migration checks, and the later 175-check API regression. Neon's shared sender is documented for development/testing, so this free two-provider configuration is a capstone/test deployment.
+**Software releases, 21 November 2026.** The [consolidated release record](docs/releases/consolidated-2026-11-21.md) identifies the deployed revisions and their validation. Earlier releases that day added [account name editing and deletion](docs/releases/account-management-2026-11-21.md), [verification-email delivery and password validation](docs/releases/signup-delivery-2026-11-21.md), and [separate account-password and device-PIN screens](docs/releases/account-pin-2026-11-21.md). Each record retains its own test counts and limitations; they should not be added together as independent tests of the newest build. Account deletion was checked using disposable accounts on an isolated Neon branch and in production, without changing existing accounts. The 20 November release keeps the caregiver header and section menu visible while scrolling ([deployment results](docs/evidence/dashboard-hosted-2026-11-20/checks.json)). This remains a capstone/test deployment on Render and Neon Free plans.
 
-The linked technical report and walkthrough describe the preceding phone-account milestone. Prediction accuracy is below the proposal's targets (45.8% top-3 for the shipped trigram against 60%, and a simulated 14.4% tap saving against 30%), and nothing has yet been checked on a physical Android tablet or with a text sent to a real phone. The vocabulary has 188 words with synthetic speech (Meta MMS-TTS) instead of the proposal's 300 to 500 words with human recordings: when the schedule slipped, this was the first item cut, as the revised proposal sets out (section 1.5), because the three research questions can still be answered with it. The words and speech await native-speaker and stakeholder review. The planned evaluation is a preliminary study with adults, not children. It received ethics approval on 2 November 2026 and is planned for 10–20 November; it has not run yet, so no participant findings are claimed.
+The earlier compatibility matrix contains seven complete configurations and two partial WebKit audio runs on one Windows laptop. Six adult teachers provided formative feedback at Autisme Rwanda on 18 November; that visit does not establish a child outcome or a controlled task-efficiency benefit. The linked technical report and walkthrough describe earlier milestones; their dated results should not be treated as a fresh test of this software release.
 
 ## Technical requirements
 
@@ -77,7 +78,7 @@ The linked technical report and walkthrough describe the preceding phone-account
 **1. Get the code**
 
 ```sh
-git clone https://github.com/jbyiringiro/capstone-project.git
+git clone --branch final-version https://github.com/jbyiringiro/capstone-project.git
 cd capstone-project
 ```
 
@@ -86,7 +87,7 @@ cd capstone-project
 ```sh
 cd app
 npm ci
-npm test                 # 145 unit and reference tests
+npm test                 # unit, account and reference tests
 npm run build            # production build with the offline service worker
 npm run preview          # http://127.0.0.1:4175
 ```
@@ -110,7 +111,7 @@ python -m venv .venv
 # Windows: .venv\Scripts\activate    macOS/Linux: source .venv/bin/activate
 python -m pip install -e "./ml[dev,notebook]" -e "./api[dev]"
 
-python -m pytest ml/tests api/tests
+python -m pytest ml/tests api/tests          # ML and API tests
 python ml/notebooks/run_notebook.py          # re-run the model notebook
 python -m uvicorn app.main:app --app-dir api --host 127.0.0.1 --port 8000
 ```
@@ -119,7 +120,7 @@ Swagger UI is at http://127.0.0.1:8000/docs. Copy `.env.example` to `.env` in th
 
 **Study analysis.** `ml/scripts/analyse_study.py` runs the pre-specified tap-reduction analysis (RQ3). `ml/scripts/analyse_vocabulary_review.py` summarises the vocabulary review sheets (RQ1): `--template` writes a blank sheet CSV in the paper sheet's order (`vocab/review_words.csv`), and `--reviews` (plus optional `--mentions`) gives each word's counts and a proposed accept, revise, exclude or unresolved status by a fixed majority rule, with `--log-out` drafting rows for `vocab/decision_log.md`. The proposals are only drafts: the native speakers and the researcher decide. Keep participant files in `study/`, which git ignores.
 
-**Using the app.** The board opens directly, with no account. Hold **Umurezi** (or press it with the keyboard) for the caregiver area. On first use, register and verify an adult email account, sign in, choose a separate 4–6 digit device PIN and write down the recovery code. *Komeza nta konti* sets up the offline PIN without a cloud account. Neon mode uses email accounts. Caregiver tabs: **Abana** (profiles), **Amashusho** (vocabulary, and the word-by-word review screen), **Amagambo mashya** (custom words), **Aho umwana ari** (words for where the child is), **Ikibaho** (the section the child sees, section tabs, suggestions, personal suggestions, sentence speech, speaking each picture, board size, motion, tile size, photos), **Amagambo akurikira** (next words after a picture), **Uburyo bw’umwana** (child mode, its pictures, the game and progress), **Ijwi** (speech and recordings), **Incamake** (summary), **Ohereza** (export, sign-in, sync and the account backup), **Kwinjira** (the linked account, password reset, change device PIN, new recovery code, unlink or delete account).
+**Using the app.** The board opens directly, with no account. Hold **Umurezi** (or press it with the keyboard) for the caregiver area. On first use, register and verify an adult email account. Sign in with the account password, then choose a separate 4–6 digit device PIN on the next screen and write down the recovery code. A device that already has a PIN asks for that PIN instead. *Komeza nta konti* sets up the offline PIN without a cloud account. Neon mode uses email accounts. Caregiver tabs: **Abana** (profiles), **Amashusho** (vocabulary, and the word-by-word review screen), **Amagambo mashya** (custom words), **Aho umwana ari** (words for where the child is), **Ikibaho** (the section the child sees, section tabs, suggestions, personal suggestions, sentence speech, speaking each picture, board size, motion, tile size, photos), **Amagambo akurikira** (next words after a picture), **Uburyo bw’umwana** (child mode, its pictures, the game and progress), **Ijwi** (speech and recordings), **Incamake** (summary), **Ohereza** (export, sign-in, sync and the account backup), **Kwinjira** (the linked account, edit the account name, password reset, change device PIN, new recovery code, unlink or delete account).
 
 ## Repository structure
 
@@ -163,7 +164,9 @@ ml/                          vuga_ml package (data pipeline, morphology and sent
 vocab/                       188-word Kinyarwanda vocabulary, lexicon, review-sheet word list,
                              decision log
 docs/                        testing report, technical report, evidence JSON, screenshots,
-                             deployment plan, project guide, dated verification records
+                             deployment plan, hosting guide, physical-device test procedure,
+                             project guide, results log
+  archive/                   superseded plans and dated implementation records
 design/                      Figma-importable mockups, tokens, icons
 hardware/, device/           keyguard and talker firmware drafts (not built)
 ```
@@ -194,11 +197,11 @@ The [model notebook](ml/notebooks/vuga_model.ipynb) ([HTML](ml/notebooks/vuga_mo
 | Kneser-Ney trigram (shipped) | 45.78% |
 | GRU | 46.92% |
 
-All three are below the proposal's target of 60% top-3. The app ships the trigram: almost as accurate as the GRU, about 100 KB, and a suggestion takes 0.09 ms median in the browser. Its JavaScript port is tested against the Python model on every fixture prefix, as is the personal re-ranker. A fine-tuned AfriBERTa transformer was run earlier, on split v2 (an older lexicon), where it tied the trigram at 48.0% top-3 and took 338 MB; it has not been rerun on the current split, so it is not in the table. On the app's own board (section tabs, 20-key pages), the trigram's suggestions save a simulated 14.4% of taps on the validation messages, against the proposal's 30% simulation target ([results log](docs/results_log.md)).
+All three are below the proposal's target of 60% top-3. The app ships the trigram: almost as accurate as the GRU, about 100 KB, and a suggestion takes 0.09 ms median in the browser. Its JavaScript port is tested against the Python model on every fixture prefix, as is the personal re-ranker. The earlier AfriBERTa transformer result, 48.0% top-3 on split v2, used an older lexicon and cannot be ranked directly against this table. A subsequent three-seed run on split v3, recorded on 18 November, reached **46.8% mean top-3 accuracy** (standard deviation 0.54 percentage points) at 338 MB. Each seed's paired bootstrap interval for its difference from KN included zero, so this validation does not establish a transformer improvement. The rerun improves comparability on the same validation split; the sealed test set remains unevaluated. See the [retained validation results](ml/notebooks/evidence/transformer_v3_validation.json) and [results log](docs/results_log.md). On the app's own board (section tabs, 20-key pages), the trigram's suggestions save a simulated 14.4% of taps on the validation messages, against the proposal's 30% simulation target.
 
 ## Deployment
 
-The selected setup uses Render Free for the React PWA and Python API, plus Neon Free for PostgreSQL and Managed Better Auth. [render.yaml](render.yaml) defines the services; [docs/neon-auth.md](docs/neon-auth.md) covers configuration, test evidence, email limitations and the production switch. The public services currently run the earlier release. A new GitHub commit alone does not prove a deployment succeeded. [Physical-device testing](docs/physical_device_testing.md) remains pending.
+The selected setup uses Render Free for the React PWA and Python API, plus Neon Free for PostgreSQL and Managed Better Auth. [render.yaml](render.yaml) defines the services; [docs/neon-auth.md](docs/neon-auth.md) covers configuration, test evidence, email limitations and the production switch. The [consolidated release record](docs/releases/consolidated-2026-11-21.md) records deployment revisions and checks. [Physical-device testing](docs/physical_device_testing.md) is a separate validation activity.
 
 ## Licences
 

@@ -1,6 +1,6 @@
 # Physical device testing
 
-**Status: not run.** This is a procedure and results template, not evidence that any device passed. Test with the researcher's own devices and synthetic profiles such as `T-01`; do not use participant records, children's photographs or family recordings. These engineering checks do not replace native-speaker review or the approved usability study.
+**Engineering checklist status: not completed.** This is a procedure and results template, not evidence that a device passed the checks below. Six adult teachers used the app and gave formative feedback at Autisme Rwanda on 18 November 2026; that visit is separate from this controlled compatibility and timing checklist. It does not establish the device versions, measured touch-target sizes or speech latencies requested here. Test with the researcher's own devices and synthetic profiles such as `T-01`; do not use participant records, children's photographs or family recordings. These engineering checks do not replace native-speaker review or the approved usability study.
 
 ## 1. Record the build and devices
 
@@ -87,7 +87,7 @@ The proposal's speech-start budget is **300 ms after pressing Vuga**. Listening 
 
 ## 6. Optional server checks and final record
 
-**API/SMS device checks: not run.** The hosted API is `https://vuga-api.onrender.com`; browser CORS and live SMS setup remain pending (see [hosting status](hosting.md)). Complete that configuration before testing sign-in, real SMS delivery, PIN reset/session revocation, sync and backup conflict handling on the two devices. Record these separately; offline local tests do not validate them.
+**Physical-device account checks: not recorded in this checklist.** The hosted API is `https://vuga-api.onrender.com`. Production uses Neon email accounts; SMS is a legacy path and is disabled in the hosted app. On each device, check email signup and verification, password-first sign-in followed by the separate device PIN, password reset/session revocation, account name editing, sync and backup conflict handling. Use a disposable account for permanent account deletion. Record these separately; offline local tests and hosted browser automation do not establish physical-device results. See the [current release record](releases/consolidated-2026-11-21.md) and [account configuration](neon-auth.md).
 
 | Defect | Device / check | Steps and actual result | Expected result | Evidence | Fix/build | Retest date and result |
 |---|---|---|---|---|---|---|
