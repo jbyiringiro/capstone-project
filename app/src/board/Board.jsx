@@ -10,7 +10,7 @@ import { userError } from '../shared/errors-rw.js'
 import { useSwipe } from '../shared/use-swipe.js'
 import { MessageSession } from './message-session.js'
 import { gridPage, gridShape } from './grid-pages.js'
-import { sectionKeys, sectionName } from './sections.js'
+import { fixedSectionKeys, sectionKeys, sectionName } from './sections.js'
 import { useSuggestions } from './use-suggestions.js'
 import { useBoardSpeech } from './use-board-speech.js'
 import { ShowMessageDialog, SpeechFailedDialog } from './MessageDialogs.jsx'
@@ -117,9 +117,10 @@ export default function Board({
   // Every word of the view keeps its slot, in the fixed order; a word this child's board hides is
   // null and shows as an empty key, so the pictures after it stay where the child learned them.
   const slots = useMemo(() => {
-    const keys = related ? relatedWords(related.key, preferences.relatedLists) : sectionKeys(category, symbols, placeWords)
+    const keys = related ? relatedWords(related.key, preferences.relatedLists)
+      : (tabs ? sectionKeys : fixedSectionKeys)(category, symbols, placeWords)
     return keys.filter(key => byKey[key]).map(key => (allowed.has(key) ? byKey[key] : null))
-  }, [related, category, symbols, byKey, allowed, placeWords, preferences.relatedLists])
+  }, [related, category, symbols, byKey, allowed, placeWords, preferences.relatedLists, tabs])
   const shape = gridShape(preferences.gridSize, area.width, area.height, preferences.largeTiles)
   const grid = gridPage(slots, shape, page)
   const shown = grid.cells.filter(Boolean).length

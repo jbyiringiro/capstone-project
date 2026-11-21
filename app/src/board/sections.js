@@ -1,4 +1,4 @@
-import { CATEGORIES, CATEGORY_ORDER, HOME_KEYS } from '../symbols/categories.js'
+import { CATEGORIES, CATEGORY_ORDER, HOME_KEYS, withLockedKeys } from '../symbols/categories.js'
 import { isCoreWord } from '../symbols/environments.js'
 
 // The pictures of one board section, in their fixed order. The everyday section starts with the
@@ -15,6 +15,10 @@ export function sectionKeys(section, symbols, placeWords = null) {
   const placed = new Set(front)
   return [...front, ...keys.filter(key => !placed.has(key) && isCoreWord(byKey.get(key)))]
 }
+
+// Without category tabs the child cannot return to the everyday section. Keep its
+// protected words reachable after the chosen section, without moving existing slots.
+export const fixedSectionKeys = (section, symbols, placeWords = null) => withLockedKeys(sectionKeys(section, symbols, placeWords))
 
 function viewKeys(section, symbols) {
   const inCategory = category => symbols.filter(s => s.category === category).map(s => s.symbol_id)

@@ -1,6 +1,6 @@
 # Physical device testing
 
-**Status: not run.** This is a procedure and results template, not evidence that any device passed. Test with the researcher's own devices and synthetic profiles such as `T-01`; do not use participant records, children's photographs or family recordings. These engineering checks do not replace native-speaker review or the approved usability study.
+**Engineering checklist status: not completed.** This is a procedure and results template, not evidence that a device passed the checks below. Six adult teachers used the app and gave formative feedback at Autisme Rwanda on 18 November 2026; that visit is separate from this controlled compatibility and timing checklist. It does not establish the device versions, measured touch-target sizes or speech latencies requested here. Test with the researcher's own devices and synthetic profiles such as `T-01`; do not use participant records, children's photographs or family recordings. These engineering checks do not replace native-speaker review or the approved usability study.
 
 ## 1. Record the build and devices
 
@@ -23,6 +23,8 @@ Use the same production build on both devices. Fill in the blanks before testing
 From the repository root, `git rev-parse HEAD` and `git status --short` identify the revision and uncommitted changes. A commit SHA alone does not identify a dirty build: retain the exact source or production-build snapshot locally and record its filename and SHA-256 if available. Do not publish a source snapshot containing local databases, secrets or participant files. Avoid rebuilding or editing the served app between the two device runs; if it changes, start a new result set.
 
 ## 2. Open the production build over HTTPS
+
+**Hosted test URL:** [https://vuga-app.onrender.com](https://vuga-app.onrender.com). Use this URL directly on both devices and continue at step 4; steps 1-3 are only needed for a local preview. The hosted app and API run independently of the development computer.
 
 1. On the computer, from `app/`, run `npm.cmd run build`, then `npm.cmd run preview -- --port 4187` (use `npm` on other shells). This test preview listens on `http://127.0.0.1:4187`; if it is already running, keep that terminal open instead of starting another copy.
 2. Use the prepared temporary HTTPS tunnel to that preview, or serve `app/dist/` at the root of an HTTPS static host. Once a temporary public link is authorised, the prepared helper can be started from the `CAPSTONE` folder in a second PowerShell terminal with `.\.device-tools\cloudflared.exe tunnel --url http://127.0.0.1:4187 --http-host-header localhost:4187`. Open the printed **HTTPS address** on the devices. Plain `http://192.168…` is not suitable for validating service workers or microphone access. The offline board needs no API.
@@ -85,7 +87,7 @@ The proposal's speech-start budget is **300 ms after pressing Vuga**. Listening 
 
 ## 6. Optional server checks and final record
 
-**API/SMS checks: not run until an HTTPS backend is configured.** A static frontend or preview tunnel alone does not make the computer's `localhost:8000` reachable from a phone. Use a build with the intended HTTPS API URL and matching allowed origin. Only then test sign-in, real SMS delivery, PIN reset/session revocation, sync and backup conflict handling on the two devices. Record these separately; offline local tests do not validate them.
+**Physical-device account checks: not recorded in this checklist.** The hosted API is `https://vuga-api.onrender.com`. Production uses Neon email accounts; SMS is a legacy path and is disabled in the hosted app. On each device, check email signup and verification, password-first sign-in followed by the separate device PIN, password reset/session revocation, account name editing, sync and backup conflict handling. Use a disposable account for permanent account deletion. Record these separately; offline local tests and hosted browser automation do not establish physical-device results. See the [current release record](releases/consolidated-2026-11-21.md) and [account configuration](neon-auth.md).
 
 | Defect | Device / check | Steps and actual result | Expected result | Evidence | Fix/build | Retest date and result |
 |---|---|---|---|---|---|---|

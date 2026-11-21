@@ -1,0 +1,11 @@
+{
+  "recorded_at": "2026-11-05T18:22:10.064811+00:00",
+  "configured_project": "vuga-sms-test",
+  "email_mode": "firebase",
+  "model_loaded": true,
+  "symbols": 188,
+  "startup_on_disposable_copy": "passed",
+  "existing_record_counts_preserved": true,
+  "original_database_modified": false,
+  "real_email_sent": false
+}

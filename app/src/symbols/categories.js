@@ -26,4 +26,16 @@ export const CATEGORY_ORDER = ['core', 'people', 'actions', 'feelings', 'food_dr
 export const HOME_KEYS = ['I', 'WANT', 'HELP', 'WATER', 'EAT', 'PLAY', 'YES', 'NO', 'AGAIN', 'HURT', 'TOILET', 'FINISH',
   'YOU', 'NOT', 'LIKE', 'DRINK', 'GO', 'THANK_YOU', 'MUM', 'TEACHER']
 
+// Words no adult can hide from a child's board, so the child can always refuse (oya), ask for help
+// (gufasha), say it hurts (kubabara) and ask for the toilet (umusarani): guidance helps a child
+// speak and never removes what the child can say (Law No. 71/2018, Art. 9). All four are home keys,
+// so no place takes them off the board either. Child mode shows only the pictures a caregiver picks
+// for an early communicator and is not affected.
+export const LOCKED_KEYS = Object.freeze(['NO', 'HELP', 'HURT', 'TOILET'])
+export const isLockedKey = key => LOCKED_KEYS.includes(key)
+// A child's chosen words with the locked ones always added. Storage keeps what the caregiver chose;
+// the board (App.jsx) and the vocabulary tab apply this, so an older save, another device's
+// account copy or "Kuraho yose" can never take the locked words away.
+export const withLockedKeys = keys => [...new Set([...keys, ...LOCKED_KEYS])]
+
 export function categoryOf(key) { return CATEGORIES[key] ?? { rw: 'Ibindi', en: 'Other', colour: '#E9E9EF', key: '#FFFFFF', icon: 'more' } }

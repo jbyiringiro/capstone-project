@@ -1,0 +1,114 @@
+{
+  "before": {
+    "method": "two_preloaded_sessions_deterministic_interleaving",
+    "database": "synthetic in-memory SQLite",
+    "sms": "fake; network prohibited",
+    "source": "api/app/services/codes.py",
+    "codes_sha256": "46873d77b6ea2802c3f35565bfcf64508e36a435bfc2aa10c923f8d9b76edad6",
+    "source_unchanged_during_probe": true,
+    "checks": {
+      "single_use": {
+        "status": "bug_reproduced",
+        "outcomes": [
+          "accepted",
+          "accepted"
+        ],
+        "expected": [
+          "accepted",
+          "rejected"
+        ]
+      },
+      "resend_reservation": {
+        "status": "bug_reproduced",
+        "outcomes": [
+          "accepted",
+          "accepted"
+        ],
+        "fake_sms_calls": 2,
+        "initial_send_count": 1,
+        "stored_send_count": 2,
+        "lost_send_increment": true,
+        "expected": {
+          "outcomes": [
+            "accepted",
+            "throttled"
+          ],
+          "fake_sms_calls": 1,
+          "stored_send_count": 2
+        }
+      },
+      "wrong_attempts": {
+        "status": "bug_reproduced",
+        "wrong_code_outcomes": [
+          "rejected",
+          "rejected"
+        ],
+        "initial_attempts": 3,
+        "stored_attempts_after_two_failures": 4,
+        "attempt_limit": 5,
+        "code_hash_still_present": true,
+        "valid_code_after_limit": "accepted",
+        "expected": {
+          "stored_attempts": 5,
+          "valid_code_after_limit": "rejected"
+        }
+      }
+    }
+  },
+  "after": {
+    "method": "two_preloaded_sessions_deterministic_interleaving",
+    "database": "synthetic in-memory SQLite",
+    "sms": "fake; network prohibited",
+    "source": "api/app/services/codes.py",
+    "codes_sha256": "806cfb3cfb22f40520f533b00681f2ab6e80caf76962f842c0b406979081ef50",
+    "source_unchanged_during_probe": true,
+    "checks": {
+      "single_use": {
+        "status": "not_reproduced",
+        "outcomes": [
+          "accepted",
+          "rejected"
+        ],
+        "expected": [
+          "accepted",
+          "rejected"
+        ]
+      },
+      "resend_reservation": {
+        "status": "not_reproduced",
+        "outcomes": [
+          "accepted",
+          "throttled"
+        ],
+        "fake_sms_calls": 1,
+        "initial_send_count": 1,
+        "stored_send_count": 2,
+        "lost_send_increment": false,
+        "expected": {
+          "outcomes": [
+            "accepted",
+            "throttled"
+          ],
+          "fake_sms_calls": 1,
+          "stored_send_count": 2
+        }
+      },
+      "wrong_attempts": {
+        "status": "not_reproduced",
+        "wrong_code_outcomes": [
+          "rejected",
+          "rejected"
+        ],
+        "initial_attempts": 3,
+        "stored_attempts_after_two_failures": 5,
+        "attempt_limit": 5,
+        "code_hash_still_present": false,
+        "valid_code_after_limit": "rejected",
+        "expected": {
+          "stored_attempts": 5,
+          "valid_code_after_limit": "rejected"
+        }
+      }
+    }
+  }
+}

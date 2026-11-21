@@ -35,3 +35,5 @@
 @media(min-width:641px){.dash .dash-sidebar{position:sticky;top:var(--dash-header-h,92px);align-self:start;height:calc(100vh - var(--dash-header-h,92px));height:calc(100dvh - var(--dash-header-h,92px));overflow-y:auto;overscroll-behavior:contain;border-right:0}.dash .dash-content{border-left:1px solid var(--line)}.dash .dash-main *{scroll-margin-top:calc(var(--dash-header-h,92px) + 16px)}}
 @media(min-width:641px) and (max-height:820px){.dash .dash-sidebar{padding-top:16px;padding-bottom:16px}.dash .dash-sidebar>.dash-eyebrow,.dash .dash-device-note{display:none}.dash .dash-sidebar nav{gap:2px}.dash .dash-nav-button{min-height:44px;padding-top:10px;padding-bottom:10px}}
 @media(max-width:640px){.dash .dash-sidebar{position:sticky;top:var(--dash-header-h,78px);z-index:20}.dash .dash-main *{scroll-margin-top:calc(var(--dash-header-h,78px) + 92px)}}
+/* The four words no adult can hide (LOCKED_KEYS in categories.js): always ticked, never clickable. */
+.dash .dash-vocab-tile.locked{cursor:default;border-color:var(--teal)}.dash .dash-vocab-tile.locked input{cursor:not-allowed}.dash .dash-vocab-tile.locked small{color:var(--teal);font-weight:600}

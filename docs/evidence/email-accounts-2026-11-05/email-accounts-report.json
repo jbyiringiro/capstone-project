@@ -1,0 +1,68 @@
+{
+  "recorded_at": "2026-11-05T17:49:11.781Z",
+  "baseURL": "http://127.0.0.1:4196/",
+  "mockOnly": true,
+  "checks": [
+    {
+      "name": "Email signup is default; password confirmation prevents an invalid provider request",
+      "status": "passed"
+    },
+    {
+      "name": "Signup sends verification; unverified login creates neither a Vuga session nor local PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Verified email login stores account identity and a separate hashed local PIN, never password or refresh token",
+      "status": "passed"
+    },
+    {
+      "name": "Local PIN works offline without invoking phone login or email-password sign-in",
+      "status": "passed"
+    },
+    {
+      "name": "Password reset uses generic wording and leaves local PIN unchanged",
+      "status": "passed"
+    },
+    {
+      "name": "Explicit local unlink leaves cloud account, local child and PIN intact",
+      "status": "passed"
+    },
+    {
+      "name": "Relinking checks existing local PIN before any cloud login and preserves that PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Email recovery refuses a different Vuga identity and leaves linked identity and PIN intact",
+      "status": "passed"
+    },
+    {
+      "name": "Fresh matching email authentication permits local PIN recovery",
+      "status": "passed"
+    },
+    {
+      "name": "Email settings fit a mobile viewport and cloud deletion requests password, not local PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Failed deletion keeps local account; explicit retry clears only cloud linkage and preserves child/PIN",
+      "status": "passed"
+    },
+    {
+      "name": "Legacy phone flow remains explicitly accessible",
+      "status": "passed"
+    },
+    {
+      "name": "A pending legacy phone request disables switching to email until it finishes",
+      "status": "passed"
+    }
+  ],
+  "counts": {
+    "signUp": 1,
+    "signInWithPassword": 8,
+    "VERIFY_EMAIL": 2,
+    "PASSWORD_RESET": 1,
+    "sessions": 2,
+    "delete": 2
+  },
+  "errors": []
+}

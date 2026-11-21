@@ -12,6 +12,7 @@ import { DEFAULT_PREFERENCES, getBoardPreferences, saveBoardPreferences } from '
 import { getSpeechMode } from './storage/audio-preferences.js'
 import { parseSymbols } from './symbols/catalogue.js'
 import { placeVocabulary } from './symbols/environments.js'
+import { withLockedKeys } from './symbols/categories.js'
 import { saveToAccount } from './server/account-backup.js'
 import { useSymbolCatalogue } from './symbols/use-symbol-catalogue.js'
 import symbolsCsv from '../../vocab/symbols.csv?raw'
@@ -121,8 +122,9 @@ export default function App() {
     setParentUnlocked(false)
     setView('game')
   }
-  // The child's own words, narrowed to the naming words for where they are when a caregiver chose a place.
-  const allowed = useMemo(() => placeVocabulary(catalogue.symbols, enabledKeys ?? new Set(catalogue.keys), preferences.environment, preferences.environmentLists),
+  // The child's own words, always with the four locked ones (oya, gufasha, kubabara, umusarani),
+  // narrowed to the naming words for where they are when a caregiver chose a place.
+  const allowed = useMemo(() => placeVocabulary(catalogue.symbols, enabledKeys ? new Set(withLockedKeys(enabledKeys)) : new Set(catalogue.keys), preferences.environment, preferences.environmentLists),
     [enabledKeys, catalogue, preferences.environment, preferences.environmentLists])
   if (!ready) return <main className="loading" role="status">Vuga · Birimo gupakira…</main>
   if (error) return <main className="loading"><h1>Vuga</h1><p role="alert">{error}</p><button className="ghost" onClick={() => location.reload()}>Ongera ufungure</button></main>

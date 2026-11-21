@@ -1,0 +1,29 @@
+{
+  "recorded_at": "2026-11-05T17:50:44.402531+00:00",
+  "source_branch": "final-version",
+  "working_tree_changes": true,
+  "frontend_passed": 218,
+  "api_runs": {
+    "api-regression.xml": 131,
+    "api-email.xml": 26
+  },
+  "api_distinct_tests": 133,
+  "browser_legacy_passed": 75,
+  "browser_email_passed": 13,
+  "browser_distinct_checks": 88,
+  "production_build": {
+    "passed": true,
+    "bundle": "index-fV0mIIR_.js",
+    "sha256": "c72ca5f0bd4f701789b1ba52299a6ea8e32e5f7739781a5f459fc7c4deb180e5",
+    "bytes": 514458
+  },
+  "provider_requests_mocked": true,
+  "database_test_engine": "SQLite",
+  "pending": [
+    "Firebase project configuration",
+    "Real verification/reset email receipt and provider deletion",
+    "PostgreSQL migration validation",
+    "Render deployment",
+    "Physical-device verification"
+  ]
+}

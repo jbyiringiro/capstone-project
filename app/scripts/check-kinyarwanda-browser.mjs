@@ -1,6 +1,7 @@
 import { chromium, expect } from '@playwright/test'
 import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { LOCKED_KEYS } from '../src/symbols/categories.js'
 
 // Production UI in a fresh browser context. Native audio playback, IndexedDB,
 // model inference and service-worker caching remain real. Installed system
@@ -9,17 +10,25 @@ import { fileURLToPath } from 'node:url'
 const output = process.env.VUGA_EVIDENCE_DIR || fileURLToPath(new URL('../../docs/screenshots/final-2026-10-22/', import.meta.url))
 const baseURL = process.env.VUGA_PREVIEW_URL || 'http://127.0.0.1:4175/'
 const channel = process.env.VUGA_BROWSER_CHANNEL || 'msedge'
+// The complete offline pack can take longer to install on a busy test host. Keep
+// the usual deadline unless explicitly overridden; playback checks are unchanged.
+const installTimeout = process.env.VUGA_INSTALL_TIMEOUT_MS === undefined ? 60000 : Number(process.env.VUGA_INSTALL_TIMEOUT_MS)
+if (!Number.isInteger(installTimeout) || installTimeout < 1000 || installTimeout > 600000) {
+  throw new Error('VUGA_INSTALL_TIMEOUT_MS must be an integer from 1000 to 600000 milliseconds')
+}
 const resultPath = `${output}/browser-report.json`
 await mkdir(output, { recursive: true })
 await unlink(resultPath).catch(error => { if (error.code !== 'ENOENT') throw error })
 const browser = await chromium.launch({ channel, headless: true })
 const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'no-preference' })
 const allMediaEvents = [], requests = [], pageErrors = [], checks = [], screenshots = [], audits = []
+let activeCheck = null
 context.on('request', request => requests.push(request.url()))
 await context.exposeBinding('__recordVugaMedia', (_source, event) => allMediaEvents.push(event))
 await context.addInitScript(() => {
   if ('speechSynthesis' in window) Object.defineProperty(window.speechSynthesis, 'getVoices', { configurable: true, value: () => [] })
   window.__audioEvents = []
+  window.__audioElements = []
   let sequence = 0
   const observed = new WeakSet()
   const nativePlay = HTMLMediaElement.prototype.play
@@ -27,6 +36,7 @@ await context.addInitScript(() => {
     if (!observed.has(this)) {
       observed.add(this)
       const id = ++sequence
+      window.__audioElements.push({ id, audio: this })
       for (const type of ['playing', 'ended', 'pause', 'error']) this.addEventListener(type, () => {
         const event = { id, type, time: this.currentTime, duration: this.duration, paused: this.paused, error: this.error?.code ?? null }
         window.__audioEvents.push(event)
@@ -164,8 +174,10 @@ async function auditLanguage(name) {
   audits.push({ screen: name, visibleCharacters: content.length, obsoleteEnglishMatches: 0 })
 }
 async function check(name, action) {
+  activeCheck = name
   const evidence = await action()
   checks.push({ name, status: 'passed', ...(evidence ? { evidence } : {}) })
+  activeCheck = null
   console.log(`PASS ${checks.length}: ${name}`)
 }
 function toneWav() {
@@ -205,12 +217,15 @@ try {
     await page.setViewportSize({ width: 1280, height: 900 })
     await expect(tile('I').locator('img')).toHaveAttribute('src', '/photos/I.webp')
     await expect.poll(() => tile('I').locator('img').evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true)
-    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 60000 }).toBe(true)
+    const installStarted = Date.now()
+    await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: installTimeout }).toBe(true)
+    const installWaitMs = Date.now() - installStarted
     expect(await page.evaluate(() => speechSynthesis.getVoices().length)).toBe(0)
     expect((await storage()).settings.find(setting => setting.key === 'speech-mode')?.value).toBe('kinyarwanda')
     await auditLanguage('board')
     await screenshot('board-desktop')
-    return { documentLanguage: 'rw', sectionTabs, wordSuggestions: 3, installedVoicesAvailableToTest: 0 }
+    return { documentLanguage: 'rw', sectionTabs, wordSuggestions: 3, installedVoicesAvailableToTest: 0,
+      serviceWorkerInstallWaitMs: installWaitMs, serviceWorkerInstallTimeoutMs: installTimeout }
   })
 
   await check('All 188 licensed online photos have attribution, are precached, match their manifest and decode at 480 square', async () => {
@@ -308,21 +323,24 @@ try {
     return { localProfile: 'P-01', vocabularyChoices: 188, nativeValidationLanguage: 'rw' }
   })
 
-  await check('Intentionally empty vocabulary survives reload and all 188 choices can be restored', async () => {
+  await check('Clearing every choice leaves only the four locked words (oya, gufasha, kubabara, umusarani), after a reload too, and all 188 choices can be restored', async () => {
     await page.getByRole('button', { name: 'Kuraho yose', exact: true }).click()
     await expect(page.getByRole('checkbox', { name: /^Hitamo / }).first()).not.toBeChecked()
+    await expect.poll(() => page.getByRole('checkbox', { name: /^Hitamo / }).evaluateAll(inputs => inputs.filter(input => input.checked).length)).toBe(LOCKED_KEYS.length)
     await back()
-    await expect(tiles()).toHaveCount(0)
-    await expect(board.getByText(/Nta mashusho yatoranyijwe/)).toBeVisible()
+    const shown = () => tiles().evaluateAll(cells => cells.map(cell => cell.dataset.symbol).sort())
+    expect(await shown()).toEqual([...LOCKED_KEYS].sort())
+    await expect(board.getByText(/Nta mashusho yatoranyijwe/)).toHaveCount(0)
     await page.reload()
-    await expect(board.getByText(/Nta mashusho yatoranyijwe/)).toBeVisible()
+    await expect(tile('NO')).toBeVisible()
+    expect(await shown()).toEqual([...LOCKED_KEYS].sort())
     expect((await storage()).settings.find(setting => setting.key === 'profile').value.code).toBe('P-01')
     await settings(); await tab('Amashusho')
     await page.getByRole('button', { name: 'Hitamo yose', exact: true }).click()
     await expect.poll(() => page.getByRole('checkbox', { name: /^Hitamo / }).evaluateAll(inputs => inputs.filter(input => input.checked).length)).toBe(188)
     await back()
     await expect(tile('I')).toBeVisible()
-    return { afterEmptyReload: 0, restoredChoices: 188 }
+    return { lockedAfterClearReload: LOCKED_KEYS.length, restoredChoices: 188 }
   })
 
   await check('Appearance settings affect the real board, persist and remain separate for each profile', async () => {
@@ -491,16 +509,32 @@ try {
     const baseline = await playingCount()
     await rwPlay().click()
     await expect.poll(playingCount).toBeGreaterThan(baseline)
-    await board.getByRole('button', { name: 'Hagarika ijwi', exact: true }).click()
+    // Clips can be shorter than a Node/browser round trip. Observe an active clip and press
+    // the actual Stop button in the same browser task, before that clip reaches its end.
+    const stoppedPart = await board.getByRole('button', { name: 'Hagarika ijwi', exact: true }).evaluate(button => new Promise((resolve, reject) => {
+      const deadline = performance.now() + 5000
+      function pressDuringPlayback() {
+        const active = window.__audioElements.findLast(({ id, audio }) => !audio.paused && !audio.ended
+          && Number.isFinite(audio.duration) && audio.currentTime < audio.duration - 0.05
+          && window.__audioEvents.some(event => event.id === id && event.type === 'playing'))
+        if (active) {
+          const observed = { id: active.id, time: active.audio.currentTime, duration: active.audio.duration, eventIndex: window.__audioEvents.length }
+          button.click(); resolve(observed); return
+        }
+        if (performance.now() >= deadline) { reject(new Error('No active clip with time remaining was available for Stop')); return }
+        requestAnimationFrame(pressDuringPlayback)
+      }
+      pressDuringPlayback()
+    }))
     await expect(rwPlay()).toBeEnabled()
     await expect(chips()).toHaveCount(12)
     await expectCompletions()
-    const events = await mediaEvents()
-    const stoppedId = events.filter(event => event.type === 'playing').at(-1).id
-    await expect.poll(async () => (await mediaEvents()).some(event => event.id === stoppedId && event.type === 'pause' && event.time < event.duration)).toBe(true)
+    await expect.poll(async () => (await mediaEvents()).some(event => event.id === stoppedPart.id && event.type === 'pause' && event.time < event.duration)).toBe(true)
+    await quiet()
+    expect((await mediaEvents()).slice(stoppedPart.eventIndex).filter(event => event.type === 'playing')).toEqual([])
     await auditLanguage('stopped speech notice')
     await clear()
-    return { retainedSymbols: 12, totalCompletedMessages: completedMessages, cancelledPartPausedBeforeEnd: true }
+    return { retainedSymbols: 12, totalCompletedMessages: completedMessages, stoppedPart, cancelledPartPausedBeforeEnd: true, followOnPlayback: 0 }
   })
 
   await check('Caregiver tests the Kinyarwanda word and a separate speaker tone without any language selector or completion', async () => {
@@ -580,15 +614,37 @@ try {
     // The device has no account yet: Ohereza sends the caregiver to Kwinjira to add one.
     await page.getByRole('button', { name: 'Jya muri Kwinjira', exact: true }).click()
     const account = page.getByRole('region', { name: 'Konti y’umurezi', exact: true })
-    await account.getByText('Ubundi buryo bwo kwinjira', { exact: true }).click()
-    await account.getByRole('button', { name: 'Koresha konti ya nimero ya telefoni', exact: true }).click()
-    await account.getByRole('button', { name: 'Ohereza kode', exact: true }).click()
-    const number = account.getByRole('textbox', { name: /^Nimero ya telefoni/ })
-    expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni yawe.')
-    await number.fill('12345')
-    expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni igendanwa yo mu Rwanda, nka 0788 123 456.')
-    await number.fill('')
-    await auditLanguage('account by mobile number')
+    // Check the current email flow without contacting an account provider or sending email.
+    const authRequests = []
+    const blockAuth = route => { authRequests.push(route.request().url()); return route.abort() }
+    await page.route('**/auth/**', blockAuth)
+    try {
+      await account.getByLabel('Izina ryawe (umurezi)', { exact: true }).fill('Umurezi w’igerageza')
+      const email = account.getByRole('textbox', { name: 'Email', exact: true })
+      const register = account.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true })
+      await register.click()
+      expect(await email.evaluate(input => input.validationMessage)).toBe('Andika email yuzuye, nka izina@example.com.')
+      await email.fill('izina@')
+      await email.blur()
+      await expect(email).toHaveAttribute('aria-invalid', 'true')
+      expect(await email.evaluate(input => input.validationMessage)).toBe('Andika email yuzuye, nka izina@example.com.')
+      await register.click()
+      await auditLanguage('account by email')
+      // Firebase builds can still offer the legacy phone flow; Neon intentionally does not.
+      const alternatives = account.getByText('Ubundi buryo bwo kwinjira', { exact: true })
+      if (await alternatives.count()) {
+        await alternatives.click()
+        await account.getByRole('button', { name: 'Koresha konti ya nimero ya telefoni', exact: true }).click()
+        await account.getByRole('button', { name: 'Ohereza kode', exact: true }).click()
+        const number = account.getByRole('textbox', { name: /^Nimero ya telefoni/ })
+        expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni yawe.')
+        await number.fill('12345')
+        expect(await number.evaluate(input => input.validationMessage)).toBe('Andika nimero ya telefoni igendanwa yo mu Rwanda, nka 0788 123 456.')
+        await number.fill('')
+        await auditLanguage('account by mobile number')
+      }
+      expect(authRequests).toEqual([])
+    } finally { await page.unroute('**/auth/**', blockAuth) }
     await tab('Ohereza')
     const pending = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Kuramo ubutumwa bwo kuri iki gikoresho', exact: true }).click()
@@ -755,6 +811,15 @@ try {
     limitations: ['Automated playback events do not establish physical speaker audibility.', 'Bundled synthetic Kinyarwanda pronunciation and translation still require native-speaker and intended-user review.', 'Generated upload tone validates recording transport and storage, not speech pronunciation.', 'Known prior English UI phrases are audited; this is not a comprehensive linguistic quality assessment.', 'No participant, target-tablet, microphone capture or screen-reader usability validation was performed.']
   }, null, 2) + '\n')
   console.log(`Passed ${checks.length} Kinyarwanda browser checks; ${screenshots.length} screenshots and report: ${resultPath}`)
+} catch (error) {
+  await page.screenshot({ path: `${output}/browser-failure.png`, fullPage: true }).catch(() => {})
+  await writeFile(resultPath, JSON.stringify({
+    status: 'failed', checked_at: new Date().toISOString(), passed_checks: checks.length,
+    failed_check: activeCheck, error: error.message, browser: `Headless ${channel}`, base_url: baseURL,
+    serviceWorkerInstallTimeoutMs: installTimeout, checks, screenshots, language_audits: audits, page_errors: pageErrors,
+    recent_media_events: allMediaEvents.slice(-200)
+  }, null, 2) + '\n')
+  throw error
 } finally {
   await context.close()
   await browser.close()

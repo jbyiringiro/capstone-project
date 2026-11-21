@@ -105,6 +105,16 @@ def test_simulated_ksr_counts_section_tabs_page_turns_and_speak(tmp_path):
     layout = BoardLayout(sections, page_size=2)
     # core: [I, WANT] [HELP, MUM]; food: [EAT, WATER] [MILK, BREAD] [TEA, I]
     assert layout.places["HELP"] == [("core", 1)] and layout.places["I"] == [("core", 0), ("food", 2)]
+    # Mixed pages retain their empty cells: hiding words cannot move HELP or MUM to earlier pages.
+    full = BoardLayout({"core": ["I", "WANT", "EAT", "HELP", "WATER", "MUM"]}, page_size=2)
+    hidden = BoardLayout({"core": ["I", None, None, "HELP", None, "MUM"]}, page_size=2)
+    assert hidden.places["HELP"] == full.places["HELP"] == [("core", 1)]
+    assert hidden.places["MUM"] == full.places["MUM"] == [("core", 2)]
+    assert simulate_message(None, hidden, ("HELP", "MUM")) == simulate_message(None, full, ("HELP", "MUM")) == 5
+    # An entirely hidden first section still requires a tab to reach the next section.
+    empty_core = BoardLayout({"core": [None] * 4, "food": ["WATER"]}, page_size=2)
+    assert empty_core.places == {"WATER": [("food", 0)]}
+    assert simulate_message(None, empty_core, ("WATER",)) == 3
     # static: I (1), WANT (1), WATER (its tab, the word: 2), Speak (1)
     assert simulate_message(None, layout, ("I", "WANT", "WATER")) == 5
     # MILK: the tab, a page turn and the word (3); TEA: a page turn and the word (2); Speak

@@ -1,0 +1,630 @@
+{
+  "date": "2026-11-21",
+  "scope": "Reviewed board safeguards, required fallback assets, ML evaluation evidence and documentation; includes prior authentication changes.",
+  "frontend_unit": {
+    "passed": 336,
+    "failed": 0,
+    "report_sha256": "ccb871835e901a8ace1d68e29309cf3a46b40cf6e0046668f2de079688582146"
+  },
+  "additional_asset_regression": {
+    "passed": 1,
+    "file": "app/tests/symbols/fallback-assets.test.js",
+    "catalogue_pictograms_checked": 187
+  },
+  "ml_pipeline_regression": {
+    "passed": 9,
+    "file": "ml/tests/test_pipeline.py"
+  },
+  "browser": {
+    "final_features": {
+      "passed": 24,
+      "report_sha256": "928f6d9f4ebeefae9c1b75693f224ca7c62d92e80c161fdd0144ba596740ec12",
+      "checks": [
+        {
+          "name": "A caregiver adds a word from a phone photo; the picture is cropped square and stored on the device only",
+          "status": "passed"
+        },
+        {
+          "name": "Duplicate labels and non-image files are refused with Kinyarwanda messages",
+          "status": "passed"
+        },
+        {
+          "name": "The new word appears in its category on the board with its own photo, and Erekana still works without speech",
+          "status": "passed"
+        },
+        {
+          "name": "A familiar-voice recording makes the custom word speak, and its message is kept off the server",
+          "status": "passed"
+        },
+        {
+          "name": "Deleting a custom word removes it, its recording and its place on every board",
+          "status": "passed"
+        },
+        {
+          "name": "A 9-cell grid shows fixed 3 x 3 pages; turning a page is logged as a navigation action",
+          "status": "passed"
+        },
+        {
+          "name": "The last page keeps the grid shape with empty slots, and tiles stay at least 2 cm on a phone",
+          "status": "passed"
+        },
+        {
+          "name": "A 40-cell grid fits the whole everyday page, and \"Byikora\" fits the grid to a tablet and a phone with no page scroll",
+          "status": "passed"
+        },
+        {
+          "name": "Personal suggestions need word suggestions on and lift a word this child uses after \"I\"",
+          "status": "passed"
+        },
+        {
+          "name": "The vocabulary review shows the sheet words one at a time, in order, with their voice",
+          "status": "passed"
+        },
+        {
+          "name": "Closing the review leaves no trace: no message, action or vocabulary change is stored",
+          "status": "passed"
+        },
+        {
+          "name": "Vuga says I + want + water as the sentence “Ndashaka amazi.”, Erekana shows it, and want alone stays “gushaka”",
+          "status": "passed"
+        },
+        {
+          "name": "With “Vuga interuro yuzuye” off, the same pictures are spoken word by word again",
+          "status": "passed"
+        },
+        {
+          "name": "With next words on, “kunywa” opens drinks (cup, juice, milk) in the grid; one choice returns to the same page without navigation taps",
+          "status": "passed"
+        },
+        {
+          "name": "A caregiver changes the pictures after “kunywa” for this child and can restore the starting list",
+          "status": "passed"
+        },
+        {
+          "name": "A chosen place puts its words first on the board, core words after them, and opens on its first page",
+          "status": "passed"
+        },
+        {
+          "name": "Each picture is said as soon as it is tapped, and a caregiver can switch that off and on",
+          "status": "passed"
+        },
+        {
+          "name": "With the section tabs turned off, the caregiver picks the section, or every picture in pages, and can bring the tabs back",
+          "status": "passed"
+        },
+        {
+          "name": "Keys show the picture with its word on top, and a caregiver can choose pictures only",
+          "status": "passed"
+        },
+        {
+          "name": "The final-feature workflow raised no uncaught page errors",
+          "status": "passed"
+        },
+        {
+          "name": "A sideways swipe turns the page without choosing a picture, a tap straight after still chooses, and a caregiver can switch swiping off",
+          "status": "passed"
+        },
+        {
+          "name": "Hidden pictures leave an empty key: every other picture keeps its place on each page, for that child only, after a reload; oya, gufasha, kubabara and umusarani cannot be hidden, even by Kuraho yose; all come back in place when shown again",
+          "status": "passed"
+        },
+        {
+          "name": "A caregiver edits a child’s name and age band in Abana; the child keeps their id, pictures and board, and the change survives a reload",
+          "status": "passed"
+        },
+        {
+          "name": "Deleting a child names them and what goes; Reka keeps everything, and Siba removes only that child, sending the board back to the demo board",
+          "status": "passed"
+        }
+      ]
+    },
+    "neon_accounts": {
+      "passed": 27,
+      "report_sha256": "2853ebaebe5d714f8aa209081dd0296a8eae48f5273cee7aa175ba6703f901ef",
+      "checks": [
+        {
+          "name": "Signup validates email inline and shows password requirements without submitting weak credentials",
+          "status": "passed"
+        },
+        {
+          "name": "A valid email offers sign-in without revealing account status or sending a lookup",
+          "status": "passed"
+        },
+        {
+          "name": "A paused signup keeps the registration form and does not claim creation or verification delivery",
+          "status": "passed"
+        },
+        {
+          "name": "Signup code-request failure 503 offers cautious verification recovery and sign-in navigation",
+          "status": "passed"
+        },
+        {
+          "name": "Signup code-request failure 429 offers cautious verification recovery and sign-in navigation",
+          "status": "passed"
+        },
+        {
+          "name": "Signup keeps its header accessible after scrolling and focused fields unobscured on desktop and phones",
+          "status": "passed"
+        },
+        {
+          "name": "Neon signup has no SMS alternative and fits narrow phones",
+          "status": "passed"
+        },
+        {
+          "name": "Verification rejects wrong codes and does not open an account session",
+          "status": "passed"
+        },
+        {
+          "name": "Resending waits sixty seconds and never requests a password or sends duplicates",
+          "status": "passed"
+        },
+        {
+          "name": "A correct verification code requires explicit password login afterward",
+          "status": "passed"
+        },
+        {
+          "name": "Password reset validates its email code and confirmation before changing the password",
+          "status": "passed"
+        },
+        {
+          "name": "Incorrect account passwords never show the PIN screen or persist authentication",
+          "status": "passed"
+        },
+        {
+          "name": "Closing during password authentication discards a late successful response",
+          "status": "passed"
+        },
+        {
+          "name": "Returning from PIN setup discards the pending login and clears its credentials",
+          "status": "passed"
+        },
+        {
+          "name": "Reloading before PIN confirmation cannot restore a pending account session",
+          "status": "passed"
+        },
+        {
+          "name": "A valid account password opens a separate PIN screen; invalid and mismatched PINs cannot finish login",
+          "status": "passed"
+        },
+        {
+          "name": "Confirming the PIN stores immutable Neon ownership and a separate hashed offline PIN",
+          "status": "passed"
+        },
+        {
+          "name": "Offline PIN access does not send passwords or codes to any service",
+          "status": "passed"
+        },
+        {
+          "name": "Name editing saves the adult name, preserves identity and PIN, and works at phone widths",
+          "status": "passed"
+        },
+        {
+          "name": "A refused name save keeps the old name; cancel never saves; expired sessions can sign in and retry",
+          "status": "passed"
+        },
+        {
+          "name": "Account settings include a complete code-based reset and preserve the local PIN",
+          "status": "passed"
+        },
+        {
+          "name": "Relinking authenticates the account first, then verifies the existing PIN without replacing it",
+          "status": "passed"
+        },
+        {
+          "name": "Forgotten PIN provides email password reset without granting local access",
+          "status": "passed"
+        },
+        {
+          "name": "Recovery refuses a different server identity even with the same email",
+          "status": "passed"
+        },
+        {
+          "name": "Fresh authentication by the linked identity permits local PIN recovery",
+          "status": "passed"
+        },
+        {
+          "name": "Deletion retries preserve child data and the local PIN while removing only the account link",
+          "status": "passed"
+        },
+        {
+          "name": "All authentication traffic used the Vuga API with zero Firebase, Neon-cookie, or SMS requests",
+          "status": "passed"
+        }
+      ]
+    },
+    "child_mode": {
+      "passed": 9,
+      "report_sha256": "5f2963a1e77d79356ba3c66f0a116e7c1051e721e561594e2d72f293bbeb88db",
+      "checks": [
+        {
+          "name": "The caregiver turns child mode on behind the PIN; the child then sees only nine big pictures",
+          "status": "passed"
+        },
+        {
+          "name": "A tap says the word at once, shows it large, and is logged as a device-only child message",
+          "status": "passed"
+        },
+        {
+          "name": "A quick accidental second tap on the same picture is ignored; other pictures respond at once",
+          "status": "passed"
+        },
+        {
+          "name": "The caregiver switches to a ready-made board and edits it; the child board follows",
+          "status": "passed"
+        },
+        {
+          "name": "The game asks for pictures, highlights the answer after two misses, and ends with five stars",
+          "status": "passed"
+        },
+        {
+          "name": "Progress appears for the caregiver: stars, first-try finds and words to practise",
+          "status": "passed"
+        },
+        {
+          "name": "On a phone in portrait the board uses three columns and keeps every picture over 2 cm",
+          "status": "passed"
+        },
+        {
+          "name": "Turning child mode off brings back the full board with its grid and Vuga",
+          "status": "passed"
+        },
+        {
+          "name": "Child mode raised no uncaught page errors",
+          "status": "passed"
+        }
+      ]
+    },
+    "kinyarwanda_offline": {
+      "passed": 25,
+      "report_sha256": "c3b7483ecb1cee3a8e192afb8e060799a09ae62d648e992d3b2c2e5eda56ec07",
+      "checks": [
+        {
+          "name": "Fresh production UI uses rw document language, local artwork and Kinyarwanda controls",
+          "status": "passed",
+          "evidence": {
+            "documentLanguage": "rw",
+            "sectionTabs": 14,
+            "wordSuggestions": 3,
+            "installedVoicesAvailableToTest": 0,
+            "serviceWorkerInstallWaitMs": 22986,
+            "serviceWorkerInstallTimeoutMs": 600000
+          }
+        },
+        {
+          "name": "All 188 licensed online photos have attribution, are precached, match their manifest and decode at 480 square",
+          "status": "passed",
+          "evidence": {
+            "decodedAndHashVerified": 188,
+            "precachedBeforeFetch": 188,
+            "width": 480,
+            "height": 480,
+            "totalBytes": 7211102,
+            "synthetic": false,
+            "licensedOnlineSources": true
+          }
+        },
+        {
+          "name": "A missing photo falls back to its pictogram and remains usable in a composed message",
+          "status": "passed",
+          "evidence": {
+            "failedPhoto": "WATER",
+            "fallback": "/symbols/WATER.png",
+            "wordSelectable": true,
+            "fullMessageDisplay": true,
+            "pageErrors": []
+          }
+        },
+        {
+          "name": "A saved legacy English demo preference migrates to persistent Kinyarwanda",
+          "status": "passed",
+          "evidence": {
+            "previousMode": "english-demo",
+            "migratedMode": "kinyarwanda"
+          }
+        },
+        {
+          "name": "Profile dialog uses Kinyarwanda validation and creates a local profile with 188 choices",
+          "status": "passed",
+          "evidence": {
+            "localProfile": "P-01",
+            "vocabularyChoices": 188,
+            "nativeValidationLanguage": "rw"
+          }
+        },
+        {
+          "name": "Clearing every choice leaves only the four locked words (oya, gufasha, kubabara, umusarani), after a reload too, and all 188 choices can be restored",
+          "status": "passed",
+          "evidence": {
+            "lockedAfterClearReload": 4,
+            "restoredChoices": 188
+          }
+        },
+        {
+          "name": "Appearance settings affect the real board, persist and remain separate for each profile",
+          "status": "passed",
+          "evidence": {
+            "profiles": [
+              "P-01",
+              "P-02"
+            ],
+            "persistedAndIsolatedSettings": [
+              "motion",
+              "largeTiles",
+              "realisticImages"
+            ]
+          }
+        },
+        {
+          "name": "Real predictions provide three allowed suggestions without moving the main grid",
+          "status": "passed",
+          "evidence": {
+            "actualPredictions": [
+              "I",
+              "YOU",
+              "NOT"
+            ],
+            "gridPositionChanges": 0
+          }
+        },
+        {
+          "name": "Five rapid taps remain ordered in one draft and Clear adds exactly one correction",
+          "status": "passed",
+          "evidence": {
+            "orderedSelectEvents": 5,
+            "clearEvents": 1
+          }
+        },
+        {
+          "name": "Literal Kinyarwanda composition survives caregiver visits and all main tabs use localized copy",
+          "status": "passed",
+          "evidence": {
+            "literalWords": [
+              "njye",
+              "gushaka",
+              "amazi"
+            ],
+            "gridPositionChanges": 0,
+            "retainedDuringCaregiverVisit": 3
+          }
+        },
+        {
+          "name": "Show dialog is localized, keeps background controls inert and restores keyboard focus without completing speech",
+          "status": "passed",
+          "evidence": {
+            "tabSteps": 6,
+            "browserChromeVisits": 2,
+            "backgroundControlsFocused": 0,
+            "successfulSpeechEvents": 0
+          }
+        },
+        {
+          "name": "Every one of the 188 bundled Kinyarwanda clips decodes to non-silent audio",
+          "status": "passed",
+          "evidence": {
+            "decodedClips": 188,
+            "minimumDuration": 0.384,
+            "maximumDuration": 1.488,
+            "minimumRms": 0.10559962845740255,
+            "sampleClips": [
+              {
+                "key": "I",
+                "duration": 0.544,
+                "sampleRate": 48000,
+                "samples": 26112,
+                "peak": 0.8523187637329102,
+                "rms": 0.25623448869230564
+              },
+              {
+                "key": "WANT",
+                "duration": 0.928,
+                "sampleRate": 48000,
+                "samples": 44544,
+                "peak": 0.8500577211380005,
+                "rms": 0.1389259607680475
+              },
+              {
+                "key": "WATER",
+                "duration": 1.072,
+                "sampleRate": 48000,
+                "samples": 51456,
+                "peak": 0.853175163269043,
+                "rms": 0.13337989342840287
+              }
+            ],
+            "pronunciationReview": false
+          }
+        },
+        {
+          "name": "“Ndashaka amazi” plays as two Kinyarwanda clips (ndashaka, amazi) through native media before exactly one Speak completion",
+          "status": "passed",
+          "evidence": {
+            "nativeMediaEnds": 2,
+            "totalCompletedMessages": 1,
+            "pictures": [
+              "njye",
+              "gushaka",
+              "amazi"
+            ],
+            "spoken": "Ndashaka amazi."
+          }
+        },
+        {
+          "name": "Stop interrupts native audio, retains all selected symbols and adds no successful Speak event",
+          "status": "passed",
+          "evidence": {
+            "retainedSymbols": 12,
+            "totalCompletedMessages": 1,
+            "stoppedPart": {
+              "id": 8,
+              "time": 0.158065,
+              "duration": 0.544,
+              "eventIndex": 18
+            },
+            "cancelledPartPausedBeforeEnd": true,
+            "followOnPlayback": 0
+          }
+        },
+        {
+          "name": "Caregiver tests the Kinyarwanda word and a separate speaker tone without any language selector or completion",
+          "status": "passed",
+          "evidence": {
+            "nativeMediaEnds": 2,
+            "languageSelectors": 0,
+            "totalCompletedMessages": 1
+          }
+        },
+        {
+          "name": "Silent and corrupt uploads receive Kinyarwanda errors without saving a recording",
+          "status": "passed",
+          "evidence": {
+            "rejectedUploads": [
+              "silent WAV",
+              "corrupt WAV"
+            ],
+            "savedRecordings": 0,
+            "errorLanguage": "rw"
+          }
+        },
+        {
+          "name": "Valid synthetic upload previews and saves through custom Kinyarwanda audio controls",
+          "status": "passed",
+          "evidence": {
+            "fixture": "Generated 0.65 s 440 Hz PCM tone, not Kinyarwanda speech.",
+            "storedBytes": 20844,
+            "actualMediaEnds": 2,
+            "nativeEnglishAudioControls": 0
+          }
+        },
+        {
+          "name": "Saved word recording overrides the bundled clip and finalizes one message after playback",
+          "status": "passed",
+          "evidence": {
+            "savedOverrideDuration": 0.65,
+            "bundledIRequestsDuringOverride": 0,
+            "totalCompletedMessages": 2
+          }
+        },
+        {
+          "name": "Summary, export and account validation remain localized and export real local data only",
+          "status": "passed",
+          "evidence": {
+            "exportedProfiles": 2,
+            "exportedMessages": 3,
+            "completedMessages": 2,
+            "recordingOrAuthDataExported": false
+          }
+        },
+        {
+          "name": "Phone board fits three readable columns on screen, large touch controls and a wrapping long-message dialog",
+          "status": "passed",
+          "evidence": {
+            "viewport": "390×844",
+            "columns": 3,
+            "messageSymbols": 12,
+            "controls": [
+              {
+                "label": "Vuga ubutumwa",
+                "height": 58
+              },
+              {
+                "label": "Siba ubutumwa bwose",
+                "height": 58
+              },
+              {
+                "label": "Siba ishusho ya nyuma",
+                "height": 58
+              },
+              {
+                "label": "Erekana ubutumwa",
+                "height": 48
+              },
+              {
+                "label": "Igenamiterere ry'umurezi",
+                "height": 48
+              }
+            ]
+          }
+        },
+        {
+          "name": "Operating-system reduced motion disables chip animation even when gentle motion is enabled",
+          "status": "passed",
+          "evidence": {
+            "name": "none",
+            "duration": "0s"
+          }
+        },
+        {
+          "name": "Offline reload preserves the profile, predictions, all realistic images and bundled Kinyarwanda playback",
+          "status": "passed",
+          "evidence": {
+            "online": false,
+            "decodedOfflinePhotos": 188,
+            "actualBundledMediaEnds": 2,
+            "totalCompletedMessages": 3
+          }
+        },
+        {
+          "name": "Saved recording still overrides speech offline and deletion restores the bundled Kinyarwanda clip",
+          "status": "passed",
+          "evidence": {
+            "savedOverrideOffline": true,
+            "recordingsAfterDeletion": 0,
+            "bundledPlaybackAfterDeletion": true,
+            "totalCompletedMessages": 5
+          }
+        },
+        {
+          "name": "A missing offline clip produces a Kinyarwanda notice, retains the draft and permits visual communication",
+          "status": "passed",
+          "evidence": {
+            "deliberatelyRemovedCachedEntries": 1,
+            "retainedSymbols": 1,
+            "unexpectedPlaybackStarts": 0,
+            "totalCompletedMessages": 5
+          }
+        },
+        {
+          "name": "No English audio is requested or cached, and the complete workflow has no uncaught or native media errors",
+          "status": "passed",
+          "evidence": {
+            "requestedEnglishAudio": 0,
+            "cachedEnglishAudio": 0,
+            "remainingKinyarwandaCachedClips": 187,
+            "deliberatelyRemovedClips": 1,
+            "pageErrors": [],
+            "nativeMediaErrors": 0,
+            "actualMediaEndsAcrossReloads": 16,
+            "auditedViews": 18
+          }
+        }
+      ]
+    }
+  },
+  "model_evidence_review": {
+    "existing_checkpoints_reproduced": 7,
+    "retraining": false,
+    "sealed_test_accessed": false
+  },
+  "production_build": {
+    "passed": true,
+    "existing_warning": "Main JavaScript chunk exceeds 500 kB; no new performance claim."
+  },
+  "historical_report": {
+    "pages": 5,
+    "evidence_cutoff": "2026-11-05",
+    "clarification_and_rerender": "2026-11-21"
+  },
+  "prior_attempts": [
+    "Initial browser readiness checks timed out during slow local asset loading and precaching. The install allowance is configurable; functional assertions are unchanged.",
+    "The missing-photo fallback check exposed ignored pictogram files absent from the release checkout. All 187 declared images are now included, with attribution and an asset-presence regression.",
+    "An obsolete phone-only validation fixture was updated for the current email flow; the legacy phone checks run only when that option is offered. No authentication requests are permitted during invalid-input checks.",
+    "A native Stop assertion could inspect a very short clip at its end before the ended event arrived. The fixture now observes and stops an active clip in the browser, with explicit pause and no-follow-on-playback checks.",
+    "Broad local Python attempts did not complete amid file-stat/import delays. They are not counted as passed; the existing GitHub CI must pass on the pushed release commit before deployment."
+  ],
+  "ci_gate": "Existing push-triggered Python and web jobs must succeed for the exact deploy/vuga-cloud release commit.",
+  "limitations": [
+    "Headless desktop browser checks; no new physical-device study.",
+    "Authentication browser tests use mocked API responses and send no real email.",
+    "Initial offline installation depends on downloading the complete media pack."
+  ]
+}

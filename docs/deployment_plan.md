@@ -1,8 +1,10 @@
 # Vuga AAC deployment plan
 
-**4 November 2026 update:** the selected free setup is Render Static Site + Render API + Neon PostgreSQL. See the [deployment guide](hosting.md) and [render.yaml](../render.yaml). They supersede the provider choices and rollout instructions below for this deployment. Permanent hosting is not live yet; the temporary device-test tunnel still depends on the development PC.
+**Current setup, 21 November 2026:** the [public app](https://vuga-app.onrender.com) and [API](https://vuga-api.onrender.com/health) run on Render Free; Neon Free hosts PostgreSQL and Managed Better Auth. Email verification, password reset, account name editing and cloud account deletion replace the original SMS account flow. Sign-in checks the account password before a separate device-PIN screen. Hosted API/browser checks include CORS; physical-device engineering checks remain a separate activity. Use the [consolidated release record](releases/consolidated-2026-11-21.md), [Neon account guide](neon-auth.md), [hosting guide](hosting.md) and [render.yaml](../render.yaml) for the current configuration.
 
-**Status, 2 November 2026.** Vuga currently runs only as a local production preview (`npm run preview`). Nothing is publicly hosted yet. This plan explains how each part would be deployed, in what order, and how each step would be checked.
+**Historical update, 4 November 2026:** the app and API had first become available on Render with Neon PostgreSQL. API health/model loading and the 188-symbol catalogue were verified; CORS configuration and live SMS were still pending at that milestone. These pending items describe that date, not the current email-authentication deployment.
+
+**Historical status, 2 November 2026.** Vuga ran only as a local production preview (`npm run preview`), with no public hosting. The original plan below describes the proposed deployment and verification steps at that time.
 
 ## 1. What gets deployed
 
