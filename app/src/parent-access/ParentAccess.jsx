@@ -14,17 +14,18 @@ export default function ParentAccess({ onUnlock, onClose, onDeviceRestored }) {
   const [view, setView] = useState('pin'), [recovery, setRecovery] = useState(''), [linkNote, setLinkNote] = useState('')
   // Email accounts are optional; the local caregiver gate always works without internet.
   const [withoutAccount, setWithoutAccount] = useState(false)
-  const form = usePinForm(), input = useRef(null)
+  const form = usePinForm(), input = useRef(null), active = useRef(true)
   const configured = status?.configured ?? null
   useEffect(() => {
     let current = true
+    active.current = true
     Promise.all([getParentAccessStatus(), getLinkedAccount()]).then(([next, linked]) => {
       if (!current) return
       setStatus(next)
       setAccount(linked)
       form.setLockedUntil(next.retryAfterMs ? Date.now() + next.retryAfterMs : 0)
     }).catch(error => { if (current) setLoadError(errorText(error)) })
-    return () => { current = false }
+    return () => { current = false; active.current = false }
   }, [])
   useEffect(() => { if (configured !== null && view === 'pin' && (configured || withoutAccount)) input.current?.focus() }, [configured, view, withoutAccount])
   useEffect(() => {
@@ -35,11 +36,16 @@ export default function ParentAccess({ onUnlock, onClose, onDeviceRestored }) {
   const showCode = code => { setRecovery(code); setView('code') }
   // A verified email login and a separately chosen local PIN precede setup. Legacy phone accounts
   // keep their original PIN behavior; neither email passwords nor tokens enter local PIN storage.
-  async function linked({ phone, email, pin }) {
-    const result = await setupParentPin(pin, pin)
+  async function linked({ phone, email, pin, recoveryCode }) {
+    if (!active.current) return
+    // Email linking commits the new local PIN and account together. Legacy phone
+    // accounts still create the device gate here after their original flow.
+    const result = email ? { recoveryCode } : await setupParentPin(pin, pin)
     const backup = await connectBackup(onDeviceRestored)
+    if (!active.current) return
     setLinkNote(`Iki gikoresho gihujwe na konti ya ${email || displayPhone(phone)}. ${backup}`.trim())
-    showCode(result.recoveryCode)
+    if (result.recoveryCode) showCode(result.recoveryCode)
+    else onUnlock()
   }
   const submit = event => {
     const pin = form.pin
@@ -52,7 +58,7 @@ export default function ParentAccess({ onUnlock, onClose, onDeviceRestored }) {
   const mode = configured === null ? 'loading' : view === 'code' ? 'recovery-code' : view === 'forgot' ? 'forgot' : configured ? 'unlock' : 'setup'
   const byAccount = configured === false && !withoutAccount
   return <main className="parent-access" data-mode={mode}>
-    <header className="parent-access-header"><Brand /><button className="button-outline" onClick={onClose}>Subira ku kibaho</button></header>
+    <header className="parent-access-header"><div className="parent-access-header-inner"><Brand /><button className="button-outline" onClick={onClose}>Subira ku kibaho</button></div></header>
     <section className="parent-access-card" aria-labelledby="parent-access-title">
       <p className="parent-eyebrow">Ahagenewe umurezi</p>
       {view === 'code' ? <><h1 id="parent-access-title">Bika kode yo kugarura.</h1>{linkNote && <p role="status">{linkNote}</p>}<RecoveryCode code={recovery} onDone={onUnlock} /></>

@@ -1,6 +1,6 @@
 # Render and Neon email accounts
 
-**Signup delivery release, 21 November 2026:** both hosted services now run `d9d9c52`. Initial code requests, signup/reset password rules, email validation and authentication-link styling are updated. See the [release and verification limits](releases/signup-delivery-2026-11-21.md).
+**Earlier signup delivery release, 21 November 2026:** both hosted services were deployed at `d9d9c52`. Initial code requests, signup/reset password rules, email validation and authentication-link styling are updated. See the [release and verification limits](releases/signup-delivery-2026-11-21.md).
 
 **Earlier account management release, 21 November 2026:** both hosted services were deployed at `527a84e`. Name editing and confirmed cloud-account deletion are enabled. Validation: 261 frontend tests, 248 API tests, 13 real isolated Neon API checks, a production disposable-user deletion, seven hosted API checks and 24 live browser checks. See the [release and evidence](releases/account-management-2026-11-21.md) for scope and limits.
 
@@ -13,6 +13,8 @@ This configuration uses two hosted providers: Render for the React app and Pytho
 Production Auth uses branch `br-dawn-tooth-b97xsvmu` and the public base URL `https://ep-summer-credit-b9q6kaz6.neonauth.c-7.eu-central-1.aws.neon.tech/neondb/auth`. The earlier `vuga-auth-test` branch is no longer present; its old Auth URL must not be used for the hosted app. Accounts created on that test Auth branch do not automatically exist on production. The test-branch instructions below describe how to set up a new isolated test when needed.
 
 ## Authentication flow
+
+Account sign-in and device PIN setup use separate screens. The password is checked first; the pending login remains in memory for up to five minutes. Confirming the local PIN revalidates the identity and atomically saves the account/session with a new device PIN, or checks the existing PIN without replacing it. Back, close, reload and expiry discard an unfinished login. The navigation bar stays visible while forms scroll. See the [21 November PIN-flow release](releases/account-pin-2026-11-21.md).
 
 ### Signup verification delivery
 

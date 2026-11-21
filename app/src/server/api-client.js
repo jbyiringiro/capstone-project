@@ -1,9 +1,12 @@
 // Thin client for the Vuga API. The token lives in IndexedDB settings so the dashboard survives reloads.
+import Dexie from 'dexie'
 import { db } from '../storage/db.js'
 import { localizedError } from '../shared/errors-rw.js'
 import { normalisePhone, samePhone } from './phone.js'
 import { sameAccount } from './account-identity.js'
 import { emailAuth } from './email-auth.js'
+import { normalizeEmailAddress } from '../shared/account-validation.js'
+import { getParentPinVersion, PARENT_ACCESS_KEY, ParentAccessError, prepareParentPinSetup, unlockParentAccess, validParentPin } from '../parent-access/parent-access.js'
 
 export const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8000'
 
@@ -23,7 +26,7 @@ const OFFLINE = 'Nta interineti iri kuri iki gikoresho. Yifungure, wongere ugera
 
 // A request's own messages, by status, come before the general ones; a function receives the
 // server's reply, which the error also carries as `reply`.
-async function req(path, { method = 'GET', body, form, auth = true, bearer, errors = {}, expectedStatus } = {}) {
+async function req(path, { method = 'GET', body, form, auth = true, bearer, errors = {}, expectedStatus, clearRefusedSession = true } = {}) {
   const headers = {}
   const token = bearer ?? (auth ? await getToken() : null)
   if (token) headers.Authorization = `Bearer ${token}`
@@ -40,7 +43,7 @@ async function req(path, { method = 'GET', body, form, auth = true, bearer, erro
   if (!r.ok) {
     const reply = await r.json().catch(() => ({}))
     // Clear only the refused session, never a different session opened during this request.
-    if (r.status === 401 && token) await db.transaction('rw', db.settings, async () => {
+    if (r.status === 401 && token && clearRefusedSession) await db.transaction('rw', db.settings, async () => {
       if (await getToken() === token) await setToken(null)
     })
     const messages = {
@@ -95,6 +98,48 @@ const deletionUnavailable = reply => {
 }
 // Only kept in memory, to finish a provider deletion if the server response was interrupted.
 const pendingEmailDeletions = new Map()
+const pendingEmailLogins = new Map()
+const EMAIL_LOGIN_WAIT_MS = 5 * 60_000
+const LOGIN_EXPIRED = 'Igihe cyo kurangiza kwinjira cyarangiye. Ongera wandike email n’ijambo ry’ibanga.'
+
+function pendingLoginError(code = 'email-login-expired', message = LOGIN_EXPIRED) {
+  return Object.assign(localizedError(message), { code })
+}
+
+function revokePendingTokens(pending) {
+  return Promise.allSettled([...pending.tokens].filter(token => !pending.revoked.has(token)).map(token => {
+    pending.revoked.add(token)
+    // Cancellation may originate inside a transaction that is about to roll back. Read
+    // committed storage separately, so its tentative token is not mistaken for a login.
+    return Dexie.ignoreTransaction(async () => {
+      if (await getToken() !== token) await emailAuth.signOut?.(token)
+    })
+  }))
+}
+
+function discardEmailLogin(pending) {
+  if (!pending || pending.state === 'complete') return Promise.resolve()
+  pending.state = 'cancelled'
+  pendingEmailLogins.delete(pending.handle)
+  clearTimeout(pending.timer)
+  pending.signal?.removeEventListener('abort', pending.onAbort)
+  pending.session = null
+  return revokePendingTokens(pending)
+}
+
+function assertPendingLogin(pending) {
+  if (!pending || pendingEmailLogins.get(pending.handle) !== pending || pending.signal?.aborted || pending.expiresAt <= Date.now()) {
+    void discardEmailLogin(pending)
+    throw pendingLoginError()
+  }
+}
+
+async function loginSnapshot() {
+  return db.transaction('r', db.settings, async () => ({
+    account: await getLinkedAccount(), token: await getToken(),
+    gate: await getParentPinVersion({ allowUnconfigured: true })
+  }))
+}
 
 function checkedEmailAccount(user) {
   if (!user?.user_id || !user.email || !['firebase', 'neon'].includes(user.auth_provider)
@@ -102,19 +147,23 @@ function checkedEmailAccount(user) {
   return { user_id: user.user_id, email: user.email, name: user.name || '', auth_provider: user.auth_provider }
 }
 
-async function storeEmailSession(token, user, expectedAccount = null, previous = null) {
+async function storeEmailSession(token, user, expectedAccount = null, previous = null, { guard, pinSetup } = {}) {
   if (typeof token !== 'string' || !token) throw localizedError(EMAIL_ERRORS[401])
   const account = checkedEmailAccount(user)
   await db.transaction('rw', db.settings, async () => {
     const before = (await db.settings.get('account'))?.value
     if (previous && (!(sameAccount(before, previous.account) || (!before && !previous.account)) || await getToken() !== previous.token)) {
-      throw localizedError('Konti ihujwe n’iki gikoresho yahindutse. Ongera winjire.')
+      throw pendingLoginError('email-login-changed', ACCOUNT_CHANGED)
     }
     if (expectedAccount && (!sameAccount(expectedAccount, account) || !sameAccount(before, expectedAccount))) {
       throw localizedError(WRONG_ACCOUNT)
     }
+    await guard?.(false)
     if (!sameAccount(before, account)) await db.settings.delete('account-backup')
+    if (pinSetup) await db.settings.put({ key: PARENT_ACCESS_KEY, value: pinSetup.value })
     await db.settings.bulkPut([{ key: 'token', value: token }, { key: 'account', value: account }])
+    // If navigation happens while a write is awaiting IndexedDB, roll back the transaction.
+    await guard?.(true)
   })
   return account
 }
@@ -128,6 +177,90 @@ export const api = {
   requestEmailPasswordReset: email => emailAuth.sendPasswordReset(email),
   confirmEmailPasswordReset: (email, code, password) => emailAuth.confirmPasswordReset(email, code, password),
   finishEmailPasswordReset: (email, password) => emailAuth.finishPasswordReset(email, password),
+  prepareEmailLogin: async (email, password, name, { signal } = {}) => {
+    const handle = {}
+    const pending = { handle, state: 'preparing', signal, tokens: new Set(), revoked: new Set(), expiresAt: Date.now() + EMAIL_LOGIN_WAIT_MS }
+    pending.onAbort = () => { void discardEmailLogin(pending) }
+    pendingEmailLogins.set(handle, pending)
+    signal?.addEventListener('abort', pending.onAbort, { once: true })
+    pending.timer = setTimeout(() => { void discardEmailLogin(pending) }, EMAIL_LOGIN_WAIT_MS)
+    pending.timer.unref?.()
+    try {
+      assertPendingLogin(pending)
+      pending.previous = await loginSnapshot()
+      assertPendingLogin(pending)
+      const identity = await emailAuth.login(email, password)
+      if (identity.idToken) pending.tokens.add(identity.idToken)
+      assertPendingLogin(pending)
+      const session = await req('/auth/email/session', {
+        method: 'POST', auth: false,
+        body: { id_token: identity.idToken, ...((name || identity.displayName) ? { name: name || identity.displayName } : {}) }, errors: EMAIL_ERRORS
+      })
+      if (session?.access_token) pending.tokens.add(session.access_token)
+      assertPendingLogin(pending)
+      const account = checkedEmailAccount(session?.user)
+      if (typeof session.access_token !== 'string' || !session.access_token
+        || normalizeEmailAddress(account.email) !== normalizeEmailAddress(identity.email)) throw localizedError(EMAIL_ERRORS[401])
+      pending.session = { ...session, user: account }
+      pending.state = 'ready'
+      return Object.freeze(Object.assign(handle, { email: account.email, name: account.name, devicePin: !!pending.previous.gate, expiresAt: pending.expiresAt }))
+    } catch (error) {
+      void discardEmailLogin(pending)
+      throw error
+    }
+  },
+  cancelEmailLogin: handle => discardEmailLogin(pendingEmailLogins.get(handle)),
+  completeEmailLogin: async (handle, { pin, confirmation } = {}) => {
+    const pending = pendingEmailLogins.get(handle)
+    assertPendingLogin(pending)
+    if (pending.state !== 'ready') throw pendingLoginError('email-login-busy', 'Tegereza ko kwinjira birangira.')
+    pending.state = 'completing'
+    try {
+      if (!validParentPin(pin)) throw new ParentAccessError('format')
+      if (await getParentPinVersion({ allowUnconfigured: true }) !== pending.previous.gate) throw pendingLoginError('email-login-changed', ACCOUNT_CHANGED)
+      assertPendingLogin(pending)
+      let pinSetup = null
+      if (pending.previous.gate) {
+        const local = await unlockParentAccess(pin)
+        assertPendingLogin(pending)
+        if (!local.ok) throw localizedError(local.retryAfterMs
+          ? `Wagerageje kenshi. Tegereza amasegonda ${Math.ceil(local.retryAfterMs / 1000)}, wongere ugerageze.`
+          : 'Umubare w’ibanga si wo. Ongera ugerageze.')
+      } else {
+        pinSetup = await prepareParentPinSetup(pin, confirmation)
+        assertPendingLogin(pending)
+      }
+      const session = pending.session
+      const user = checkedEmailAccount(await req('/auth/me', {
+        auth: false, bearer: session.access_token, clearRefusedSession: false, errors: EMAIL_ERRORS
+      }))
+      assertPendingLogin(pending)
+      if (!sameAccount(user, session.user) || user.email !== session.user.email || user.auth_provider !== session.user.auth_provider) {
+        throw pendingLoginError('email-login-changed', WRONG_ACCOUNT)
+      }
+      await storeEmailSession(session.access_token, user, null, pending.previous, {
+        pinSetup,
+        guard: async written => {
+          assertPendingLogin(pending)
+          const expectedGate = written && pinSetup ? JSON.stringify([pinSetup.value.version, pinSetup.value.salt, pinSetup.value.digest, pinSetup.value.recoverySalt, pinSetup.value.recoveryDigest]) : pending.previous.gate
+          const actualGate = await getParentPinVersion({ allowUnconfigured: true })
+          if (actualGate !== expectedGate) throw pendingLoginError('email-login-changed', ACCOUNT_CHANGED)
+          assertPendingLogin(pending)
+        }
+      })
+      pending.state = 'complete'
+      pendingEmailLogins.delete(handle)
+      clearTimeout(pending.timer)
+      pending.signal?.removeEventListener('abort', pending.onAbort)
+      pending.session = null
+      pending.tokens.clear()
+      return { ...session, user, ...(pinSetup ? { recoveryCode: pinSetup.recoveryCode } : {}) }
+    } catch (error) {
+      if (pendingEmailLogins.get(handle) === pending && error.code !== 'email-login-changed' && ![401, 403].includes(error.status)) pending.state = 'ready'
+      else void discardEmailLogin(pending)
+      throw error
+    }
+  },
   loginEmail: async (email, password, name) => {
     const previous = await db.transaction('r', db.settings, async () => ({ account: await getLinkedAccount(), token: await getToken() }))
     const identity = await emailAuth.login(email, password)
@@ -196,6 +329,7 @@ export const api = {
   },
   unlinkAccount: async () => {
     pendingEmailDeletions.clear()
+    for (const pending of pendingEmailLogins.values()) void discardEmailLogin(pending)
     await db.transaction('rw', db.settings, () => db.settings.bulkDelete(ACCOUNT_KEYS))
   },
   // Texts a six-digit code to the number: 'register' before opening an account, 'reset' before
@@ -246,6 +380,7 @@ export const api = {
   },
   me: () => req('/auth/me'),
   logout: async () => {
+    for (const pending of pendingEmailLogins.values()) void discardEmailLogin(pending)
     const token = await getToken()
     // Local sign-out remains available offline. Online, also revoke the Neon session.
     try { if (token?.startsWith('neon.') && globalThis.navigator?.onLine !== false) await emailAuth.signOut?.(token) }

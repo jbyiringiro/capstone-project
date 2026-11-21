@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-21",
+  "tests_passed": true,
+  "frontend_tests": 331,
+  "neon_browser_checks": 27,
+  "firebase_browser_checks": 27,
+  "production_build": "passed; existing chunk-size warning",
+  "viewports": [
+    1280,
+    390,
+    320
+  ],
+  "scope": "Local production builds; all authentication API calls mocked. No real email or accounts used.",
+  "checks": [
+    "Password login before separate PIN screen",
+    "Sticky navigation while scrolling",
+    "PIN-purpose summary and no password input on PIN screen",
+    "No local account/session until PIN completion",
+    "Atomic PIN and account/session storage",
+    "Incorrect PIN preserves credential and counts failed attempt",
+    "Back, cancel, reload, expiry and delayed response handling",
+    "Existing PIN is checked and preserved"
+  ]
+}
