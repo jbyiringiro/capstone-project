@@ -30,11 +30,11 @@ describe('Neon email accounts through the Vuga API', () => {
 
   it('registers and verifies with codes without returning any session before password login', async () => {
     const { auth, fetchImpl } = client(reply({ email, verificationSent: true }), reply({ email, verified: true }), reply({ email, verificationSent: true }))
-    expect(await auth.register(` ${email.toUpperCase()} `, '  pass Word!  ', ' Uwase   Ange ')).toEqual({ email, verificationSent: true })
+    expect(await auth.register(` ${email.toUpperCase()} `, '  pass Word1!  ', ' Uwase   Ange ')).toEqual({ email, verificationSent: true })
     expect(await auth.verifyEmail(email, '032145')).toEqual({ email, verified: true })
     expect(await auth.resendVerification(email)).toEqual({ email, verificationSent: true })
     expect(fetchImpl.mock.calls.map(([url]) => new URL(url).pathname)).toEqual(['/auth/neon/register', '/auth/neon/verify', '/auth/neon/resend'])
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ email, password: '  pass Word!  ', name: 'Uwase Ange' })
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ email, password: '  pass Word1!  ', name: 'Uwase Ange' })
     expect(JSON.parse(fetchImpl.mock.calls[1][1].body)).toEqual({ email, otp: '032145' })
     expect(JSON.parse(fetchImpl.mock.calls[2][1].body)).toEqual({ email })
     expect(fetchImpl.mock.calls.every(([, options]) => options.credentials === 'omit' && options.cache === 'no-store' && !options.headers.Authorization)).toBe(true)
@@ -57,7 +57,7 @@ describe('Neon email accounts through the Vuga API', () => {
     const { auth, fetchImpl } = client()
     await expect(auth.register(email, 'short', 'Uwase')).rejects.toMatchObject({ code: 'weak-password' })
     await expect(auth.register(email, 'p'.repeat(129), 'Uwase')).rejects.toMatchObject({ code: 'weak-password' })
-    await expect(auth.register(email, 'password', 'A\0B')).rejects.toMatchObject({ code: 'invalid-name' })
+    await expect(auth.register(email, 'Valid-Password1', 'A\0B')).rejects.toMatchObject({ code: 'invalid-name' })
     await expect(auth.login('bad email', 'password')).rejects.toMatchObject({ code: 'invalid-email' })
     await expect(auth.login(email, '')).rejects.toMatchObject({ code: 'invalid-password' })
     await expect(auth.verifyEmail(email, '12345')).rejects.toMatchObject({ code: 'invalid-code' })
@@ -66,31 +66,86 @@ describe('Neon email accounts through the Vuga API', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 
+  it('rejects incomplete new-password requirements on signup and reset before any network call', async () => {
+    const { auth, fetchImpl } = client()
+    for (const password of ['lowercase1!', 'Uppercase!', 'Uppercase1', 'Uppercase1 ', 'Ab1!', 'A1!' + 'a'.repeat(126)]) {
+      await expect(auth.register(email, password, 'Uwase')).rejects.toMatchObject({ code: 'weak-password' })
+      await expect(auth.confirmPasswordReset(email, '123456', password)).rejects.toMatchObject({ code: 'weak-password' })
+    }
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
   it('confirms a password reset only after a valid code and exposes no account-existence flag', async () => {
     const { auth, fetchImpl } = client(reply({ sent: true }), reply({ sent: true, exists: false }), reply({ reset: true }))
     expect(await auth.sendPasswordReset(email)).toEqual({ requested: true })
     expect(await auth.sendPasswordReset('missing@example.test')).toEqual({ requested: true })
-    expect(await auth.confirmPasswordReset(email, '012345', ' new password ')).toEqual({ reset: true })
-    expect(JSON.parse(fetchImpl.mock.calls[2][1].body)).toEqual({ email, otp: '012345', password: ' new password ' })
+    expect(await auth.confirmPasswordReset(email, '012345', ' New-password1 ')).toEqual({ reset: true })
+    expect(JSON.parse(fetchImpl.mock.calls[2][1].body)).toEqual({ email, otp: '012345', password: ' New-password1 ' })
   })
 
   it('finishes a partial reset with the new password without reusing a consumed code', async () => {
     const { auth, fetchImpl } = client(reply({ detail: { code: 'PASSWORD_RESET_COMPLETED', passwordReset: true } }, 503), reply({ reset: true }))
-    await expect(auth.confirmPasswordReset(email, '123456', 'new password')).rejects.toMatchObject({ code: 'password-reset-completed', passwordReset: true })
-    expect(await auth.finishPasswordReset(email, 'new password')).toEqual({ reset: true })
+    await expect(auth.confirmPasswordReset(email, '123456', 'New-password1')).rejects.toMatchObject({ code: 'password-reset-completed', passwordReset: true })
+    expect(await auth.finishPasswordReset(email, 'New-password1')).toEqual({ reset: true })
     expect(fetchImpl.mock.calls[1][0]).toBe(`${base}/auth/neon/password-reset/finish`)
-    expect(JSON.parse(fetchImpl.mock.calls[1][1].body)).toEqual({ email, password: 'new password' })
+    expect(JSON.parse(fetchImpl.mock.calls[1][1].body)).toEqual({ email, password: 'New-password1' })
   })
 
   it.each([
     ['EMAIL_NOT_VERIFIED', 'email-unverified'], ['INVALID_EMAIL_OR_PASSWORD', 'invalid-credentials'],
     ['INVALID_OTP', 'invalid-code'], ['OTP_EXPIRED', 'invalid-code'], ['TOO_MANY_REQUESTS', 'too-many-requests'],
-    ['USER_ALREADY_EXISTS', 'email-exists'], ['NEW_UNKNOWN_CODE', 'unknown']
+    ['USER_ALREADY_EXISTS', 'email-exists'], ['VERIFICATION_SEND_FAILED', 'verification-send-failed'], ['NEW_UNKNOWN_CODE', 'unknown']
   ])('localizes %s without exposing server diagnostics', async (code, expected) => {
-    const { auth } = client(reply({ detail: { code, message: 'private password parent@example.test', accountCreated: true } }, 400))
+    const { auth } = client(reply({ detail: { code, message: 'private password parent@example.test', verificationRequired: true } }, 400))
     const error = await auth.login(email, 'password').catch(value => value)
-    expect(error).toMatchObject({ code: expected, localized: true, accountCreated: true })
+    expect(error).toMatchObject({ code: expected, localized: true, verificationRequired: true })
+    expect(error).not.toHaveProperty('accountCreated')
     expect(error.message).not.toContain('private password'); expect(error.message).not.toContain('parent@example.test')
+  })
+
+  it.each([
+    [503, { code: 'VERIFICATION_SEND_FAILED', verificationRequired: true }, 'verification-send-failed'],
+    [429, { detail: { code: 'TOO_MANY_REQUESTS', verificationRequired: true } }, 'too-many-requests']
+  ])('preserves verification recovery after signup code request fails with status %i', async (status, body, code) => {
+    const { auth, fetchImpl } = client(reply(body, status))
+    const error = await auth.register(email, 'Valid-Password1', 'Uwase').catch(value => value)
+    expect(error).toMatchObject({ code, status, verificationRequired: true, localized: true })
+    expect(error).not.toHaveProperty('accountCreated')
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not infer that an account was created or a code was sent from a malformed successful signup reply', async () => {
+    const { auth } = client(reply({ email, verificationSent: false, accountCreated: true }))
+    const error = await auth.register(email, 'Valid-Password1', 'Uwase').catch(value => value)
+    expect(error).toMatchObject({ code: 'invalid-response', verificationRequired: true })
+    expect(error).not.toHaveProperty('accountCreated')
+  })
+
+  it('keeps a paused signup distinct from verification recovery and ignores false or nonboolean flags', async () => {
+    const { auth } = client(
+      reply({ code: 'VERIFICATION_CONFIGURATION_REQUIRED' }, 503),
+      reply({ code: 'VERIFICATION_SEND_FAILED', verificationRequired: false }, 503),
+      reply({ code: 'VERIFICATION_SEND_FAILED', verificationRequired: 'true', accountCreated: true }, 503)
+    )
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const error = await auth.register(email, 'Valid-Password1', 'Uwase').catch(value => value)
+      expect(error).not.toHaveProperty('verificationRequired')
+      expect(error).not.toHaveProperty('accountCreated')
+    }
+  })
+
+  it('returns the same code-request result without exposing whether signup was new or repeated', async () => {
+    const { auth } = client(reply({ email, verificationSent: true }), reply({ email, verificationSent: true, exists: true, accountCreated: false }))
+    expect(await auth.register(email, 'Valid-Password1', 'Uwase')).toEqual({ email, verificationSent: true })
+    expect(await auth.register(email, 'Valid-Password1', 'Uwase')).toEqual({ email, verificationSent: true })
+  })
+
+  it('sends canonical IDNA input without conflating sharp-s and ss domains', async () => {
+    const { auth, fetchImpl } = client(reply({ verificationSent: true }), reply({ verificationSent: true }), reply({ sent: true }))
+    expect(await auth.register(' Parent@faß.de ', 'Valid-Password1', 'Uwase')).toEqual({ email: 'parent@xn--fa-hia.de', verificationSent: true })
+    expect(await auth.register('Parent@fass.de', 'Valid-Password1', 'Uwase')).toEqual({ email: 'parent@fass.de', verificationSent: true })
+    await auth.sendPasswordReset('Parent@ΟΣ.example')
+    expect(fetchImpl.mock.calls.map(([, options]) => JSON.parse(options.body).email)).toEqual(['parent@xn--fa-hia.de', 'parent@fass.de', 'parent@xn--0xai.example'])
   })
 
   it('requires a secure API origin and stops offline before sending credentials', async () => {

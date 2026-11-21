@@ -125,7 +125,7 @@ try {
     await gate.getByLabel('Email', { exact: true }).fill(identity.email)
     await gate.getByLabel(/^Izina ryawe/).fill(identity.displayName)
     await password(gate).fill(secret)
-    await gate.getByLabel('Ongera wandike ijambo ry’ibanga rya konti', { exact: true }).fill('Wrong-password')
+    await gate.getByLabel('Ongera wandike ijambo ry’ibanga rya konti', { exact: true }).fill('Wrong-password1')
     await responsiveScreenshots('signup')
     await gate.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true }).click()
     await expect(gate.getByRole('alert')).toContainText('ntahuye'); expect(counts.signUp).toBe(0)

@@ -17,11 +17,11 @@ afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
 describe('Firebase email accounts', () => {
   it('registers the caregiver name, sends verification, and returns no credential before verification', async () => {
     const { auth, fetchImpl } = client(ok(session), ok({ idToken: 'updated-id-token' }), ok({ email: session.email }))
-    expect(await auth.register(' parent@example.com ', '  pass Word!  ', ' Uwase   Ange ')).toEqual({ email: session.email, verificationSent: true })
+    expect(await auth.register(' parent@example.com ', '  pass Word1!  ', ' Uwase   Ange ')).toEqual({ email: session.email, verificationSent: true })
     expect(fetchImpl.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
       '/v1/accounts:signUp', '/v1/accounts:update', '/v1/accounts:sendOobCode'
     ])
-    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ email: session.email, password: '  pass Word!  ', returnSecureToken: true })
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ email: session.email, password: '  pass Word1!  ', returnSecureToken: true })
     expect(JSON.parse(fetchImpl.mock.calls[1][1].body)).toEqual({ idToken: session.idToken, displayName: 'Uwase Ange', returnSecureToken: true })
     expect(JSON.parse(fetchImpl.mock.calls[2][1].body)).toEqual({ requestType: 'VERIFY_EMAIL', idToken: 'updated-id-token' })
     expect(fetchImpl.mock.calls.every(([, options]) => options.cache === 'no-store' && options.credentials === 'omit')).toBe(true)
@@ -57,22 +57,37 @@ describe('Firebase email accounts', () => {
 
   it('marks partial signup failures so the UI can offer resend without losing the created account', async () => {
     const { auth } = client(ok(session), ok({ idToken: 'updated-id-token' }), refused('TOO_MANY_ATTEMPTS_TRY_LATER'))
-    await expect(auth.register(session.email, 'password', user.displayName)).rejects.toMatchObject({ accountCreated: true, email: session.email, code: 'too-many-requests' })
+    await expect(auth.register(session.email, 'Valid-Password1', user.displayName)).rejects.toMatchObject({ accountCreated: true, email: session.email, code: 'too-many-requests' })
     const updateFailure = client(ok(session), refused('INTERNAL_ERROR', 503))
-    await expect(updateFailure.auth.register(session.email, 'password', user.displayName)).rejects.toMatchObject({ accountCreated: true, code: 'unavailable' })
+    await expect(updateFailure.auth.register(session.email, 'Valid-Password1', user.displayName)).rejects.toMatchObject({ accountCreated: true, code: 'unavailable' })
   })
 
   it('validates input without network calls and never enforces signup password length at login', async () => {
     const { auth, fetchImpl } = client()
     await expect(auth.register(session.email, 'short', user.displayName)).rejects.toMatchObject({ code: 'weak-password' })
-    await expect(auth.register(session.email, 'password', '   ')).rejects.toMatchObject({ code: 'invalid-name' })
-    await expect(auth.register(session.email, 'password', 'A'.repeat(121))).rejects.toMatchObject({ code: 'invalid-name' })
-    await expect(auth.register(session.email, 'password', 'A\u0000B')).rejects.toMatchObject({ code: 'invalid-name' })
+    await expect(auth.register(session.email, 'Valid-Password1', '   ')).rejects.toMatchObject({ code: 'invalid-name' })
+    await expect(auth.register(session.email, 'Valid-Password1', 'A'.repeat(121))).rejects.toMatchObject({ code: 'invalid-name' })
+    await expect(auth.register(session.email, 'Valid-Password1', 'A\u0000B')).rejects.toMatchObject({ code: 'invalid-name' })
     await expect(auth.login('not-an-email', 'password')).rejects.toMatchObject({ code: 'invalid-email' })
     await expect(auth.login(session.email, '')).rejects.toMatchObject({ code: 'invalid-password' })
     expect(fetchImpl).not.toHaveBeenCalled()
     const short = client(ok(session), ok({ users: [user] }))
     await expect(short.auth.login(session.email, '123456')).resolves.toMatchObject({ uid: session.localId })
+  })
+
+  it('enforces the same new-password requirements in Firebase rollback mode before sending signup', async () => {
+    const { auth, fetchImpl } = client()
+    for (const password of ['lowercase1!', 'Uppercase!', 'Uppercase1', 'Uppercase1 ', 'Ab1!', 'A1!' + 'a'.repeat(126)]) {
+      await expect(auth.register(session.email, password, user.displayName)).rejects.toMatchObject({ code: 'weak-password' })
+    }
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('normalizes IDNA input before sending reset requests in rollback mode', async () => {
+    const { auth, fetchImpl } = client(ok({}), ok({}))
+    await auth.sendPasswordReset(' Parent@faß.de ')
+    await auth.sendPasswordReset('Parent@fass.de')
+    expect(fetchImpl.mock.calls.map(([, options]) => JSON.parse(options.body).email)).toEqual(['parent@xn--fa-hia.de', 'parent@fass.de'])
   })
 
   it.each([

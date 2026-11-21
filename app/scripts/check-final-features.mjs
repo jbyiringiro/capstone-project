@@ -667,8 +667,12 @@ try {
     expect(pageErrors).toEqual([])
   })
 
-  // Added on 4 November 2026, again last, for the compact board and editing or deleting a child.
+  // Added on 4 November 2026, again last, for hidden words and editing or deleting a child. Since
+  // 21 November a hidden word leaves an empty key, so every other picture keeps its place.
   const keysOnPage = () => tiles().evaluateAll(cells => cells.map(cell => cell.dataset.symbol))
+  // Every key of the page in order: a picture's word, or null for a blank key.
+  const slotsOnPage = () => board.locator('.symbol-grid > .symbol-tile, .symbol-grid > .grid-slot')
+    .evaluateAll(cells => cells.map(cell => cell.dataset.symbol ?? null))
   const children = () => page.evaluate(async () => {
     const database = await new Promise((resolve, reject) => { const r = indexedDB.open('vuga'); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error) })
     try {
@@ -696,7 +700,7 @@ try {
   }
   let full = [], second = []
 
-  await check('Hidden pictures leave no gap: the others close up in order on full pages, for that child only, after a reload, and all come back when shown again', async () => {
+  await check('Hidden pictures leave an empty key: every other picture keeps its place on each page, for that child only, after a reload, and all come back in place when shown again', async () => {
     await caregiver()
     await addChild('Keza')
     await tab('Ikibaho')
@@ -709,15 +713,18 @@ try {
     await board.getByRole('button', { name: 'Urupapuro rukurikira', exact: true }).click()
     second = await keysOnPage()
     await board.getByRole('button', { name: 'Urupapuro rubanziriza', exact: true }).click()
-    // Two pictures hidden on the first page: the rest move up, and the next page's first two follow.
+    // Two pictures hidden on the first page: their keys are blank and no other picture moves.
     await caregiver()
     await tab('Amashusho')
     for (const key of full.slice(1, 3)) await showWord(key, false)
     await back()
-    const compact = await keysOnPage()
-    expect(compact).toEqual([full[0], ...full.slice(3), ...second.slice(0, 2)])
-    await expect(board.locator('.symbol-grid .grid-slot')).toHaveCount(0)
-    await screenshot('board-hidden-words-compact')
+    const kept = [full[0], null, null, ...full.slice(3)]
+    expect(await slotsOnPage()).toEqual(kept)
+    await expect(board.locator('.symbol-grid .hidden-slot')).toHaveCount(2)
+    await screenshot('board-hidden-words-in-place')
+    await board.getByRole('button', { name: 'Urupapuro rukurikira', exact: true }).click()
+    expect(await keysOnPage()).toEqual(second)
+    await board.getByRole('button', { name: 'Urupapuro rubanziriza', exact: true }).click()
     // The demo board still shows them, in their usual places.
     await caregiver()
     await page.locator('.dash-demo-button').click()
@@ -729,7 +736,7 @@ try {
     await back()
     await page.reload()
     await expect(board.locator('.profile-code')).toHaveText('Keza')
-    expect(await keysOnPage()).toEqual(compact)
+    expect(await slotsOnPage()).toEqual(kept)
     // Every picture hidden: one empty board with its message, no pages and no blank keys.
     await caregiver()
     await tab('Amashusho')
@@ -740,13 +747,13 @@ try {
     await expect(tiles()).toHaveCount(0)
     await expect(board.locator('.page-controls')).toHaveCount(0)
     await expect(board.locator('.symbol-grid .grid-slot')).toHaveCount(0)
-    // Shown again, each picture takes its own place back.
+    // Shown again, each picture is back in its own place.
     await caregiver()
     await tab('Amashusho')
     await page.getByRole('button', { name: 'Hitamo yose', exact: true }).click()
     await expect(page.locator('.dash-save-note')).toHaveText('Bibitswe kuri iki gikoresho')
     await back()
-    expect(await keysOnPage()).toEqual(full)
+    expect(await slotsOnPage()).toEqual(full)
     expect(pageErrors).toEqual([])
   })
 
@@ -781,8 +788,8 @@ try {
     await back()
     await page.reload()
     await expect(board.locator('.profile-code')).toHaveText('Keza Uwase')
-    // The same pictures, with the one hidden, on the same 3 x 3 pages.
-    expect(await keysOnPage()).toEqual([full[0], ...full.slice(2), second[0]])
+    // The same pictures in the same places on the same 3 x 3 pages, with the hidden one's key blank.
+    expect(await slotsOnPage()).toEqual([full[0], null, ...full.slice(2)])
     expect(pageErrors).toEqual([])
   })
 

@@ -27,8 +27,9 @@ describe('grid shape', () => {
   })
 })
 
-// The board's own step (Board.jsx): words hidden for the child are left out, in order, before paging.
-const shown = (all, hidden) => all.split('').filter(key => !hidden.includes(key)).map(word)
+// The board's own step (Board.jsx): every word keeps its slot, and a word hidden for the child is null.
+const slots = (all, hidden) => all.split('').map(key => (hidden.includes(key) ? null : word(key)))
+const pagesOf = (board, shape) => Array.from({ length: gridPage(board, shape).pages }, (_, page) => keys(gridPage(board, shape, page).cells))
 
 describe('grid pages', () => {
   it('pads only the end of a short last page, so tiles keep one size', () => {
@@ -36,30 +37,29 @@ describe('grid pages', () => {
     expect(gridPage(symbols, [2, 2], 2)).toMatchObject({ page: 2, pages: 3, empty: 2 })
     expect(keys(gridPage(symbols, [2, 2], 2).cells)).toEqual(['I', 'J'])
   })
-  it('closes up behind a hidden picture, keeping the others in order with no gap', () => {
-    expect(keys(gridPage(shown('ABCDE', 'B'), [2, 2]).cells)).toEqual(['A', 'C', 'D', 'E'])
-    // Several hidden across pages: the next page's pictures move up, and a page goes away.
-    const several = shown('ABCDEFGHIJ', 'BDEG')
-    expect(keys(several)).toEqual(['A', 'C', 'F', 'H', 'I', 'J'])
-    expect(gridPage(several, [2, 2])).toMatchObject({ pages: 2, empty: 0 })
-    expect(keys(gridPage(several, [2, 2], 1).cells)).toEqual(['I', 'J'])
-    // Shown again, a picture takes its own place back.
-    expect(keys(gridPage(shown('ABCDE', ''), [2, 2]).cells)).toEqual(['A', 'B', 'C', 'D'])
+  it('leaves a hidden picture’s key empty, so the pictures after it do not move', () => {
+    expect(keys(gridPage(slots('ABCDE', 'B'), [2, 2]).cells)).toEqual(['A', null, 'C', 'D'])
+    expect(gridPage(slots('ABCDE', 'B'), [2, 2], 1)).toMatchObject({ empty: 3 })
+    expect(keys(gridPage(slots('ABCDE', 'B'), [2, 2], 1).cells)).toEqual(['E'])
+    // Several hidden across pages: each page keeps its pictures where they were.
+    expect(pagesOf(slots('ABCDEFGHIJ', 'BDEG'), [2, 2])).toEqual([['A', null, 'C', null], [null, 'F', null, 'H'], ['I', 'J']])
+    // Shown again, a picture is back in its own place and nothing else has moved.
+    expect(keys(gridPage(slots('ABCDE', ''), [2, 2]).cells)).toEqual(['A', 'B', 'C', 'D'])
   })
-  it('has no empty page and no gap on any page but the end of the last', () => {
-    const symbols = shown('ABCDEFGHIJKLMNOPQRSTU', 'CFGHIJKLQ')
-    const { pages } = gridPage(symbols, [3, 2])
-    const all = Array.from({ length: pages }, (_, page) => gridPage(symbols, [3, 2], page))
-    expect(all.map(page => page.cells.length)).toEqual([6, 6])
-    expect(all.flatMap(page => keys(page.cells))).toEqual(keys(symbols))
+  it('keeps every shown picture on the same key of its page, whatever is hidden, and skips a page with nothing to show', () => {
+    const all = 'ABCDEFGHIJKLMNOPQRSTU'
+    const pages = pagesOf(slots(all, 'CFGHIJKLQ'), [3, 2])
+    // G to L were all hidden, so their page is skipped; the pages around it are unchanged.
+    expect(pages).toEqual([['A', 'B', null, 'D', 'E', null], ['M', 'N', 'O', 'P', null, 'R'], ['S', 'T', 'U']])
+    for (const cells of pages) cells.forEach((key, index) => { if (key) expect(all.indexOf(key) % 6).toBe(index) })
   })
-  it('keeps a page within the pages there are, as when hiding words removes the open page', () => {
-    const symbols = shown('ABCDEFGHIJ', 'EFGHIJ')
+  it('keeps a page within the pages there are, as when hiding words empties the open page', () => {
+    const symbols = slots('ABCDEFGHIJ', 'EFGHIJ')
     expect(gridPage(symbols, [2, 2], 2)).toMatchObject({ page: 0, pages: 1 })
     expect(gridPage(symbols, [2, 2], -3).page).toBe(0)
     expect(gridPage(symbols, [2, 2], Number.NaN).page).toBe(0)
   })
   it('shows an empty view, one page, when every picture is hidden', () => {
-    expect(gridPage(shown('ABCD', 'ABCD'), [2, 2])).toMatchObject({ cells: [], pages: 1, page: 0, empty: 4 })
+    expect(gridPage(slots('ABCD', 'ABCD'), [2, 2])).toMatchObject({ cells: [], pages: 1, page: 0, empty: 4 })
   })
 })

@@ -122,6 +122,8 @@ async def service_error(request: Request, error: ServiceError) -> JSONResponse:
             body["accountCreated"] = True
         if error.password_reset:
             body["passwordReset"] = True
+        if error.verification_required:
+            body["verificationRequired"] = True
         if error.status == 429:
             body["retry_after"] = 60
         return JSONResponse(body, status_code=error.status, headers={"Cache-Control": "no-store"})

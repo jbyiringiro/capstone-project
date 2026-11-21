@@ -4,6 +4,7 @@
 // ID token for the short cloud session; signing in again obtains a fresh token.
 import { localizedError } from '../shared/errors-rw.js'
 import { createNeonEmailAuth } from './neon-email-auth.js'
+import { PASSWORD_REQUIREMENT_TEXT, normalizeEmailAddress, validNewPassword } from '../shared/account-validation.js'
 
 const ENDPOINT = 'https://identitytoolkit.googleapis.com/v1/accounts:'
 const MESSAGES = {
@@ -13,7 +14,7 @@ const MESSAGES = {
   timeout: 'Serivisi ya konti yatinze gusubiza. Ongera ugerageze nyuma gato.',
   'invalid-email': 'Andika aderesi ya imeli ikora, nka izina@example.com.',
   'invalid-password': 'Andika ijambo ry’ibanga rya konti yawe.',
-  'weak-password': 'Koresha ijambo ry’ibanga rifite nibura inyuguti 8. Reba n’amabwiriza ya konti niba rikomeje kwangwa.',
+  'weak-password': PASSWORD_REQUIREMENT_TEXT,
   'invalid-name': 'Andika izina ryawe nk’umurezi, inyuguti zitarenze 120.',
   'invalid-credentials': 'Imeli cyangwa ijambo ry’ibanga si byo. Ongera ugerageze.',
   'email-exists': 'Iyi imeli isanzwe ifite konti. Injira cyangwa usabe ubutumwa bwo guhindura ijambo ry’ibanga.',
@@ -56,15 +57,15 @@ function failure(code, extra = {}) {
 }
 
 function emailAddress(value) {
-  const email = typeof value === 'string' ? value.trim() : ''
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw failure('invalid-email')
+  const email = normalizeEmailAddress(value)
+  if (!email) throw failure('invalid-email')
   return email
 }
 
 function passwordValue(value, registering = false) {
   // Never trim, case-fold, or otherwise change a password, including at sign-in.
   if (typeof value !== 'string' || !value.length) throw failure('invalid-password')
-  if (registering && value.length < 8) throw failure('weak-password')
+  if (registering && !validNewPassword(value)) throw failure('weak-password')
   return value
 }
 

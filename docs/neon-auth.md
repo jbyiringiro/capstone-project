@@ -12,6 +12,26 @@ Production Auth uses branch `br-dawn-tooth-b97xsvmu` and the public base URL `ht
 
 ## Authentication flow
 
+### Signup verification delivery
+
+`VUGA_NEON_SIGNUP_DELIVERY_MODE` controls who requests the initial verification code:
+
+| Mode | Vuga behavior | Required Neon settings |
+| --- | --- | --- |
+| `provider` (compatibility default) | Submit signup and rely on the provider's automatic email. | Automatic signup email enabled. |
+| `paused` | Refuse new signup requests before contacting Neon. Existing login, verification and resend remain available. | Keep verification required. Used only during a delivery-mode change. |
+| `explicit` | After an accepted signup response, request one `email-verification` OTP through the same endpoint used by resend. | Automatic signup and sign-in email sends disabled; email verification required; verification method `otp`. |
+
+Better Auth can return an unverified-looking success response for an existing email without sending the normal signup email. Explicit mode avoids treating that response alone as proof that a code was requested. It requires acknowledgement from `/email-otp/send-verification-otp` before returning success. This confirms request acceptance, not inbox delivery. See [Better Auth email enumeration protection](https://better-auth.com/docs/authentication/email-password#email-enumeration-protection) and [Neon Email OTP](https://neon.com/docs/auth/guides/plugins/email-otp).
+
+If sending fails or times out after signup, the API returns `verificationRequired: true`. The form retains the email, clears passwords and offers verification/resend after a cooldown without claiming that a new account was created. Existing-account responses can be synthetic. Signup and email verification do not create a Vuga session; password login and the device PIN remain separate steps.
+
+New passwords submitted through Vuga signup and password reset must have 8–128 Unicode characters, an uppercase letter, an ASCII digit and a punctuation or symbol character. The form shows which requirements are met while typing; the API independently enforces the same rule. Login accepts existing passwords without imposing the new composition rule. Passwords are never trimmed. These are Vuga endpoint checks, not a claim that Neon's own public endpoints enforce an identical composition policy.
+
+Email fields check common address syntax, including the local part and domain labels, and show an error when the field is left with an invalid address. Plus addresses remain supported. These checks cannot prove that a mailbox exists or belongs to the person registering; entering the emailed code establishes access to that mailbox. The signup page does not query or expose account existence before verification.
+
+For an existing hosted service, first deploy this API in `paused` mode while Neon's automatic sends remain enabled. Confirm the paused mode from `/health` and allow the old deployment to drain. Deploy the updated frontend, disable Neon's automatic signup and sign-in email sends, and verify that required email verification and OTP remain enabled. Then deploy the same API commit in `explicit` mode. If activation fails, leave signup paused until corrected. Before rolling back to `provider`, restore Neon automatic signup email while Vuga remains paused. Keep the Render environment variable manually managed (`sync: false`).
+
 The browser submits account requests to the Vuga API over HTTPS. The API forwards the required email, name, password or verification code to the configured Neon Auth endpoint. Passwords and codes are not stored or logged by Vuga. Neon manages password credentials and sessions.
 
 Vuga returns an authenticated, encrypted session envelope to the browser. Only the API can open it. For protected requests the API also checks the current session with Neon; locally decoding a bearer token is not sufficient. This avoids relying on third-party browser cookies between the Render frontend and Neon, including on Safari. Account ownership remains tied to immutable Vuga and provider identifiers, not to an email address alone.

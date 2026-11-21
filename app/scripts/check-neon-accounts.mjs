@@ -15,6 +15,7 @@ const user = { user_id: 'neon-vuga-user', email: 'caregiver@example.test', name:
 let passwordValue = 'Initial-password-48', verified = false, wrongIdentity = false, deleteFails = false, copy = null
 let resetPartial = false
 let nameFailure = 0, deletionDisabled = false
+let registrationFailure = null, resendFailure = null
 const credentials = () => ({ idToken: 'neon.mock-sealed-session', uid: 'neon-provider-user', email: user.email, displayName: user.name, expiresIn: 3600 })
 const count = path => requests.filter(request => request.path === path).length
 const board = page.locator('.board:visible'), gate = page.locator('.parent-access')
@@ -38,8 +39,12 @@ await context.route('**/*', async route => {
   if (request.method() === 'OPTIONS') return json(route, 200, {})
   const path = url.pathname, body = request.postData() ? request.postDataJSON() : null
   requests.push({ path, method: request.method() }) // Never record passwords, codes, or bearer headers.
-  if (path === '/auth/neon/register') return json(route, 200, { email: user.email, verificationSent: true })
-  if (path === '/auth/neon/resend') return json(route, 200, { email: user.email, verificationSent: true })
+  if (path === '/auth/neon/register') return registrationFailure
+    ? json(route, registrationFailure.status, registrationFailure.body) : json(route, 200, { email: user.email, verificationSent: true })
+  if (path === '/auth/neon/resend') {
+    if (resendFailure === 'network') return route.abort('connectionreset')
+    return resendFailure ? json(route, 503, { code: 'VERIFICATION_SEND_FAILED' }) : json(route, 200, { email: user.email, verificationSent: true })
+  }
   if (path === '/auth/neon/verify') {
     if (body.otp !== '123456') return json(route, 400, { detail: { code: 'INVALID_OTP' } })
     verified = true; return json(route, 200, { email: user.email, verified: true })
@@ -114,7 +119,93 @@ async function resetFields(scope, code = '654321', value = passwordValue) {
 let initialPin, recoveredPin
 try {
   await page.clock.install(); await page.goto(baseURL); await expect(board).toBeVisible(); await enter()
+  async function fillSignup() {
+    await gate.getByLabel('Email', { exact: true }).fill(user.email)
+    await gate.getByLabel(/^Izina ryawe/).fill(user.name)
+    await password(gate).fill(passwordValue)
+    await gate.getByLabel('Ongera wandike ijambo ry’ibanga rya konti', { exact: true }).fill(passwordValue)
+  }
+  await check('Signup validates email inline and shows password requirements without submitting weak credentials', async () => {
+    const before = count('/auth/neon/register')
+    await gate.getByLabel('Email', { exact: true }).fill('bad@@example')
+    await password(gate).focus()
+    await expect(gate.locator('.parent-field-error')).toContainText('Andika email yuzuye')
+    await gate.getByLabel('Email', { exact: true }).fill('parent+school@school-name.example')
+    await password(gate).focus(); await expect(gate.locator('.parent-field-error')).toHaveCount(0)
+    for (const [entered, canonical] of [['Parent@école.example', 'parent@xn--cole-9oa.example'], ['Parent@faß.de', 'parent@xn--fa-hia.de'], ['Parent@ΟΣ.example', 'parent@xn--0xai.example']]) {
+      const field = gate.getByLabel('Email', { exact: true })
+      await field.fill(entered); await password(gate).focus()
+      await expect(field).toHaveValue(canonical); expect(await field.evaluate(input => input.validity.valid)).toBe(true)
+      await expect(gate.locator('.parent-field-error')).toHaveCount(0)
+      // Enter must normalize and validate, even without a blur. EmailField deliberately
+      // uses a text input with the email keyboard so native IDN rewriting cannot alter it.
+      // Other required fields are still empty, so this must not submit registration.
+      await field.fill(entered); await field.press('Enter')
+      await expect(field).toHaveValue(canonical); expect(await field.evaluate(input => input.validity.valid)).toBe(true)
+      expect(count('/auth/neon/register')).toBe(before)
+    }
+    await gate.getByLabel(/^Izina ryawe/).fill(user.name)
+    await password(gate).fill('lowercaseonly')
+    await gate.getByLabel('Ongera wandike ijambo ry’ibanga rya konti', { exact: true }).fill('lowercaseonly')
+    await expect(gate.locator('.password-requirements')).toHaveCount(1)
+    await expect(gate.locator('.password-requirements [data-met="false"]')).toHaveCount(3)
+    await gate.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true }).click()
+    expect(count('/auth/neon/register')).toBe(before)
+    await fillSignup()
+    await expect(gate.locator('.password-requirements [data-met="true"]')).toHaveCount(4)
+  })
+  await check('A valid email offers sign-in without revealing account status or sending a lookup', async () => {
+    const authRequests = () => requests.filter(request => request.path.startsWith('/auth/')).length
+    const before = authRequests()
+    await gate.getByLabel('Email', { exact: true }).fill('not-an-email')
+    await expect(gate.getByRole('button', { name: 'Mfite konti, injira', exact: true })).toHaveCount(0)
+    await fillSignup()
+    await gate.getByRole('button', { name: 'Mfite konti, injira', exact: true }).click()
+    await expect(gate.getByLabel('Email', { exact: true })).toHaveValue(user.email)
+    await expect(password(gate)).toHaveValue('')
+    await expect(gate.getByLabel('Hitamo umubare', { exact: true })).toHaveValue('')
+    expect(authRequests()).toBe(before)
+    expect(setting(await data(), 'account')).toBeUndefined()
+    await gate.getByRole('button', { name: 'Fungura konti', exact: true }).click()
+  })
+  await check('A paused signup keeps the registration form and does not claim creation or verification delivery', async () => {
+    registrationFailure = { status: 503, body: { code: 'VERIFICATION_CONFIGURATION_REQUIRED' } }
+    await fillSignup()
+    await gate.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true }).click()
+    await expect(gate.getByRole('alert')).toBeVisible()
+    await expect(gate.getByLabel(/^Izina ryawe/)).toBeVisible()
+    await expect(gate.getByLabel('Kode yo muri email', { exact: true })).toHaveCount(0)
+    expect(setting(await data(), 'account')).toBeUndefined()
+    registrationFailure = null
+  })
+  for (const status of [503, 429]) await check(`Signup code-request failure ${status} offers cautious verification recovery and sign-in navigation`, async () => {
+    registrationFailure = { status, body: { code: status === 429 ? 'TOO_MANY_REQUESTS' : 'VERIFICATION_SEND_FAILED', verificationRequired: true } }
+    await fillSignup()
+    await gate.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true }).click()
+    await expect(gate.getByLabel('Kode yo muri email', { exact: true })).toBeVisible()
+    await expect(gate.getByRole('alert')).toBeVisible()
+    await expect(gate).not.toContainText('Konti yakozwe')
+    await expect(password(gate)).toHaveCount(0)
+    const resend = gate.getByRole('button', { name: /^Saba indi kode/ })
+    await expect(resend).toBeDisabled()
+    const before = count('/auth/neon/resend')
+    await page.clock.fastForward(61_000)
+    resendFailure = status === 503 ? 'network' : 'provider'
+    await resend.click(); await expect(gate.getByRole('alert')).toBeVisible(); await expect(resend).toBeDisabled()
+    expect(count('/auth/neon/resend')).toBe(before + 1)
+    await page.clock.fastForward(61_000); resendFailure = null
+    await resend.click(); await expect(gate.getByRole('status')).toContainText('Twasabye indi kode')
+    await expect(resend).toBeDisabled(); expect(count('/auth/neon/resend')).toBe(before + 2)
+    await gate.getByRole('button', { name: 'Mfite konti, injira', exact: true }).click()
+    await expect(password(gate)).toHaveValue('')
+    await expect(gate.getByLabel('Hitamo umubare', { exact: true })).toHaveValue('')
+    expect(setting(await data(), 'account')).toBeUndefined(); expect(setting(await data(), 'parent-access:v1')).toBeUndefined()
+    expect(count('/auth/email/session')).toBe(0)
+    await gate.getByRole('button', { name: 'Fungura konti', exact: true }).click()
+    registrationFailure = null
+  })
   await check('Neon signup has no SMS alternative and fits narrow phones', async () => {
+    const before = count('/auth/neon/register')
     await expect(gate.getByRole('button', { name: 'Koresha konti ya nimero ya telefoni', exact: true })).toHaveCount(0)
     await responsive('signup')
     await gate.getByLabel('Email', { exact: true }).fill(user.email)
@@ -123,7 +214,8 @@ try {
     await gate.getByLabel('Ongera wandike ijambo ry’ibanga rya konti', { exact: true }).fill(passwordValue)
     await gate.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true }).click()
     await expect(gate.getByLabel('Kode yo muri email', { exact: true })).toBeVisible()
-    expect(count('/auth/neon/register')).toBe(1)
+    expect(count('/auth/neon/register')).toBe(before + 1)
+    await expect(gate.getByRole('status')).toContainText('Twasabye kode yo kwemeza')
     expect(setting(await data(), 'account')).toBeUndefined(); expect(setting(await data(), 'parent-access:v1')).toBeUndefined()
   })
   await check('Verification rejects wrong codes and does not open an account session', async () => {
@@ -134,10 +226,11 @@ try {
     expect(count('/auth/email/session')).toBe(0); expect(setting(await data(), 'token')).toBeUndefined()
   })
   await check('Resending waits sixty seconds and never requests a password or sends duplicates', async () => {
+    const before = count('/auth/neon/resend')
     const resend = gate.getByRole('button', { name: /^Saba indi kode/ })
-    await expect(resend).toBeDisabled(); expect(count('/auth/neon/resend')).toBe(0)
+    await expect(resend).toBeDisabled(); expect(count('/auth/neon/resend')).toBe(before)
     await page.clock.fastForward(61_000); await resend.click(); await expect(resend).toBeDisabled()
-    expect(count('/auth/neon/resend')).toBe(1); await expect(password(gate)).toHaveCount(0)
+    expect(count('/auth/neon/resend')).toBe(before + 1); await expect(password(gate)).toHaveCount(0)
   })
   await check('A correct verification code requires explicit password login afterward', async () => {
     await gate.getByLabel('Kode yo muri email', { exact: true }).fill('123456')
@@ -150,12 +243,18 @@ try {
     await gate.getByRole('button', { name: 'Ohereza kode', exact: true }).click()
     await expect(gate.locator('.email-password-reset')).toContainText('Niba')
     await responsive('password-reset')
+    const before = count('/auth/neon/password-reset/confirm')
+    await resetFields(gate, '654321', 'lowercaseonly')
+    await expect(gate.locator('.password-requirements')).toHaveCount(1)
+    await expect(gate.locator('.password-requirements [data-met="false"]')).toHaveCount(3)
+    await gate.getByRole('button', { name: 'Bika ijambo ry’ibanga rishya', exact: true }).click()
+    expect(count('/auth/neon/password-reset/confirm')).toBe(before)
     await resetFields(gate, '000000', 'New-password-48')
     await gate.getByRole('button', { name: 'Bika ijambo ry’ibanga rishya', exact: true }).click()
     await expect(gate.getByRole('alert')).toContainText('Kode si yo')
     expect(setting(await data(), 'parent-access:v1')).toBeUndefined()
     await resetFields(gate, '654321', 'New-password-48')
-    await gate.getByLabel('Ongera wandike ijambo ry’ibanga rishya', { exact: true }).fill('Mismatch-password')
+    await gate.getByLabel('Ongera wandike ijambo ry’ibanga rishya', { exact: true }).fill('Mismatch-password1')
     await gate.getByRole('button', { name: 'Bika ijambo ry’ibanga rishya', exact: true }).click()
     await expect(gate.getByRole('alert')).toContainText('ntahuye'); expect(count('/auth/neon/password-reset/confirm')).toBe(1)
     await resetFields(gate, '654321', 'New-password-48')

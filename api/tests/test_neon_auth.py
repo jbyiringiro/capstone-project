@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, inspect, select, text
 from sqlalchemy.orm import sessionmaker
 
 from app import models, schemas
-from app.config import settings
+from app.config import Settings, settings
 from app.db import Base, get_db
 from app.main import app
 from app.migrations import migrate_email_accounts
@@ -697,3 +697,209 @@ def test_management_non204_remains_pending_and_retry_disabled_is_not_reported_as
     provider.delete_enabled = True
     provider.management_status = 204
     assert client.post("/auth/email/delete-account", json=body).status_code == 204
+
+
+SIGNUP = {"name": "Parent", "email": "parent@example.test", "password": "A-test-password9!"}
+
+
+@pytest.mark.parametrize("mode", ["paused", "invalid-mode"])
+def test_paused_signup_has_no_provider_write_or_recovery_claim(client, provider, mode):
+    provider.signup_delivery_mode = mode
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == 503 and reply.json()["code"] == "SIGNUP_TEMPORARILY_UNAVAILABLE"
+    assert "accountCreated" not in reply.json() and "verificationRequired" not in reply.json()
+    assert reply.headers["Cache-Control"] == "no-store" and provider.calls == []
+
+
+def test_signup_pause_leaves_existing_signin_and_manual_resend_available(client, provider):
+    provider.signup_delivery_mode = "paused"
+    assert client.post("/auth/neon/resend", json={"email": SIGNUP["email"]}).status_code == 200
+    assert client.post("/auth/neon/login", json={"email": SIGNUP["email"], "password": "old-password"}).status_code == 200
+
+
+@pytest.mark.parametrize("synthetic", [False, True], ids=["new-user", "synthetic-duplicate"])
+def test_explicit_signup_sends_one_otp_without_issuing_a_session(client, store, provider, monkeypatch, synthetic):
+    provider.signup_delivery_mode = "explicit"
+    original = provider._request
+    returned_user = {"id": "synthetic-duplicate-id" if synthetic else "new-user-id", "emailVerified": False}
+
+    def request(path, body=None, **kwargs):
+        result = original(path, body, **kwargs)
+        if path == "/sign-up/email":
+            return {"user": returned_user, "token": None}, ["neon-auth.session_token=ignore-unverified-cookie; Secure"]
+        return result
+    monkeypatch.setattr(provider, "_request", request)
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == 201 and reply.json() == {"email": SIGNUP["email"], "verificationSent": True}
+    assert reply.headers["Cache-Control"] == "no-store" and "set-cookie" not in reply.headers
+    assert [call[0] for call in provider.calls] == ["/sign-up/email", "/email-otp/send-verification-otp"]
+    assert provider.calls[1][1] == {"email": SIGNUP["email"], "type": "email-verification"}
+    assert returned_user["emailVerified"] is False
+    with store() as db:
+        assert list(db.scalars(select(models.User))) == []
+        assert list(db.scalars(select(models.NeonIdentity))) == []
+
+
+@pytest.mark.parametrize("result", [None, {}, {"user": None}, {"user": {"emailVerified": True}, "token": None},
+                                     {"user": {"emailVerified": False}, "token": "private-auto-session"}])
+def test_explicit_signup_bad_or_auto_login_response_never_sends_an_otp(client, provider, monkeypatch, result):
+    provider.signup_delivery_mode = "explicit"
+    calls = []
+
+    def request(path, body=None, **kwargs):
+        calls.append(path)
+        return result, []
+    monkeypatch.setattr(provider, "_request", request)
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == 503 and calls == ["/sign-up/email"]
+    assert "accountCreated" not in reply.json() and "verificationRequired" not in reply.json()
+    assert "private-auto-session" not in reply.text and SIGNUP["password"] not in reply.text
+
+
+@pytest.mark.parametrize("error", [EmailAuthUnavailable("signup transport unavailable"),
+                                    EmailProviderError("An account already exists", "USER_ALREADY_EXISTS", 409),
+                                    EmailProviderError("Wait before trying again", "TOO_MANY_REQUESTS", 429)])
+def test_explicit_signup_failure_never_attempts_a_second_request(client, provider, monkeypatch, error):
+    provider.signup_delivery_mode = "explicit"
+    calls = []
+
+    def request(path, body=None, **kwargs):
+        calls.append(path)
+        raise error
+    monkeypatch.setattr(provider, "_request", request)
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == getattr(error, "status", 503)
+    assert calls == ["/sign-up/email"] and "verificationRequired" not in reply.json()
+
+
+@pytest.mark.parametrize("payload", [None, {}, {"success": False}, {"success": "true"}, {"status": True}, []])
+def test_explicit_signup_unconfirmed_otp_delivery_is_recoverable(client, provider, monkeypatch, payload):
+    provider.signup_delivery_mode = "explicit"
+    original = provider._request
+
+    def request(path, body=None, **kwargs):
+        result = original(path, body, **kwargs)
+        return (payload, []) if path == "/email-otp/send-verification-otp" else result
+    monkeypatch.setattr(provider, "_request", request)
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == 503 and reply.json()["code"] == "VERIFICATION_SEND_FAILED"
+    assert reply.json()["verificationRequired"] is True and "accountCreated" not in reply.json()
+    assert "verificationSent" not in reply.json() and SIGNUP["password"] not in reply.text
+    assert [call[0] for call in provider.calls] == ["/sign-up/email", "/email-otp/send-verification-otp"]
+    # Retrying delivery uses the existing resend action, not another account-creation request.
+    monkeypatch.setattr(provider, "_request", original)
+    assert client.post("/auth/neon/resend", json={"email": SIGNUP["email"]}).status_code == 200
+    assert [call[0] for call in provider.calls].count("/sign-up/email") == 1
+
+
+@pytest.mark.parametrize("error", [EmailAuthUnavailable("private transport detail"),
+                                    EmailProviderError("private provider detail", "UNAUTHORIZED", 401)])
+def test_explicit_signup_delivery_failure_does_not_claim_account_creation(client, provider, monkeypatch, error):
+    provider.signup_delivery_mode = "explicit"
+    original = provider._request
+
+    def request(path, body=None, **kwargs):
+        result = original(path, body, **kwargs)
+        if path == "/email-otp/send-verification-otp":
+            raise error
+        return result
+    monkeypatch.setattr(provider, "_request", request)
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == 503 and reply.json()["code"] == "VERIFICATION_SEND_FAILED"
+    assert reply.json()["verificationRequired"] is True and "accountCreated" not in reply.json()
+    assert "private" not in reply.text and len(provider.calls) == 2
+
+
+@pytest.mark.parametrize("code", ["TOO_MANY_REQUESTS", "TOO_MANY_ATTEMPTS"])
+def test_explicit_signup_otp_rate_limit_keeps_429_and_verification_recovery(client, provider, monkeypatch, code):
+    provider.signup_delivery_mode = "explicit"
+    original = provider._request
+
+    def request(path, body=None, **kwargs):
+        result = original(path, body, **kwargs)
+        if path == "/email-otp/send-verification-otp":
+            raise EmailProviderError("Wait before trying again", code, 429)
+        return result
+    monkeypatch.setattr(provider, "_request", request)
+    reply = client.post("/auth/neon/register", json=SIGNUP)
+    assert reply.status_code == 429 and reply.json()["code"] == code
+    assert reply.json()["verificationRequired"] is True and reply.json()["retry_after"] == 60
+    assert "accountCreated" not in reply.json() and len(provider.calls) == 2
+
+
+def test_explicit_signup_transport_timeout_has_safe_recoverable_error(monkeypatch):
+    provider = NeonAuth(AUTH_URL, "https://vuga-app.onrender.com", "synthetic-secret",
+                        signup_delivery_mode="explicit")
+    calls = []
+
+    def request(req, timeout):
+        calls.append(req.full_url)
+        if req.full_url.endswith("/send-verification-otp"):
+            raise TimeoutError("private-password-and-cookie")
+        response = io.BytesIO(b'{"user":{"emailVerified":false},"token":null}')
+        response.headers = Message()
+        return response
+    monkeypatch.setattr(provider._opener, "open", request)
+    with pytest.raises(EmailProviderError) as caught:
+        provider.register(SIGNUP["name"], SIGNUP["email"], SIGNUP["password"])
+    assert caught.value.code == "VERIFICATION_SEND_FAILED" and caught.value.verification_required
+    assert not caught.value.account_created and "private" not in str(caught.value)
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("mode", ["provider", "paused", "explicit"])
+def test_health_reports_signup_mode_without_contacting_provider(client, provider, mode):
+    provider.signup_delivery_mode = mode
+    reply = client.get("/health")
+    assert reply.status_code == 200 and reply.json()["email_signup_delivery"] == mode
+    assert provider.calls == []
+
+
+def test_signup_delivery_setting_defaults_to_provider_and_rejects_invalid_mode():
+    assert Settings(_env_file=None).neon_signup_delivery_mode == "provider"
+    with pytest.raises(ValueError):
+        Settings(_env_file=None, neon_signup_delivery_mode="unknown")
+
+
+@pytest.mark.parametrize("password", ["lowercase9!", "Uppercase!", "Uppercase9", "Uppercase9 ",
+                                      "Ab1!", "a" * 126 + "A1!", "Abcdefg\u0661!"])
+def test_new_password_policy_rejects_signup_and_reset_before_provider_write(client, provider, password):
+    for path, body in [("register", {**SIGNUP, "password": password}),
+                       ("password-reset/confirm", {"email": SIGNUP["email"], "otp": "123456", "password": password})]:
+        reply = client.post("/auth/neon/" + path, json=body)
+        assert reply.status_code == 422 and password not in reply.text
+    assert provider.calls == []
+
+
+@pytest.mark.parametrize("password", ["Abcdefg9!", "École123!", "😀A12345!", " École9! ", "a" * 125 + "A1!"])
+def test_new_password_policy_uses_unicode_codepoints_and_preserves_spaces(password):
+    assert schemas.NeonRegisterIn(**{**SIGNUP, "password": password}).password == password
+    assert schemas.NeonResetIn(email=SIGNUP["email"], otp="123456", password=password).password == password
+
+
+def test_new_password_policy_does_not_reject_existing_login_password(client, provider):
+    reply = client.post("/auth/neon/login", json={"email": SIGNUP["email"], "password": "old-password"})
+    assert reply.status_code == 200
+    assert provider.calls[0][1]["password"] == "old-password"
+
+
+@pytest.mark.parametrize("email", ["wrong", "@example.test", "a@example", "a..b@example.com", ".a@example.com",
+                                   "a.@example.com", "a@example..com", "a@example.com.", "a@-example.com",
+                                   "a@example-.com", "a@exam ple.com", "a" * 65 + "@example.com",
+                                   "a@" + "x" * 64 + ".com", '"a"@example.com', "a@site/path.com"])
+def test_practical_email_validation_rejects_bad_signup_before_provider_write(client, provider, email):
+    reply = client.post("/auth/neon/register", json={**SIGNUP, "email": email})
+    assert reply.status_code == 422 and provider.calls == []
+
+
+@pytest.mark.parametrize("email, expected", [
+    (" Parent+school@Example.TEST ", "parent+school@example.test"),
+    ("teacher.one@example-school.test", "teacher.one@example-school.test"),
+    ("teacher@müller.de", "teacher@xn--mller-kva.de"),
+    ("teacher@faß.de", "teacher@xn--fa-hia.de"),
+    ("teacher@xn--fa-hia.de", "teacher@xn--fa-hia.de"),
+    ("teacher@fass.de", "teacher@fass.de"),
+    ("teacher@ς.gr", "teacher@xn--3xa.gr"),
+])
+def test_practical_email_validation_accepts_plus_addresses_and_idna_domains(email, expected):
+    assert schemas.NeonRegisterIn(**{**SIGNUP, "email": email}).email == expected

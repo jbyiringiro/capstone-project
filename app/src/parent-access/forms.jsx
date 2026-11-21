@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { normalisePhone } from '../server/phone.js'
 import { userError } from '../shared/errors-rw.js'
+import { EMAIL_FORMAT_TEXT, PASSWORD_REQUIREMENT_TEXT, normalizeEmailAddress, passwordRequirements, validEmailAddress, validNewPassword } from '../shared/account-validation.js'
 
 // The pieces every parent-access form shares: its messages, fields, the cooldown notice and usePinForm.
 const NAME_MAX = 120 // users.name on the server
@@ -15,7 +16,7 @@ export const MESSAGES = {
   smscode: 'Andika kode y’imibare 6 twakoherereje muri SMS.',
   emailcode: 'Andika kode y’imibare 6 twakoherereje muri email.',
   name: `Andika izina ryawe nk’umurezi, inyuguti zitarenze ${NAME_MAX}.`,
-  password: 'Hitamo ijambo ry’ibanga rya konti rifite nibura inyuguti 8.',
+  password: PASSWORD_REQUIREMENT_TEXT,
   passwordmismatch: 'Amagambo y’ibanga wanditse ntahuye. Ongera uyandike.',
   'email-unverified': 'Banza ufungure email twakoherereje, wemeze aderesi yawe, hanyuma wongere winjire.',
   'email-unavailable': 'Konti za email ntiziraboneka ubu. Ushobora gukomeza ukoresheje iki gikoresho gusa.',
@@ -64,21 +65,46 @@ export function NameField({ value, setValue, disabled, inputRef, hint = true }) 
 }
 
 export function EmailField({ value, setValue, disabled, inputRef, readOnly = false }) {
-  return <TextField label="Email" type="email" value={value} setValue={setValue} disabled={disabled} inputRef={inputRef}
-    className="parent-email-field" autoComplete="email" autoCapitalize="none" inputMode="email" maxLength={254} readOnly={readOnly} />
+  const id = useId(), [touched, setTouched] = useState(false), [error, setError] = useState('')
+  function validate(input) {
+    input.setCustomValidity('')
+    const next = !validEmailAddress(input.value) ? EMAIL_FORMAT_TEXT : ''
+    input.setCustomValidity(next); setError(next)
+  }
+  function canonicalize(input) {
+    const normalized = normalizeEmailAddress(input.value)
+    if (normalized) { input.value = normalized; setValue(normalized) }
+    validate(input)
+  }
+  // Native email inputs can rewrite typed IDNs (faß.de -> fass.de) before React receives
+  // the value. Keep the email keyboard/autofill, and validate/canonicalize the original text.
+  return <><TextField label="Email" type="text" value={value} setValue={setValue} disabled={disabled} inputRef={inputRef}
+    className="parent-email-field" autoComplete="email" autoCapitalize="none" inputMode="email" maxLength={254} readOnly={readOnly}
+    aria-invalid={!!error} aria-describedby={error ? `${id}-error` : undefined}
+    onBlur={event => { if (!readOnly) { setTouched(true); canonicalize(event.currentTarget) } }}
+    onKeyDown={event => { if (event.key === 'Enter' && !readOnly) { setTouched(true); canonicalize(event.currentTarget) } }}
+    onChange={event => { event.currentTarget.setCustomValidity(''); setValue(event.target.value); if (touched) validate(event.currentTarget) }}
+    onInvalid={event => { setTouched(true); canonicalize(event.currentTarget) }} />
+    {error && <p id={`${id}-error`} className="parent-field-error" role="status">{error}</p>}
+  </>
 }
 
 // Cloud passwords are never constrained to, or confused with, the local numeric PIN.
-export function PasswordField({ value, setValue, disabled, inputRef, creating = false, label = 'Ijambo ry’ibanga rya konti', hint }) {
+export function PasswordField({ value, setValue, disabled, inputRef, creating = false, showRequirements = true, label = 'Ijambo ry’ibanga rya konti', hint }) {
   const id = useId(), [visible, setVisible] = useState(false)
+  const rules = passwordRequirements(value)
+  const ruleLabels = { length: 'Inyuguti 8–128', uppercase: 'Inyuguti nkuru (A–Z)', number: 'Umubare (0–9)', symbol: 'Ikimenyetso (nka !, @, #)' }
+  const describedBy = [hint && `${id}-hint`, creating && showRequirements && `${id}-requirements`].filter(Boolean).join(' ') || undefined
   // Each field owns its reveal control; clearing a password hides it again.
   useEffect(() => { if (!value) setVisible(false) }, [value])
   return <div className="parent-pin-field parent-password-field">
     <label htmlFor={id}>{label}</label>
     <div className="parent-password-input">
-      <input id={id} ref={inputRef} type={visible ? 'text' : 'password'} value={value} onChange={event => setValue(event.target.value)}
+      <input id={id} ref={inputRef} type={visible ? 'text' : 'password'} value={value} onChange={event => {
+        setValue(event.target.value); event.target.setCustomValidity(creating && !validNewPassword(event.target.value) ? PASSWORD_REQUIREMENT_TEXT : '')
+      }} onInvalid={event => { if (creating) event.currentTarget.setCustomValidity(PASSWORD_REQUIREMENT_TEXT) }}
         disabled={disabled} required autoComplete={creating ? 'new-password' : 'current-password'} autoCapitalize="none" spellCheck={false}
-        minLength={creating ? 8 : undefined} aria-describedby={hint ? `${id}-hint` : undefined} />
+        minLength={creating ? 8 : undefined} aria-describedby={describedBy} />
       <button type="button" className="parent-password-toggle" disabled={disabled} aria-pressed={visible}
         aria-label={`${visible ? 'Hisha' : 'Erekana'}: ${label}`} onClick={() => setVisible(current => !current)}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -88,6 +114,9 @@ export function PasswordField({ value, setValue, disabled, inputRef, creating = 
       </button>
     </div>
     {hint && <small id={`${id}-hint`} className="parent-field-hint">{hint}</small>}
+    {creating && showRequirements && <ul id={`${id}-requirements`} className="password-requirements" aria-label="Ibisabwa ku ijambo ry’ibanga">
+      {Object.entries(ruleLabels).map(([key, label]) => <li key={key} data-met={rules[key]}><span aria-hidden="true">{rules[key] ? '✓' : '○'}</span> <span className="sr-only">{rules[key] ? 'Byujujwe: ' : 'Birasabwa: '}</span>{label}</li>)}
+    </ul>}
   </div>
 }
 

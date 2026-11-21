@@ -30,6 +30,10 @@ services:
         sync: false
       - key: VUGA_NEON_AUTH_ORIGIN
         value: https://vuga-app.onrender.com
+      # Coordinate with Neon automatic signup email settings; see docs/neon-auth.md.
+      # Managed manually so Blueprint sync cannot bypass a paused rollout.
+      - key: VUGA_NEON_SIGNUP_DELIVERY_MODE
+        sync: false
       # Enable only after deletion succeeds on a disposable account on the intended branch.
       - key: VUGA_NEON_DELETE_ENABLED
         sync: false
