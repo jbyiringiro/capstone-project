@@ -1,0 +1,68 @@
+{
+  "date": "2026-11-21",
+  "runtime_commit": "d9d9c5257a8e816a85ddc48974ba34ce089deaff",
+  "source_commit": "cb093f0e3e61ab6c6c782c5a36af726555a16264",
+  "api_deployment": "dep-dc0tcs8m7kps73eib9j0",
+  "frontend_deployment": "dep-dc0tam59el5s73f60fh0",
+  "api_signup_delivery": "explicit",
+  "email_verification_required": true,
+  "neon_automatic_signup_send": false,
+  "frontend_unit_tests": 312,
+  "api_tests_passed": 311,
+  "api_tests_skipped": 5,
+  "skip_reason": "Separate PostgreSQL migration test database not configured",
+  "local_auth_browser_checks": 20,
+  "local_board_browser_checks": 24,
+  "live_ui": {
+    "checks": [
+      {
+        "width": 1280,
+        "signup": true,
+        "emailValidation": true,
+        "passwordChecklist": true,
+        "loginUnchanged": true,
+        "fits": true
+      },
+      {
+        "width": 390,
+        "signup": true,
+        "emailValidation": true,
+        "passwordChecklist": true,
+        "loginUnchanged": true,
+        "fits": true
+      },
+      {
+        "width": 320,
+        "signup": true,
+        "emailValidation": true,
+        "passwordChecklist": true,
+        "loginUnchanged": true,
+        "fits": true
+      }
+    ],
+    "pageErrors": [],
+    "blockedWrites": [],
+    "assets": [
+      {
+        "path": "/assets/index-B4a4hmEZ.js",
+        "sha256": "38455090a6a07f5acc5b3b500afeb0133f7899f7ce571252408f45580f1425fa",
+        "signupRecovery": true,
+        "passwordPolicy": true
+      }
+    ],
+    "scope": "Live UI and local validation only; no signup, login or email requests.",
+    "passed": true
+  },
+  "live_api": {
+    "checkedAt": "2026-11-21T17:37:22.845Z",
+    "passed": true,
+    "checks": [
+      "Live API uses explicit signup code requests",
+      "/auth/neon/register: invalid email and weak password rejected without reflecting inputs",
+      "/auth/neon/password-reset/confirm: invalid email and weak password rejected without reflecting inputs"
+    ],
+    "realAccountsChanged": false,
+    "emailsSent": false
+  },
+  "real_signup_mailbox_delivery_tested_after_release": false
+}

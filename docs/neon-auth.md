@@ -1,6 +1,8 @@
 # Render and Neon email accounts
 
-**Account management release, 21 November 2026:** both hosted services run `527a84e`. Name editing and confirmed cloud-account deletion are enabled. Validation: 261 frontend tests, 248 API tests, 13 real isolated Neon API checks, a production disposable-user deletion, seven hosted API checks and 24 live browser checks. See the [release and evidence](releases/account-management-2026-11-21.md) for scope and limits.
+**Signup delivery release, 21 November 2026:** both hosted services now run `d9d9c52`. Initial code requests, signup/reset password rules, email validation and authentication-link styling are updated. See the [release and verification limits](releases/signup-delivery-2026-11-21.md).
+
+**Earlier account management release, 21 November 2026:** both hosted services were deployed at `527a84e`. Name editing and confirmed cloud-account deletion are enabled. Validation: 261 frontend tests, 248 API tests, 13 real isolated Neon API checks, a production disposable-user deletion, seven hosted API checks and 24 live browser checks. See the [release and evidence](releases/account-management-2026-11-21.md) for scope and limits.
 
 **Dashboard update, 20 November 2026:** the frontend now runs `73ec88c`; the API and authentication configuration remain at `5d5388b`. The release passed 245 frontend tests and 25 live browser checks. See [deployment results](evidence/dashboard-hosted-2026-11-20/checks.json). The authentication setup and dated 17 November record below remain applicable.
 
