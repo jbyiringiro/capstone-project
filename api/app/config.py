@@ -1,7 +1,7 @@
 from secrets import token_urlsafe
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -38,8 +38,14 @@ class Settings(BaseSettings):
     email_auth_provider: Literal["firebase", "neon"] = "firebase"
     neon_auth_url: str | None = None
     neon_auth_origin: str | None = None
-    # Enable only after self-service deletion has been confirmed on this Neon branch.
+    # Enable only after deletion has been confirmed on this Neon branch. Managed Neon may
+    # not expose Better Auth's /delete-user route; the server can use a dedicated project
+    # API key with an explicitly bound branch instead. Never expose that key to Vite.
     neon_delete_enabled: bool = False
+    neon_delete_mode: Literal["self_service", "management"] = "self_service"
+    neon_management_api_key: SecretStr | None = None
+    neon_project_id: str | None = None
+    neon_branch_id: str | None = None
 
 
 settings = Settings()

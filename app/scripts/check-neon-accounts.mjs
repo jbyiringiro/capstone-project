@@ -14,6 +14,7 @@ const page = await context.newPage(), checks = [], errors = [], external = [], r
 const user = { user_id: 'neon-vuga-user', email: 'caregiver@example.test', name: 'Demo Caregiver', auth_provider: 'neon', role: 'teacher' }
 let passwordValue = 'Initial-password-48', verified = false, wrongIdentity = false, deleteFails = false, copy = null
 let resetPartial = false
+let nameFailure = 0, deletionDisabled = false
 const credentials = () => ({ idToken: 'neon.mock-sealed-session', uid: 'neon-provider-user', email: user.email, displayName: user.name, expiresIn: 3600 })
 const count = path => requests.filter(request => request.path === path).length
 const board = page.locator('.board:visible'), gate = page.locator('.parent-access')
@@ -55,8 +56,17 @@ await context.route('**/*', async route => {
   }
   if (path === '/auth/neon/password-reset/finish') return body.password === passwordValue ? json(route, 200, { reset: true }) : json(route, 401, { detail: { code: 'INVALID_EMAIL_OR_PASSWORD' } })
   if (path === '/auth/email/session') return json(route, 200, { access_token: credentials().idToken, token_type: 'bearer', user })
-  if (path === '/auth/me') return json(route, 200, wrongIdentity ? { ...user, user_id: 'different-vuga-user' } : user)
-  if (path === '/auth/email/delete-account') return deleteFails ? json(route, 503, {}) : json(route, 200, { deleted: true })
+  if (path === '/auth/me') {
+    if (request.method() === 'PATCH') {
+      if (nameFailure) return json(route, nameFailure, {})
+      user.name = body.name
+    }
+    return json(route, 200, wrongIdentity ? { ...user, user_id: 'different-vuga-user' } : user)
+  }
+  if (path === '/auth/email/delete-account') {
+    if (deletionDisabled) return json(route, 503, { code: 'ACCOUNT_DELETION_DISABLED' })
+    return deleteFails ? json(route, 503, { code: 'ACCOUNT_DELETION_PENDING', vugaDataDeleted: true }) : route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } })
+  }
   if (path === '/auth/neon/signout') return route.fulfill({ status: 204 })
   if (path === '/health') return json(route, 200, { status: 'ok', email: 'neon', model_loaded: true })
   if (path === '/profiles' || path === '/symbols') return json(route, 200, [])
@@ -176,6 +186,44 @@ try {
     await back(); await context.setOffline(true); await unlock('4826'); await context.setOffline(false)
     expect(count('/auth/neon/login')).toBe(before); await settings()
   })
+  await check('Name editing saves the adult name, preserves identity and PIN, and works at phone widths', async () => {
+    const before = await data(), scope = page.locator('.parent-settings')
+    await scope.getByRole('button', { name: 'Hindura izina', exact: true }).click()
+    const editor = scope.getByRole('form', { name: 'Hindura izina rya konti', exact: true })
+    await editor.getByLabel(/^Izina ryawe/).fill('  Updated   Caregiver  ')
+    await responsive('edit-name')
+    await editor.getByRole('button', { name: 'Bika izina', exact: true }).click()
+    await expect(scope.getByRole('status')).toContainText('Izina rya konti ryahinduwe')
+    const after = await data()
+    expect(setting(after, 'account')).toMatchObject({ user_id: user.user_id, name: 'Updated Caregiver', email: user.email })
+    expect(setting(after, 'parent-access:v1')).toEqual(setting(before, 'parent-access:v1'))
+    expect(after.profiles).toEqual(before.profiles)
+    await page.reload(); await expect(board).toBeVisible(); await unlock('4826'); await settings()
+    await expect(page.locator('.parent-settings')).toContainText('Updated Caregiver')
+  })
+  await check('A refused name save keeps the old name; cancel never saves; expired sessions can sign in and retry', async () => {
+    const scope = page.locator('.parent-settings')
+    await scope.getByRole('button', { name: 'Hindura izina', exact: true }).click()
+    const editor = scope.getByRole('form', { name: 'Hindura izina rya konti', exact: true })
+    await editor.getByLabel(/^Izina ryawe/).fill('Final Caregiver')
+    nameFailure = 503
+    await editor.getByRole('button', { name: 'Bika izina', exact: true }).click()
+    await expect(editor.getByRole('alert')).toContainText('Ntibyashobotse')
+    expect(setting(await data(), 'account').name).toBe('Updated Caregiver')
+    await editor.getByRole('button', { name: 'Reka', exact: true }).click()
+    await expect(editor).toHaveCount(0)
+    await scope.getByRole('button', { name: 'Hindura izina', exact: true }).click()
+    await expect(editor.getByLabel(/^Izina ryawe/)).toHaveValue('Updated Caregiver')
+    await editor.getByLabel(/^Izina ryawe/).fill('Final Caregiver')
+    nameFailure = 401
+    await editor.getByRole('button', { name: 'Bika izina', exact: true }).click()
+    await expect(password(editor)).toBeVisible()
+    nameFailure = 0
+    await password(editor).fill(passwordValue)
+    await editor.getByRole('button', { name: 'Bika izina', exact: true }).click()
+    await expect(editor).toHaveCount(0)
+    expect(setting(await data(), 'account').name).toBe('Final Caregiver')
+  })
   await check('Account settings include a complete code-based reset and preserve the local PIN', async () => {
     const scope = page.locator('.parent-settings')
     await scope.getByRole('button', { name: 'Hindura ijambo ry’ibanga rya konti ukoresheje email', exact: true }).click()
@@ -220,6 +268,11 @@ try {
     const scope = page.getByRole('form', { name: 'Siba konti yanjye', exact: true })
     await password(scope).fill('wrong-password'); await scope.getByRole('button', { name: 'Siba konti burundu', exact: true }).click()
     await expect(scope.getByRole('alert')).toContainText('si byo'); expect(count('/auth/email/delete-account')).toBe(0)
+    deletionDisabled = true; await password(scope).fill(passwordValue)
+    await scope.getByRole('button', { name: 'Siba konti burundu', exact: true }).click()
+    await expect(scope.getByRole('alert')).toContainText('Nta makuru yasibwe')
+    expect(setting(await data(), 'account')).toBeDefined()
+    deletionDisabled = false
     deleteFails = true; await password(scope).fill(passwordValue)
     await scope.getByRole('button', { name: 'Siba konti burundu', exact: true }).click()
     await expect(scope.getByRole('alert')).toContainText('ntibirarangira'); expect(setting(await data(), 'account')).toBeDefined()

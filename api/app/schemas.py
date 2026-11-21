@@ -119,6 +119,13 @@ class UserOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AccountUpdate(BaseModel):
+    """Only the adult's display name is editable here; identity and access stay unchanged."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: CaregiverName
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

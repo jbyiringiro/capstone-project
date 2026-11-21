@@ -3,7 +3,8 @@
 Passwords pass directly to the configured HTTPS provider and are never persisted. Only the
 provider's session cookie is encrypted into an opaque, branch-bound bearer. Every authenticated
 Vuga request checks the current Neon session, bypassing its optional cookie cache. Provider
-cookies never reach the browser as cookies; no API key, database password or admin role is used.
+cookies never reach the browser as cookies. Ordinary sign-in uses no management credential;
+optional managed deletion uses a server-only project key bound to this exact auth branch.
 """
 from __future__ import annotations
 
@@ -22,6 +23,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from ..config import settings
 from .errors import EmailAuthUnavailable, EmailNotVerified, EmailProviderError, InvalidCredentials
 from .firebase_auth import RECENT_LOGIN_SECONDS, EmailIdentity
+from .neon_management import NeonManagementDeletion
 
 _MAX_RESPONSE = 1024 * 1024
 _ERRORS = {
@@ -51,10 +53,14 @@ class NeonAuth:
     name = "neon"
 
     def __init__(self, auth_url: str | None, origin: str | None, secret: str,
-                 *, delete_enabled: bool = False, session_seconds: int = 43200):
+                 *, delete_enabled: bool = False, session_seconds: int = 43200,
+                 delete_mode: str = "self_service", management_api_key: str | None = None,
+                 project_id: str | None = None, branch_id: str | None = None):
         self.auth_url = (auth_url or "").rstrip("/")
         self.origin = (origin or "").rstrip("/")
         self.delete_enabled = delete_enabled
+        self.delete_mode = delete_mode
+        self._management = NeonManagementDeletion(self.auth_url, project_id, branch_id, management_api_key)
         self.session_seconds = session_seconds
         # Domain separation prevents reuse of the JWT key as a raw encryption key.
         key = hashlib.sha256(b"vuga:neon-session:v1\0" + secret.encode()).digest()
@@ -260,14 +266,41 @@ class NeonAuth:
         if not isinstance(result, dict) or result.get("success") is not True:
             raise EmailAuthUnavailable("email sign-out was not confirmed")
 
+    def update_name(self, token: str, name: str) -> None:
+        """Update only the signed-in provider user, then read back the uncached identity."""
+        claims = self._open(token)
+        self.verify(token)
+        result, _ = self._request("/update-user", {"name": name}, cookie=claims["cookie"])
+        if not isinstance(result, dict) or result.get("status") is not True:
+            raise EmailAuthUnavailable("email account name update was not confirmed; retry to save")
+        user, _ = self._current(claims["cookie"])
+        if user["id"] != claims["uid"] or user["email"].strip().casefold() != claims["email"]:
+            raise InvalidCredentials("invalid or expired email session")
+        if user.get("name") != name:
+            raise EmailAuthUnavailable("email account name update was not confirmed; retry to save")
+
     def ensure_deletion_available(self) -> None:
         self._require_configuration()
-        if not self.delete_enabled:
-            raise EmailAuthUnavailable("Neon account deletion has not been enabled; no account data was deleted")
+        if not self.delete_enabled or self.delete_mode not in {"self_service", "management"}:
+            raise EmailProviderError("Neon account deletion has not been enabled; no account data was deleted",
+                                     "ACCOUNT_DELETION_DISABLED", 503)
+        if self.delete_mode == "management":
+            self._management.require_configuration()
+
+    def preflight_deletion(self, token: str) -> None:
+        """Call only after matching a fresh signed identity to its own Vuga account."""
+        self.ensure_deletion_available()
+        if self.delete_mode == "management":
+            claims = self._open(token, recent=True)
+            self._management.validate_uid(claims["uid"])
+            self._management.preflight()
 
     def delete(self, token: str) -> None:
         self.ensure_deletion_available()
         claims = self._open(token, recent=True)
+        if self.delete_mode == "management":
+            self._management.delete(claims["uid"])
+            return
         result, _ = self._request("/delete-user", {}, cookie=claims["cookie"])
         if not isinstance(result, dict) or result.get("success") is not True or result.get("message") != "User deleted":
             raise EmailAuthUnavailable("email account deletion is not confirmed; provider cleanup is still pending")
@@ -275,4 +308,8 @@ class NeonAuth:
 
 neon_auth = NeonAuth(settings.neon_auth_url, settings.neon_auth_origin, settings.jwt_secret,
                      delete_enabled=settings.neon_delete_enabled,
-                     session_seconds=settings.jwt_expire_minutes * 60)
+                     session_seconds=settings.jwt_expire_minutes * 60,
+                     delete_mode=settings.neon_delete_mode,
+                     management_api_key=(settings.neon_management_api_key.get_secret_value()
+                                         if settings.neon_management_api_key else None),
+                     project_id=settings.neon_project_id, branch_id=settings.neon_branch_id)

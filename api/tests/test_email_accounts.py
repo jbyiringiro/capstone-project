@@ -61,6 +61,9 @@ def provider(signing_key, monkeypatch):
             return {"users": [provider.account]}, ""
         if "accounts:delete" in url:
             return {}, ""
+        if "accounts:update" in url:
+            provider.account["displayName"] = body["displayName"]
+            return {"localId": provider.account["localId"], "displayName": body["displayName"]}, ""
         pytest.fail("unexpected request")
 
     monkeypatch.setattr(provider, "_request", request)
@@ -100,6 +103,20 @@ def test_verified_identity_uses_signature_and_current_provider_state(provider, s
     provider.verify(token(signing_key))
     assert sum(url == firebase_auth.CERTIFICATES_URL for url, _ in provider.calls) == 1
     assert sum("accounts:lookup" in url for url, _ in provider.calls) == 2
+
+
+def test_name_edit_keeps_firebase_rollback_identity_and_local_account_in_sync(store, provider, signing_key):
+    signed_token = token(signing_key)
+    with store() as db:
+        user = open_account(db, provider, signed_token)
+        user_id = user.user_id
+        updated = EmailAccountService(db, provider).update_name(signed_token, "Updated Parent")
+        assert updated.user_id == user_id and updated.name == "Updated Parent"
+        assert updated.email == "parent@example.test" and updated.firebase_uid == "test-uid"
+        assert updated.password_hash is None
+    assert provider.account["displayName"] == "Updated Parent"
+    requests = [body for url, body in provider.calls if "accounts:update" in url]
+    assert requests == [{"idToken": signed_token, "displayName": "Updated Parent", "returnSecureToken": False}]
 
 
 @pytest.mark.parametrize("overrides", [

@@ -74,6 +74,20 @@ class AccountService:
         self._clear_tries(body.phone)
         self.db.commit()
 
+    def update_name(self, user: models.User, name: str) -> models.User:
+        """Change a phone account's own name while preserving its authenticated PIN version."""
+        lock_account(self.db, user.user_id)
+        changed = self.db.execute(update(models.User).where(
+            models.User.user_id == user.user_id, models.User.token_version == user.token_version,
+            models.User.neon_uid.is_(None), models.User.firebase_uid.is_(None))
+            .values(name=name).execution_options(synchronize_session=False))
+        if changed.rowcount != 1:
+            self.db.rollback()
+            raise InvalidCredentials("invalid or expired session")
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
     def change_pin(self, body: schemas.PinChange) -> None:
         user = self.authenticate(body.phone, body.pin)
         # Stored only while the PIN just checked is still the account's: a PIN replaced in between,

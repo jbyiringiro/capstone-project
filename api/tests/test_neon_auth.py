@@ -30,6 +30,7 @@ from app.services.errors import (
     InvalidCredentials,
 )
 from app.services.neon_auth import NeonAuth, _NoRedirects
+from app.services.neon_management import NeonManagementDeletion
 
 AUTH_URL = "https://ep-vuga.neonauth.c-7.eu-central-1.aws.neon.tech/neondb/auth"
 
@@ -52,6 +53,9 @@ def provider(monkeypatch):
             return None if provider.revoked else {"user": provider.user, "session": provider.session}, []
         if path == "/delete-user":
             return provider.delete_result, []
+        if path == "/update-user":
+            provider.user["name"] = body["name"]
+            return {"status": True}, []
         if path == "/sign-up/email":
             return {"user": {**provider.user, "emailVerified": False}, "token": None}, []
         if path == "/email-otp/verify-email":
@@ -326,8 +330,9 @@ def test_deletion_needs_fresh_login_and_enabled_capability_before_erasing(store,
     with store() as db, pytest.raises(InvalidCredentials):
         EmailAccountService(db, provider).delete_account(schemas.EmailDelete(id_token=stale, user_id=user.user_id))
     provider.delete_enabled = False
-    with store() as db, pytest.raises(EmailAuthUnavailable):
+    with store() as db, pytest.raises(EmailProviderError) as error:
         EmailAccountService(db, provider).delete_account(schemas.EmailDelete(id_token=token, user_id=user.user_id))
+    assert error.value.code == "ACCOUNT_DELETION_DISABLED"
     with store() as db:
         assert db.get(models.User, user.user_id) is not None
 
@@ -404,3 +409,291 @@ def test_neon_additive_migration_preserves_existing_firebase_and_phone_data(tmp_
         row = conn.execute(text("SELECT user_id,firebase_uid,neon_uid FROM users")).one()
         assert tuple(row) == ("old-id", "old-uid", None)
     engine.dispose()
+
+
+@pytest.fixture
+def client(store, provider, monkeypatch):
+    monkeypatch.setattr(settings, "email_auth_provider", "neon")
+    monkeypatch.setattr(email_accounts, "neon_auth", provider)
+    monkeypatch.setattr(auth, "neon_auth", provider)
+
+    def database():
+        with store() as db:
+            yield db
+    before = dict(app.dependency_overrides)
+    app.dependency_overrides[get_db] = database
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(before)
+
+
+def test_update_own_name_persists_in_neon_and_vuga_without_changing_ownership(client, store, provider):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    with store() as db:
+        child = models.ChildProfile(code="EDIT-01", created_by=user.user_id)
+        other = models.User(name="Other caregiver", phone="+250788000099", role="caregiver")
+        db.add_all([child, other])
+        db.commit()
+        child_id, other_id = child.profile_id, other.user_id
+    headers = {"Authorization": "Bearer " + token}
+    response = client.patch("/auth/me", json={"name": "  Josue   Byiringiro  "}, headers=headers)
+    assert response.status_code == 200 and response.headers["Cache-Control"] == "no-store"
+    assert response.json() == {"user_id": user.user_id, "name": "Josue Byiringiro", "phone": None,
+                               "email": "parent@example.test", "auth_provider": "neon", "role": "caregiver"}
+    assert provider.user["name"] == "Josue Byiringiro"
+    updates = [call for call in provider.calls if call[0] == "/update-user"]
+    assert len(updates) == 1 and updates[0][1] == {"name": "Josue Byiringiro"}
+    assert updates[0][2] == "__Secure-neon-auth.session_token=signed-test-cookie"
+    assert client.get("/auth/me", headers=headers).json()["name"] == "Josue Byiringiro"
+    # A subsequent login/session exchange must not overwrite the edited name from stale UI input.
+    renewed = client.post("/auth/email/session", json={"id_token": token, "name": "Old form name"})
+    assert renewed.status_code == 200 and renewed.json()["user"]["name"] == "Josue Byiringiro"
+    with store() as db:
+        saved = db.get(models.User, user.user_id)
+        assert saved.neon_uid == "neon-test-uid" and saved.neon_auth_url == AUTH_URL
+        assert saved.password_hash is None and saved.role == "caregiver"
+        assert db.get(models.ChildProfile, child_id).created_by == user.user_id
+        assert db.get(models.User, other_id).name == "Other caregiver"
+
+
+@pytest.mark.parametrize("body", [
+    {}, {"name": " "}, {"name": "x" * 121}, {"name": "name\x00bad"},
+    {"name": "Parent", "role": "administrator"}, {"name": "Parent", "email": "other@example.test"},
+    {"name": "Parent", "user_id": "another-user"}, {"name": "Parent", "neon_uid": "another-user"},
+])
+def test_name_edit_rejects_invalid_name_and_identity_fields(client, store, provider, body):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    response = client.patch("/auth/me", json=body, headers={"Authorization": "Bearer " + token})
+    assert response.status_code == 422
+    assert not any(call[0] == "/update-user" for call in provider.calls)
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "Parent"
+
+
+def test_name_edit_requires_current_verified_session(client, store, provider):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    assert client.patch("/auth/me", json={"name": "New"}).status_code == 401
+    assert client.patch("/auth/me", json={"name": "New"},
+                        headers={"Authorization": "Bearer neon.tampered"}).status_code == 401
+    provider.revoked = True
+    assert client.patch("/auth/me", json={"name": "New"},
+                        headers={"Authorization": "Bearer " + token}).status_code == 401
+    provider.revoked = False
+    provider.user["emailVerified"] = False
+    assert client.patch("/auth/me", json={"name": "New"},
+                        headers={"Authorization": "Bearer " + token}).status_code == 403
+    assert not any(call[0] == "/update-user" for call in provider.calls)
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "Parent"
+
+
+@pytest.mark.parametrize("reply", [None, {}, {"status": False}, {"success": True}, {"status": True}])
+def test_unconfirmed_provider_name_does_not_change_vuga(client, store, provider, monkeypatch, reply):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    original = provider._request
+
+    def update_without_confirmation(path, body=None, **kwargs):
+        if path == "/update-user":
+            return reply, []  # Even status=true is insufficient if the provider name did not change.
+        return original(path, body, **kwargs)
+    monkeypatch.setattr(provider, "_request", update_without_confirmation)
+    assert client.patch("/auth/me", json={"name": "New"},
+                        headers={"Authorization": "Bearer " + token}).status_code == 503
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "Parent"
+
+
+def test_retry_reconciles_name_after_lost_provider_response(client, store, provider, monkeypatch):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    original = provider._request
+
+    def lost_response(path, body=None, **kwargs):
+        result = original(path, body, **kwargs)
+        if path == "/update-user":
+            raise EmailAuthUnavailable("synthetic provider timeout")
+        return result
+    monkeypatch.setattr(provider, "_request", lost_response)
+    headers = {"Authorization": "Bearer " + token}
+    assert client.patch("/auth/me", json={"name": "New"}, headers=headers).status_code == 503
+    assert provider.user["name"] == "New"
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "Parent"
+    monkeypatch.setattr(provider, "_request", original)
+    assert client.patch("/auth/me", json={"name": "New"}, headers=headers).status_code == 200
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "New"
+
+
+def test_name_edit_refreshes_authenticated_user_after_concurrent_change(store, provider):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    with store() as db:
+        stale = db.get(models.User, user.user_id)
+        assert stale.name == "Parent"
+        # Another request finishes after this request's authentication loaded the old user.
+        with store() as other_db:
+            other = other_db.get(models.User, user.user_id)
+            other.name = "Interim name"
+            other_db.commit()
+        provider.user["name"] = "Interim name"
+        changed = EmailAccountService(db, provider).update_name(token, "Parent")
+        assert changed.name == "Parent" and provider.user["name"] == "Parent"
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "Parent"
+
+
+def test_deletion_distinguishes_disabled_from_erased_pending_and_complete(client, store, provider):
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    body = {"id_token": token, "user_id": user.user_id}
+    provider.delete_enabled = False
+    disabled = client.post("/auth/email/delete-account", json=body)
+    assert disabled.status_code == 503 and disabled.json()["code"] == "ACCOUNT_DELETION_DISABLED"
+    assert "vugaDataDeleted" not in disabled.json()
+    with store() as db:
+        assert db.get(models.User, user.user_id) is not None
+    provider.delete_enabled = True
+    provider.delete_result = {"success": True, "message": "Verification email sent"}
+    pending = client.post("/auth/email/delete-account", json=body)
+    assert pending.status_code == 503 and pending.json()["code"] == "ACCOUNT_DELETION_PENDING"
+    assert pending.json()["vugaDataDeleted"] is True
+    with store() as db:
+        assert db.get(models.User, user.user_id) is None
+    assert client.patch("/auth/me", json={"name": "Resurrected"},
+                        headers={"Authorization": "Bearer " + token}).status_code == 401
+    provider.delete_result = {"success": True, "message": "User deleted"}
+    assert client.post("/auth/email/delete-account", json=body).status_code == 204
+    provider.revoked = True
+    assert client.post("/auth/email/delete-account", json=body).status_code == 204
+
+
+def test_name_edit_for_legacy_phone_account_preserves_pin_and_owner(client, store):
+    with store() as db:
+        user = models.User(name="Old", phone="+250788000088", role="caregiver", password_hash="unchanged")
+        db.add(user)
+        db.commit()
+        token, user_id = create_token(user), user.user_id
+    response = client.patch("/auth/me", json={"name": "New"}, headers={"Authorization": "Bearer " + token})
+    assert response.status_code == 200 and response.json()["auth_provider"] == "phone"
+    with store() as db:
+        saved = db.get(models.User, user_id)
+        assert saved.name == "New" and saved.password_hash == "unchanged" and saved.token_version == 0
+
+
+@pytest.fixture
+def managed_provider(provider, monkeypatch):
+    provider.delete_mode = "management"
+    provider._management = NeonManagementDeletion(AUTH_URL, "vuga-test-123", "br-vuga-test", "synthetic-api-key")
+    provider.management_calls = []
+    provider.management_status = 204
+    provider.management_metadata = {"auth_provider": "better_auth", "branch_id": "br-vuga-test", "base_url": AUTH_URL}
+
+    def request(req, timeout):
+        provider.management_calls.append((req.method, req.full_url))
+        if req.method == "GET":
+            result = io.BytesIO(json.dumps(provider.management_metadata).encode())
+            result.status = 200
+        else:
+            result = io.BytesIO(b"")
+            result.status = provider.management_status
+        return result
+    monkeypatch.setattr(provider._management._opener, "open", request)
+    return provider
+
+
+def test_management_delete_erases_only_verified_identity_and_replays_after_key_disabled(client, store, managed_provider):
+    provider = managed_provider
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    with store() as db:
+        other = models.User(name="Unrelated", phone="+250788000077", role="caregiver")
+        db.add(other)
+        db.commit()
+        other_id = other.user_id
+    body = {"id_token": token, "user_id": user.user_id}
+    assert client.post("/auth/email/delete-account", json=body).status_code == 204
+    root = "https://console.neon.tech/api/v2/projects/vuga-test-123/branches/br-vuga-test/auth"
+    assert provider.management_calls == [("GET", root), ("GET", root), ("DELETE", root + "/users/neon-test-uid")]
+    assert not any(call[0] == "/delete-user" for call in provider.calls)
+    with store() as db:
+        assert db.get(models.User, user.user_id) is None
+        assert db.get(models.User, other_id).name == "Unrelated"
+        record = db.get(models.NeonIdentity, (AUTH_URL, "neon-test-uid"))
+        assert record.deleted and record.provider_deleted
+    before = len(provider.management_calls)
+    provider.delete_enabled = False
+    provider._management._api_key = ""
+    provider.revoked = True
+    assert client.post("/auth/email/delete-account", json=body).status_code == 204
+    assert len(provider.management_calls) == before
+
+
+def test_management_preflight_mismatch_preserves_every_account_record(client, store, managed_provider):
+    provider = managed_provider
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    provider.management_metadata["base_url"] = "https://wrong.neon.build/neondb/auth"
+    result = client.post("/auth/email/delete-account", json={"id_token": token, "user_id": user.user_id})
+    assert result.status_code == 503 and "vugaDataDeleted" not in result.json()
+    assert [method for method, _ in provider.management_calls] == ["GET"]
+    with store() as db:
+        assert db.get(models.User, user.user_id).name == "Parent"
+        assert not db.get(models.NeonIdentity, (AUTH_URL, "neon-test-uid")).deleted
+
+
+def test_malformed_provider_uid_is_rejected_before_vuga_erasure(client, store, managed_provider):
+    provider = managed_provider
+    provider.user["id"] = "../other-user"
+    provider.session["userId"] = provider.user["id"]
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    result = client.post("/auth/email/delete-account", json={"id_token": token, "user_id": user.user_id})
+    assert result.status_code == 503 and "vugaDataDeleted" not in result.json()
+    assert provider.management_calls == []
+    with store() as db:
+        assert db.get(models.User, user.user_id) is not None
+        assert not db.get(models.NeonIdentity, (AUTH_URL, "../other-user")).deleted
+
+
+def test_unverified_mismatched_or_stale_requests_do_not_contact_management(client, store, managed_provider):
+    provider = managed_provider
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    stale = reseal(provider, token, auth_time=int(time.time()) - 301)
+    for bad_token, bad_user in [("neon.bad-token", user.user_id), (token, "somebody-else"), (stale, user.user_id)]:
+        assert client.post("/auth/email/delete-account", json={"id_token": bad_token, "user_id": bad_user}).status_code == 401
+    provider.revoked = True
+    assert client.post("/auth/email/delete-account", json={"id_token": token, "user_id": user.user_id}).status_code == 401
+    assert provider.management_calls == []
+    with store() as db:
+        assert db.get(models.User, user.user_id) is not None
+
+
+@pytest.mark.parametrize("status", [200, 202, 404, 500])
+def test_management_non204_remains_pending_and_retry_disabled_is_not_reported_as_intact(
+        client, store, managed_provider, status):
+    provider = managed_provider
+    token = signed(provider)
+    user = open_account(store, provider, token)
+    body = {"id_token": token, "user_id": user.user_id}
+    provider.management_status = status
+    result = client.post("/auth/email/delete-account", json=body)
+    assert result.status_code == 503 and result.json()["code"] == "ACCOUNT_DELETION_PENDING"
+    with store() as db:
+        assert db.get(models.User, user.user_id) is None
+        record = db.get(models.NeonIdentity, (AUTH_URL, "neon-test-uid"))
+        assert record.deleted and not record.provider_deleted
+    provider.delete_enabled = False
+    result = client.post("/auth/email/delete-account", json=body)
+    assert result.status_code == 503 and result.json()["code"] == "ACCOUNT_DELETION_PENDING"
+    assert result.json()["vugaDataDeleted"] is True
+    provider.delete_enabled = True
+    provider.management_status = 204
+    assert client.post("/auth/email/delete-account", json=body).status_code == 204

@@ -190,6 +190,104 @@ describe('email account API integration', () => {
     expect(await getLinkedAccount()).toEqual(SECOND)
   })
 
+  it('updates the account name with its pinned session and preserves the backup, children and local PIN', async () => {
+    emailAuth.provider = 'neon'
+    const before = { ...FIRST, auth_provider: 'neon' }
+    await linked(before, 'neon.original')
+    await db.settings.put({ key: 'parent-access:v1', value: { digest: 'local-pin-hash' } })
+    await db.profiles.put({ profile_id: 'local-child', code: 'Keza', local_only: true })
+    const backup = await db.settings.get('account-backup')
+    const updated = { ...before, name: 'Uwase Ange' }
+    const requests = server(() => reply(200, updated))
+    await expect(api.updateAccountName('  Uwase   Ange  ', before)).resolves.toEqual(updated)
+    expect(requests).toHaveLength(1)
+    expect(requests[0]).toMatchObject({ path: '/auth/me', method: 'PATCH', body: { name: updated.name }, headers: { Authorization: 'Bearer neon.original' } })
+    expect(await getLinkedAccount()).toEqual(updated)
+    expect(await getToken()).toBe('neon.original')
+    expect(await db.settings.get('account-backup')).toEqual(backup)
+    expect((await db.settings.get('parent-access:v1')).value.digest).toBe('local-pin-hash')
+    expect(await db.profiles.get('local-child')).toMatchObject({ code: 'Keza' })
+  })
+
+  it.each(['', '   ', 'a'.repeat(121), 'Name\u0007', null])('rejects invalid account names before making a request (%j)', async name => {
+    await linked()
+    const before = await accountRows()
+    const requests = server(() => reply(200, FIRST))
+    await expect(api.updateAccountName(name, FIRST)).rejects.toMatchObject({ localized: true })
+    expect(requests).toHaveLength(0)
+    expect(await accountRows()).toEqual(before)
+  })
+
+  it('does not attempt a name change offline or without the linked account session', async () => {
+    await linked()
+    const requests = server(() => reply(200, FIRST))
+    vi.stubGlobal('navigator', { onLine: false })
+    await expect(api.updateAccountName('New name', FIRST)).rejects.toMatchObject({ localized: true })
+    vi.stubGlobal('navigator', { onLine: true })
+    await linked(FIRST, null)
+    await expect(api.updateAccountName('New name', FIRST)).rejects.toMatchObject({ localized: true, status: 401 })
+    expect(requests).toHaveLength(0)
+  })
+
+  it.each(['unlink', 'another-account', 'new-session'])('does not overwrite a later %s with a delayed name update', async change => {
+    await linked()
+    let stateAfterChange
+    server(async () => {
+      if (change === 'unlink') await api.unlinkAccount()
+      else await linked(change === 'another-account' ? SECOND : FIRST, 'later-token')
+      stateAfterChange = await accountRows()
+      return reply(200, { ...FIRST, name: 'New name' })
+    })
+    await expect(api.updateAccountName('New name', FIRST)).rejects.toMatchObject({ localized: true })
+    expect(await accountRows()).toEqual(stateAfterChange)
+  })
+
+  it('preserves the local name when a save fails or returns a mismatched identity or name', async () => {
+    await linked()
+    const before = await accountRows()
+    for (const response of [reply(503), reply(422), reply(200, SECOND), reply(200, FIRST), reply(200, { ...FIRST, name: 'New name', email: SECOND.email })]) {
+      server(() => response)
+      await expect(api.updateAccountName('New name', FIRST)).rejects.toMatchObject({ localized: true })
+      expect(await accountRows()).toEqual(before)
+    }
+  })
+
+  it('requires a new sign-in after an expired name-update session while keeping the account link', async () => {
+    await linked()
+    server(() => reply(401))
+    await expect(api.updateAccountName('New name', FIRST)).rejects.toMatchObject({ status: 401 })
+    expect(await getLinkedAccount()).toEqual(FIRST)
+    expect(await getToken()).toBeNull()
+  })
+
+  it('does not edit an account different from the one shown in the form', async () => {
+    await linked(SECOND)
+    const requests = server(() => reply(200, SECOND))
+    await expect(api.updateAccountName('New name', FIRST)).rejects.toMatchObject({ localized: true })
+    expect(requests).toHaveLength(0)
+    expect(await getLinkedAccount()).toEqual(SECOND)
+  })
+
+  it('distinguishes disabled deletion from confirmed pending cleanup and never clears account data on either', async () => {
+    await linked()
+    const before = await accountRows()
+    server(() => reply(503, { code: 'ACCOUNT_DELETION_DISABLED' }))
+    await expect(api.deleteEmailAccount(FIRST.email, 'password')).rejects.toThrow('Nta makuru yasibwe')
+    expect(await accountRows()).toEqual(before)
+    server(() => reply(503, { code: 'ACCOUNT_DELETION_PENDING', vugaDataDeleted: true }))
+    await expect(api.deleteEmailAccount(FIRST.email, 'password')).rejects.toThrow('Amakuru ya Vuga yo kuri seriveri yasibwe')
+    expect(emailAuth.reauthenticate).toHaveBeenCalledTimes(2)
+    expect(await accountRows()).toEqual(before)
+  })
+
+  it.each([{ emailSent: true }, null])('does not treat an unconfirmed HTTP200 response (%j) as completed account deletion', async body => {
+    await linked()
+    const before = await accountRows()
+    server(() => reply(200, body))
+    await expect(api.deleteEmailAccount(FIRST.email, 'password')).rejects.toThrow('ntiyemeje')
+    expect(await accountRows()).toEqual(before)
+  })
+
   it('retries a partial deletion with its in-memory fresh credential and clears only account keys on success', async () => {
     await linked()
     await db.settings.put({ key: 'pin', value: { hash: 'local-pin-hash', salt: 'local-salt' } })

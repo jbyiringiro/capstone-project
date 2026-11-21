@@ -106,7 +106,7 @@ async def private_auth_responses(request: Request, call_next):
 
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, error: RequestValidationError):
-    if request.url.path.startswith("/auth/neon/"):
+    if request.url.path.startswith("/auth/"):
         # FastAPI normally includes invalid input values. Passwords/codes must not be reflected.
         issues = [{key: issue[key] for key in ("loc", "msg", "type") if key in issue}
                   for issue in error.errors()]
@@ -126,6 +126,9 @@ async def service_error(request: Request, error: ServiceError) -> JSONResponse:
             body["retry_after"] = 60
         return JSONResponse(body, status_code=error.status, headers={"Cache-Control": "no-store"})
     code = _STATUS_BY_ERROR.get(type(error), status.HTTP_400_BAD_REQUEST)
+    if isinstance(error, EmailDeletionPending):
+        return JSONResponse({"detail": error.detail, "code": "ACCOUNT_DELETION_PENDING",
+                             "vugaDataDeleted": True}, status_code=code)
     if isinstance(error, EmailNotVerified):
         return JSONResponse({"detail": error.detail, "code": "EMAIL_NOT_VERIFIED"}, status_code=code)
     if isinstance(error, InvalidCredentials) and request.url.path.startswith("/auth/neon/"):
