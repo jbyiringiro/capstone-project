@@ -56,9 +56,9 @@ const credentialVersion = value => value && JSON.stringify([
 
 // Capture before cloud reauthentication, then compare in the same transaction as the new PIN.
 // Attempt counters may change while signing in; replacing the PIN/recovery credential may not.
-export async function getParentPinVersion() {
+export async function getParentPinVersion({ allowUnconfigured = false } = {}) {
   const value = checked(await db.settings.get(PARENT_ACCESS_KEY))
-  if (!value) throw new ParentAccessError('unconfigured')
+  if (!value && !allowUnconfigured) throw new ParentAccessError('unconfigured')
   return credentialVersion(value)
 }
 
@@ -84,6 +84,10 @@ async function credential(pin, confirmation) {
     value: { version: 2, ...secret, recoverySalt: recovery.salt, recoveryDigest: recovery.digest, iterations: ITERATIONS, failures: 0, lockedUntil: 0 }
   }
 }
+
+// Prepare the hashes outside IndexedDB so email linking can create the local gate and
+// account together in one transaction. The caller must still refuse an existing gate.
+export const prepareParentPinSetup = (pin, confirmation) => credential(pin, confirmation)
 
 export async function setupParentPin(pin, confirmation) {
   const { recoveryCode, value } = await credential(pin, confirmation)

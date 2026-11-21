@@ -1,5 +1,7 @@
-.parent-access { min-height: 100dvh; background: linear-gradient(150deg, #edf5f1 0%, #f7faf8 42%, #fff 100%); padding: 24px 24px 48px; color: var(--ink); }
-.parent-access-header { max-width: 1160px; margin: 0 auto 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.parent-access { min-height: 100dvh; background: linear-gradient(150deg, #edf5f1 0%, #f7faf8 42%, #fff 100%); padding: 0 24px 48px; color: var(--ink); }
+.parent-access-header { position: sticky; top: 0; z-index: 20; margin: 0 -24px 28px; padding: 16px 24px; background: #f4f8f6; border-bottom: 1px solid #dce8e2; }
+.parent-access-header-inner { max-width: 1160px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.parent-access :is(input, button, a, h1, h2) { scroll-margin-top: 112px; scroll-margin-bottom: 24px; }
 .parent-access-card { width: 100%; max-width: 520px; margin: 0 auto; padding: clamp(24px, 4vw, 36px); background: var(--paper); border: 1px solid #dce8e2; border-radius: 24px; box-shadow: 0 16px 48px #173e380b; }
 .parent-eyebrow { margin: 0 0 8px; font-size: .73rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
 .parent-access-card h1 { font-size: clamp(1.65rem, 4vw, 2rem); line-height: 1.2; letter-spacing: -.035em; margin: 0 0 8px; }
@@ -78,8 +80,9 @@
 .email-account > .parent-text-button { font-size: .83rem; }
 .email-forgot { width: fit-content; max-width: 100%; margin: -6px 0 0 auto; padding: 8px 0; font-size: .83rem; }
 @media (max-width: 540px) {
-  .parent-access { padding: 16px 14px 28px; }
-  .parent-access-header { margin-bottom: 20px; gap: 12px; }
+  .parent-access { padding: 0 14px 28px; }
+  .parent-access-header { margin: 0 -14px 20px; padding: 12px 14px; }
+  .parent-access-header-inner { gap: 12px; }
   .parent-access-header .button-outline { font-size: .78rem; min-height: 44px; padding: 10px 12px; border-radius: 12px; }
   .parent-access-card { padding: 24px 20px; border-radius: 20px; }
   .parent-access-intro { margin-bottom: 20px; }

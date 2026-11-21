@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../server/api-client.js'
 import { emailAuth } from '../server/email-auth.js'
-import { localizedError } from '../shared/errors-rw.js'
-import { ParentAccessError, unlockParentAccess, validParentPin } from './parent-access.js'
-import { EmailCodeField, EmailField, NameField, PasswordField, PinField, WRONG_PIN, caregiverName, errorText } from './forms.jsx'
+import { ParentAccessError } from './parent-access.js'
+import { EmailCodeField, EmailField, NameField, PasswordField, PinField, caregiverName, errorText } from './forms.jsx'
 import EmailPasswordReset from './EmailPasswordReset.jsx'
 import { normalizeEmailAddress, validNewPassword } from '../shared/account-validation.js'
 
@@ -13,19 +12,38 @@ const RESEND_WAIT_MS = 60_000
 const UNCERTAIN_CODE_REQUEST = new Set(['too-many-requests', 'verification-send-failed', 'network', 'timeout', 'unavailable', 'invalid-response'])
 
 export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, onLegacy }) {
-  const [step, setStep] = useState('register') // register | verify | login | reset
+  const [step, setStep] = useState('register') // register | verify | login | pin | reset
   const [email, setEmail] = useState(''), [name, setName] = useState('')
   const [password, setPassword] = useState(''), [repeatPassword, setRepeatPassword] = useState('')
   const [code, setCode] = useState('')
   const [pin, setPin] = useState(''), [confirmation, setConfirmation] = useState('')
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [note, setNote] = useState('')
   const [needsName, setNeedsName] = useState(false), [resendOpen, setResendOpen] = useState(false)
+  const [pendingLogin, setPendingLogin] = useState(null)
   const [cooldown, setCooldown] = useState({ address: '', until: 0 }), [now, setNow] = useState(Date.now())
   const submitting = useRef(false), heading = useRef(null), firstRender = useRef(true)
+  const lifecycle = useRef({ mounted: true, version: 0 }), loginAbort = useRef(null), pendingHandle = useRef(null)
   const configured = emailAuth.configured()
   const usesCode = emailAuth.verificationMethod === 'code'
   const address = normalizeEmailAddress(email) || email.trim()
   const remaining = cooldown.address === address ? Math.max(0, Math.ceil((cooldown.until - now) / 1000)) : 0
+
+  useEffect(() => {
+    lifecycle.current.mounted = true
+    return () => {
+      lifecycle.current.mounted = false; lifecycle.current.version += 1
+      loginAbort.current?.abort()
+      void api.cancelEmailLogin(pendingHandle.current)
+    }
+  }, [])
+  useEffect(() => {
+    if (!pendingLogin) return
+    const timer = setTimeout(() => {
+      navigate('login')
+      setError('Igihe cyo kurangiza kwinjira cyarangiye. Ongera wandike email n’ijambo ry’ibanga.')
+    }, Math.max(0, pendingLogin.expiresAt - Date.now()))
+    return () => clearTimeout(timer)
+  }, [pendingLogin])
 
   useEffect(() => {
     if (cooldown.until <= Date.now()) return
@@ -47,11 +65,20 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
   function clearCredentials() {
     setPassword(''); setRepeatPassword(''); setPin(''); setConfirmation(''); setCode('')
   }
+  function discardLogin() {
+    loginAbort.current?.abort(); loginAbort.current = null
+    void api.cancelEmailLogin(pendingHandle.current)
+    pendingHandle.current = null; setPendingLogin(null)
+  }
   async function run(event, task) {
     event?.preventDefault()
     if (submitting.current) return
+    const version = lifecycle.current.version
+    const current = () => lifecycle.current.mounted && lifecycle.current.version === version
     submitting.current = true; setBusy(true); setError(''); setNote('')
-    try { await task() } catch (failure) {
+    try { await task(current) } catch (failure) {
+      if (!current()) return
+      if (['email-login-expired', 'email-login-changed'].includes(failure?.code) || (step === 'pin' && [401, 403].includes(failure?.status))) navigate('login')
       if (failure?.code === 'email-unverified' || failure?.accountCreated || failure?.verificationRequired) {
         setStep('verify'); setResendOpen(false); clearCredentials()
       }
@@ -64,9 +91,10 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
       }
       if (failure?.status === 422) setNeedsName(true)
       setError(errorText(failure))
-    } finally { submitting.current = false; setBusy(false) }
+    } finally { if (current()) { submitting.current = false; setBusy(false) } }
   }
   function navigate(next) {
+    lifecycle.current.version += 1; submitting.current = false; setBusy(false); discardLogin()
     setStep(next); setError(''); setNote(''); setName(''); clearCredentials(); setNeedsName(false); setResendOpen(false)
   }
   const register = event => run(event, async () => {
@@ -79,17 +107,23 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
     setEmail(destination); clearCredentials(); setStep('verify'); startCooldown(destination)
     setNote(usesCode ? 'Twasabye kode yo kwemeza. Reba email yawe na spam.' : 'Twasabye email yo kwemeza. Reba email yawe na spam.')
   })
-  const signIn = event => run(event, async () => {
-    if (!validParentPin(pin)) throw new ParentAccessError('format')
-    if (devicePin) {
-      // Linking a cloud account cannot bypass or replace an existing local gate.
-      const local = await unlockParentAccess(pin)
-      if (!local.ok) throw localizedError(local.retryAfterMs
-        ? `Wagerageje kenshi. Tegereza amasegonda ${Math.ceil(local.retryAfterMs / 1000)}, wongere ugerageze.` : WRONG_PIN)
-    } else if (pin !== confirmation) throw new ParentAccessError('mismatch')
+  const signIn = event => run(event, async current => {
     if (needsName && !caregiverName(name)) throw new ParentAccessError('name')
-    const result = await api.loginEmail(address, password, caregiverName(name) || undefined)
-    await onLinked({ email: result.user.email, user_id: result.user.user_id, auth_provider: result.user.auth_provider, pin, existing: true })
+    discardLogin()
+    const controller = new AbortController()
+    loginAbort.current = controller
+    const prepared = await api.prepareEmailLogin(address, password, caregiverName(name) || undefined, { signal: controller.signal })
+    if (!current()) { void api.cancelEmailLogin(prepared); return }
+    pendingHandle.current = prepared; setPendingLogin(prepared)
+    clearCredentials(); setStep('pin')
+  })
+  const finishSignIn = event => run(event, async current => {
+    const result = await api.completeEmailLogin(pendingHandle.current, { pin, confirmation })
+    if (!current()) return
+    // Completion detached the abort listener; unmount cannot revoke a committed session.
+    pendingHandle.current = null; loginAbort.current = null; setPendingLogin(null)
+    await onLinked({ email: result.user.email, user_id: result.user.user_id, auth_provider: result.user.auth_provider, pin, existing: true, recoveryCode: result.recoveryCode })
+    if (!current()) return
     clearCredentials()
   })
   const verify = event => run(event, async () => {
@@ -114,7 +148,8 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
     {error && <p role="alert" className="parent-form-error">{error}</p>}
     {note && <p role="status" className="email-status">{note}</p>}
   </>
-  const titles = { register: 'Fungura konti', login: 'Injira muri konti', verify: 'Emeza email yawe', reset: 'Hindura ijambo ry’ibanga' }
+  const titles = { register: 'Fungura konti', login: 'Injira muri konti', pin: 'Umubare w’ibanga w’iki gikoresho', verify: 'Emeza email yawe', reset: 'Hindura ijambo ry’ibanga' }
+  const existingDevicePin = pendingLogin?.devicePin ?? devicePin
 
   return <div className="email-account" aria-busy={busy}>
     {!configured ? <p role="status" className="parent-setup-note">Konti za email ntiziraboneka ubu. Ushobora gukomeza nta konti.</p> : <>
@@ -123,7 +158,16 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
         <button type="button" aria-pressed={step === 'login'} disabled={busy} onClick={() => navigate('login')}>Mfite konti</button>
       </div>}
       <div className={step === 'register' || step === 'login' ? 'sr-only' : 'email-heading'}><h2 ref={heading} tabIndex={-1}>{titles[step]}</h2></div>
-      {step === 'verify' ? <>
+      {step === 'pin' ? <div className="email-pin-stage">
+        <p className="email-help">Imibare 4–6 ifungura igenamiterere kuri iki gikoresho, no mu gihe nta interineti. Itandukanye n’ijambo ry’ibanga rya konti ya email.</p>
+        <form onSubmit={finishSignIn}>
+          <PinField label={existingDevicePin ? 'Umubare usanzwe' : 'Hitamo umubare'} value={pin} setValue={setPin} autoComplete={existingDevicePin ? 'current-password' : 'new-password'} disabled={busy} />
+          {!existingDevicePin && <PinField label="Ongera uwandike" value={confirmation} setValue={setConfirmation} autoComplete="new-password" disabled={busy} />}
+          {feedback}
+          <button className="button-primary parent-submit" disabled={busy}>{busy ? 'Birimo kurangiza…' : existingDevicePin ? 'Komeza' : 'Bika kandi ukomeze'}</button>
+        </form>
+        <button type="button" className="parent-text-button" onClick={() => navigate('login')} disabled={busy}>Subira kwinjira</button>
+      </div> : step === 'verify' ? <>
         <div className="email-verify-card">
           <span className="email-verify-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
             <rect x="3" y="5" width="18" height="14" rx="3" /><path d="m3 7 9 6 9-6" />
@@ -157,15 +201,7 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
           {step === 'register' && normalizeEmailAddress(email) && <button type="button" className="parent-text-button" disabled={busy} onClick={() => navigate('login')}>Mfite konti, injira</button>}
           {step !== 'reset' && <PasswordField key={step} value={password} setValue={setPassword} creating={step === 'register'} disabled={busy} />}
           {step === 'register' && <PasswordField label="Ongera wandike ijambo ry’ibanga rya konti" value={repeatPassword} setValue={setRepeatPassword} creating showRequirements={false} disabled={busy} />}
-          {step === 'login' && <>
-            <button type="button" className="parent-text-button email-forgot" disabled={busy} onClick={() => navigate('reset')}>Nibagiwe ijambo ry’ibanga</button>
-            <fieldset className="email-pin-group">
-              <legend>Umubare w’ibanga w’iki gikoresho</legend>
-              <p className="email-help">{devicePin ? 'Koresha usanzwe ufungura ahagenewe umurezi.' : 'Hitamo imibare 4–6 yo kwinjira nta interineti.'}</p>
-              <PinField label={devicePin ? 'Umubare usanzwe' : 'Hitamo umubare'} value={pin} setValue={setPin} autoComplete={devicePin ? 'current-password' : 'new-password'} disabled={busy} />
-              {!devicePin && <PinField label="Ongera uwandike" value={confirmation} setValue={setConfirmation} autoComplete="new-password" disabled={busy} />}
-            </fieldset>
-          </>}
+          {step === 'login' && <button type="button" className="parent-text-button email-forgot" disabled={busy} onClick={() => navigate('reset')}>Nibagiwe ijambo ry’ibanga</button>}
           {feedback}
           <button className="button-primary parent-submit" disabled={busy}>{busy ? (step === 'login' ? 'Birimo kwinjira…' : 'Birimo koherezwa…')
             : step === 'register' ? 'Fungura konti ukoresheje email' : step === 'reset' ? 'Ohereza ihuza' : 'Injira muri konti'}</button>
@@ -174,11 +210,11 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
       </>}
     </>}
     <div className="email-footer">
-      {onSkip && <button type="button" className="parent-text-button" onClick={onSkip} disabled={busy}>Komeza nta konti</button>}
+      {onSkip && <button type="button" className="parent-text-button" onClick={() => { navigate('login'); onSkip() }} disabled={busy}>Komeza nta konti</button>}
       <a href="/privacy.html" target="_blank" rel="noreferrer">Uko Vuga ibika amakuru</a>
     </div>
     {emailAuth.provider !== 'neon' && <details className="email-alternatives"><summary>Ubundi buryo bwo kwinjira</summary>
-      <button type="button" className="parent-text-button" onClick={onLegacy} disabled={busy}>Koresha konti ya nimero ya telefoni</button>
+      <button type="button" className="parent-text-button" onClick={() => { navigate('login'); onLegacy?.() }} disabled={busy}>Koresha konti ya nimero ya telefoni</button>
     </details>}
   </div>
 }

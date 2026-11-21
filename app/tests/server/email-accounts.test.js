@@ -5,6 +5,7 @@ import { emailAuth } from '../../src/server/email-auth.js'
 import { api, getLinkedAccount, getToken, signInQuietly } from '../../src/server/api-client.js'
 import { syncPending } from '../../src/server/sync.js'
 import { finaliseMessage, logAction, startDraft, SyncState } from '../../src/storage/messages.js'
+import { changeParentPin, getParentPinVersion, PARENT_ACCESS_KEY, setupParentPin, unlockParentAccess } from '../../src/parent-access/parent-access.js'
 
 vi.mock('../../src/server/email-auth.js', () => ({ emailAuth: {
   provider: 'firebase', register: vi.fn(), login: vi.fn(), reauthenticate: vi.fn(), resendVerification: vi.fn(), sendPasswordReset: vi.fn(), signOut: vi.fn()
@@ -50,6 +51,196 @@ beforeEach(async () => {
 })
 
 describe('email account API integration', () => {
+  const stagedServer = handler => server(request => request.path === '/auth/email/session'
+    ? reply(200, { access_token: FRESH.idToken, token_type: 'bearer', user: FIRST })
+    : handler ? handler(request) : reply(200, FIRST))
+
+  it('keeps prepared authentication only in memory without changing a current account, backup or local PIN', async () => {
+    await linked(SECOND)
+    const before = await db.settings.toArray()
+    const requests = stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'private password')
+    expect(Object.isFrozen(handle)).toBe(true)
+    expect(handle).toMatchObject({ email: FIRST.email, name: FIRST.name, devicePin: false })
+    expect(Object.keys(handle).sort()).toEqual(['devicePin', 'email', 'expiresAt', 'name'])
+    expect(JSON.stringify(handle)).not.toContain(FRESH.idToken)
+    expect(await db.settings.toArray()).toEqual(before)
+    expect(requests.map(request => request.path)).toEqual(['/auth/email/session'])
+    await api.cancelEmailLogin(handle)
+    expect(await db.settings.toArray()).toEqual(before)
+    expect(emailAuth.signOut).toHaveBeenCalledWith(FRESH.idToken)
+  })
+
+  it('revalidates identity and commits the account, token and new local PIN together, returning its recovery code once', async () => {
+    await linked(SECOND)
+    const controller = new AbortController(), requests = stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password', undefined, { signal: controller.signal })
+    const result = await api.completeEmailLogin(handle, { pin: '482619', confirmation: '482619' })
+    expect(result).toMatchObject({ access_token: FRESH.idToken, user: FIRST })
+    expect(result.recoveryCode).toMatch(/^[A-HJ-NP-Z2-9]{4}(?:-[A-HJ-NP-Z2-9]{4}){3}$/)
+    expect(await getLinkedAccount()).toEqual(FIRST)
+    expect(await getToken()).toBe(FRESH.idToken)
+    expect(await db.settings.get('account-backup')).toBeUndefined()
+    expect((await unlockParentAccess('482619')).ok).toBe(true)
+    expect(JSON.stringify(await db.settings.get(PARENT_ACCESS_KEY))).not.toContain('482619')
+    expect(requests.map(request => request.path)).toEqual(['/auth/email/session', '/auth/me'])
+    expect(requests[1].headers.Authorization).toBe(`Bearer ${FRESH.idToken}`)
+    expect(JSON.stringify(requests)).not.toContain('482619')
+    await expect(api.completeEmailLogin(handle, { pin: '482619', confirmation: '482619' })).rejects.toMatchObject({ code: 'email-login-expired' })
+    controller.abort(); await api.cancelEmailLogin(handle)
+    expect(emailAuth.signOut).not.toHaveBeenCalled()
+  })
+
+  it('keeps the pending stage on malformed or mismatched PIN input without requesting identity or persisting authentication', async () => {
+    const requests = stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    await expect(api.completeEmailLogin(handle, { pin: '12', confirmation: '12' })).rejects.toMatchObject({ code: 'format' })
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '8642' })).rejects.toMatchObject({ code: 'mismatch' })
+    expect(await db.settings.toArray()).toEqual([])
+    expect(requests).toHaveLength(1)
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).resolves.toHaveProperty('recoveryCode')
+  })
+
+  it('checks an existing device PIN and its lockout without replacing its credential or recovery code', async () => {
+    await setupParentPin('2468', '2468')
+    const version = await getParentPinVersion()
+    const clock = vi.spyOn(Date, 'now'), started = Date.now()
+    const requests = stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    expect(handle.devicePin).toBe(true)
+    for (let count = 0; count < 5; count++) await expect(api.completeEmailLogin(handle, { pin: '9999' })).rejects.toMatchObject({ localized: true })
+    await expect(api.completeEmailLogin(handle, { pin: '2468' })).rejects.toThrow('Tegereza')
+    expect(await getToken()).toBeNull()
+    expect(await getLinkedAccount()).toBeNull()
+    expect(requests).toHaveLength(1)
+    clock.mockReturnValue(started + 31_000)
+    const result = await api.completeEmailLogin(handle, { pin: '2468' })
+    expect(result.recoveryCode).toBeUndefined()
+    expect(await getParentPinVersion()).toBe(version)
+  })
+
+  it.each(['setup-before-pin', 'change-before-pin', 'setup-during-validation'])('refuses a concurrent device PIN change (%s) without persisting a cloud link', async change => {
+    if (change === 'change-before-pin') await setupParentPin('2468', '2468')
+    stagedServer(async () => {
+      if (change === 'setup-during-validation') await setupParentPin('1111', '1111')
+      return reply(200, FIRST)
+    })
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    if (change === 'setup-before-pin') await setupParentPin('1111', '1111')
+    if (change === 'change-before-pin') await changeParentPin('2468', '1111', '1111')
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-changed' })
+    expect(await getLinkedAccount()).toBeNull()
+    expect(await getToken()).toBeNull()
+    expect((await unlockParentAccess('1111')).ok).toBe(true)
+  })
+
+  it.each(['unlink', 'another-account', 'new-session'])('does not overwrite a later %s between the password and PIN stages', async change => {
+    await linked()
+    stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    if (change === 'unlink') await api.unlinkAccount()
+    else await linked(change === 'another-account' ? SECOND : FIRST, 'later-token')
+    const before = await db.settings.toArray()
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ localized: true })
+    expect(await db.settings.toArray()).toEqual(before)
+  })
+
+  it.each(['provider', 'session'])('discards a late %s success after navigation, with no local authentication writes', async phase => {
+    let release
+    const delayed = new Promise(resolve => { release = resolve })
+    if (phase === 'provider') emailAuth.login.mockReturnValue(delayed)
+    const requests = server(() => phase === 'session' ? delayed : reply(200, { access_token: FRESH.idToken, user: FIRST }))
+    const controller = new AbortController()
+    const preparing = api.prepareEmailLogin(FIRST.email, 'password', undefined, { signal: controller.signal })
+    const rejected = expect(preparing).rejects.toMatchObject({ code: 'email-login-expired' })
+    await vi.waitFor(() => phase === 'provider' ? expect(emailAuth.login).toHaveBeenCalled() : expect(requests).toHaveLength(1))
+    controller.abort()
+    release(phase === 'provider' ? FRESH : reply(200, { access_token: FRESH.idToken, user: FIRST }))
+    await rejected
+    await vi.waitFor(() => expect(emailAuth.signOut).toHaveBeenCalledWith(FRESH.idToken))
+    expect(await db.settings.toArray()).toEqual([])
+    if (phase === 'provider') expect(requests).toHaveLength(0)
+  })
+
+  it('discards a late identity validation response after cancellation without storing the prepared PIN', async () => {
+    const controller = new AbortController()
+    stagedServer(() => { controller.abort(); return reply(200, FIRST) })
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password', undefined, { signal: controller.signal })
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-expired' })
+    expect(await db.settings.toArray()).toEqual([])
+  })
+
+  it('expires pending credentials after five minutes and refuses forged or reused tickets', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_000_000)
+    stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    await expect(api.completeEmailLogin({ ...handle }, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-expired' })
+    clock.mockReturnValue(1_300_001)
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-expired' })
+    expect(await db.settings.toArray()).toEqual([])
+  })
+
+  it('rolls back the prepared PIN, account and backup together if local account storage fails', async () => {
+    await linked(SECOND)
+    stagedServer()
+    const before = await db.settings.toArray()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    vi.spyOn(db.settings, 'bulkPut').mockRejectedValueOnce(new Error('disk full'))
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toThrow('disk full')
+    expect(await db.settings.toArray()).toEqual(before)
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).resolves.toHaveProperty('recoveryCode')
+  })
+
+  it('rolls back all local linking writes when navigation cancels after bulkPut, and revokes the uncommitted token', async () => {
+    await linked(SECOND)
+    stagedServer()
+    const before = await db.settings.toArray(), controller = new AbortController()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password', undefined, { signal: controller.signal })
+    const original = db.settings.bulkPut.bind(db.settings)
+    vi.spyOn(db.settings, 'bulkPut').mockImplementationOnce(async rows => {
+      const result = await original(rows)
+      controller.abort()
+      return result
+    })
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-expired' })
+    expect(await db.settings.toArray()).toEqual(before)
+    await vi.waitFor(() => expect(emailAuth.signOut).toHaveBeenCalledWith(FRESH.idToken))
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-expired' })
+  })
+
+  it('allows only one PIN completion to consume a prepared authentication ticket', async () => {
+    let release
+    const validation = new Promise(resolve => { release = resolve })
+    const requests = stagedServer(() => validation)
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    const completing = api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })
+    await vi.waitFor(() => expect(requests).toHaveLength(2))
+    await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ code: 'email-login-busy' })
+    release(reply(200, FIRST))
+    await expect(completing).resolves.toHaveProperty('recoveryCode')
+    expect(requests.filter(request => request.path === '/auth/me')).toHaveLength(1)
+  })
+
+  it('rejects a revoked or different identity at PIN completion without changing current stored credentials', async () => {
+    await linked()
+    const before = await db.settings.toArray()
+    for (const response of [reply(401), reply(200, SECOND), reply(200, { ...FIRST, email: SECOND.email })]) {
+      stagedServer(() => response)
+      const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+      await expect(api.completeEmailLogin(handle, { pin: '2468', confirmation: '2468' })).rejects.toMatchObject({ localized: true })
+      expect(await db.settings.toArray()).toEqual(before)
+    }
+  })
+
+  it('does not revoke a token that has meanwhile become the current stored session when cancelling', async () => {
+    stagedServer()
+    const handle = await api.prepareEmailLogin(FIRST.email, 'password')
+    await linked(FIRST, FRESH.idToken)
+    await api.cancelEmailLogin(handle)
+    expect(emailAuth.signOut).not.toHaveBeenCalled()
+    expect(await getToken()).toBe(FRESH.idToken)
+  })
+
   it('stores Neon ownership without merging an older Firebase identity with the same email', async () => {
     await linked()
     emailAuth.provider = 'neon'

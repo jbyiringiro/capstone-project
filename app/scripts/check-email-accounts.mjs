@@ -24,6 +24,7 @@ const secret = 'Test-password-48'
 const counts = { signUp: 0, signInWithPassword: 0, VERIFY_EMAIL: 0, PASSWORD_RESET: 0, sessions: 0, delete: 0 }
 let wrongIdentity = false, deleteFails = false, copy = null, finishPhoneCode = null
 let verificationFails = false, verificationThrottled = false, holdVerification = false, finishVerification = null
+let holdLogin = false, finishLogin = null
 const board = page.locator('.board:visible'), gate = page.locator('.parent-access')
 const password = scope => scope.getByLabel('Ijambo ry’ibanga rya konti', { exact: true })
 const localPin = () => gate.getByLabel('Umubare w’ibanga', { exact: true })
@@ -38,7 +39,13 @@ await context.route('**/*', async route => {
     const credentials = { ...identity, idToken: 'mock-firebase-id-token', refreshToken: 'must-not-persist', expiresIn: '3600' }
     if (action === 'signUp') return json(route, 200, credentials)
     if (action === 'update') { identity.displayName = body.displayName; return json(route, 200, credentials) }
-    if (action === 'signInWithPassword') return body.password === secret ? json(route, 200, credentials) : json(route, 400, { error: { message: 'INVALID_LOGIN_CREDENTIALS' } })
+    if (action === 'signInWithPassword') {
+      if (body.password !== secret) return json(route, 400, { error: { message: 'INVALID_LOGIN_CREDENTIALS' } })
+      if (holdLogin) return new Promise(resolve => {
+        finishLogin = async () => { await json(route, 200, credentials).catch(() => {}); resolve() }
+      })
+      return json(route, 200, credentials)
+    }
     if (action === 'lookup') return json(route, 200, { users: [identity] })
     if (action === 'sendOobCode') {
       counts[body.requestType]++
@@ -58,7 +65,7 @@ await context.route('**/*', async route => {
     })
     if (path === '/auth/email/session') { counts.sessions++; return json(route, 200, { access_token: 'mock-firebase-id-token', token_type: 'bearer', user }) }
     if (path === '/auth/me') return json(route, 200, wrongIdentity ? { ...user, user_id: 'different-vuga-user' } : user)
-    if (path === '/auth/email/delete-account') { counts.delete++; return deleteFails ? json(route, 503, { detail: 'provider timeout' }) : json(route, 200, { deleted: true }) }
+    if (path === '/auth/email/delete-account') { counts.delete++; return deleteFails ? json(route, 503, { code: 'ACCOUNT_DELETION_PENDING', vugaDataDeleted: true }) : route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } }) }
     if (path === '/health') return json(route, 200, { status: 'ok', model_loaded: true, email: true })
     if (path === '/profiles' || path === '/symbols') return json(route, 200, [])
     if (path === '/backup/status') return json(route, 200, { exists: !!copy, revision: copy?.revision || 0, saved_at: copy?.saved_at || null })
@@ -98,10 +105,50 @@ async function responsiveScreenshots(name) {
   }
   await page.setViewportSize({ width: 1280, height: 900 })
 }
-async function signInFields() {
-  await password(gate).fill(secret)
-  await gate.getByLabel('Hitamo umubare', { exact: true }).fill('4826')
-  await gate.getByLabel('Ongera uwandike', { exact: true }).fill('4826')
+async function stickyHeader(name) {
+  const close = gate.locator('.parent-access-header').getByRole('button', { name: 'Subira ku kibaho', exact: true })
+  for (const width of [1280, 390, 320]) {
+    await page.setViewportSize({ width, height: 600 })
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }))
+    expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0)
+    expect(await close.evaluate(button => {
+      const rect = button.getBoundingClientRect(), top = button.closest('.parent-access-header').getBoundingClientRect()
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+      return top.top >= -1 && top.bottom <= innerHeight && button.contains(hit)
+    }), `Header must stay visible and clickable after scrolling at ${width}px`).toBe(true)
+    await page.screenshot({ path: `${output}/email-${name}-sticky-${width}.png`, animations: 'disabled' })
+    const fields = gate.locator('input:visible:enabled')
+    for (const [field, fromBottom] of [[fields.first(), true], [fields.last(), false]]) {
+      await field.evaluate(input => input.blur())
+      await page.evaluate(bottom => window.scrollTo({ top: bottom ? document.documentElement.scrollHeight : 0, behavior: 'instant' }), fromBottom)
+      await field.focus()
+      await expect.poll(() => field.evaluate(input => {
+        const rect = input.getBoundingClientRect(), top = document.querySelector('.parent-access-header').getBoundingClientRect()
+        return document.activeElement === input && rect.top >= top.bottom - 1 && rect.bottom <= innerHeight + 1
+      }), { message: `Focused field must not hide behind the header at ${width}px` }).toBe(true)
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+}
+async function noPendingCredentials({ newDevice = true } = {}) {
+  const state = await data()
+  expect(setting(state, 'account')).toBeUndefined(); expect(setting(state, 'token')).toBeUndefined()
+  if (newDevice) expect(setting(state, 'parent-access:v1')).toBeUndefined()
+  const persisted = JSON.stringify(state) + await page.evaluate(() => JSON.stringify({ local: { ...localStorage }, session: { ...sessionStorage } }))
+  expect(persisted).not.toContain(secret); expect(persisted).not.toContain('mock-firebase-id-token'); expect(persisted).not.toContain('must-not-persist')
+}
+async function signInFields(scope = gate) {
+  await scope.getByLabel('Email', { exact: true }).fill(identity.email)
+  await password(scope).fill(secret)
+  await expect(scope.getByLabel('Hitamo umubare', { exact: true })).toHaveCount(0)
+  await expect(scope.getByLabel('Umubare usanzwe', { exact: true })).toHaveCount(0)
+}
+async function beginLogin(scope = gate) {
+  await signInFields(scope)
+  await scope.getByRole('button', { name: 'Injira muri konti', exact: true }).click()
+  await expect(scope.locator('.email-pin-stage')).toBeVisible()
+  await expect(password(scope)).toHaveCount(0); await expect(scope.getByLabel('Email', { exact: true })).toHaveCount(0)
 }
 const resendButton = () => gate.getByRole('button', { name: /^Ongera wohereze email(?: \(\d+s\))?$/ })
 let initialPin, recoveredPin
@@ -129,6 +176,9 @@ try {
     await responsiveScreenshots('signup')
     await gate.getByRole('button', { name: 'Fungura konti ukoresheje email', exact: true }).click()
     await expect(gate.getByRole('alert')).toContainText('ntahuye'); expect(counts.signUp).toBe(0)
+  })
+  await check('Signup keeps its header accessible after scrolling and focused fields unobscured on desktop and phones', async () => {
+    await stickyHeader('signup')
   })
   await check('Signup sends one verification message into a separate waiting panel that fits narrow screens', async () => {
     await gate.getByLabel('Ongera wandike ijambo ry’ibanga rya konti', { exact: true }).fill(secret)
@@ -178,6 +228,8 @@ try {
     verificationFails = true; await password(gate).fill(secret)
     await gate.getByRole('button', { name: 'Ohereza indi email', exact: true }).click()
     await expect(gate.getByRole('alert')).toBeVisible(); expect(counts.VERIFY_EMAIL).toBe(3)
+    await expect(gate.getByRole('button', { name: /^Ohereza indi email \(\d+s\)$/ })).toBeDisabled()
+    await page.clock.fastForward(61_000)
     await expect(gate.getByRole('button', { name: 'Ohereza indi email', exact: true })).toBeEnabled()
     verificationFails = false
   })
@@ -189,7 +241,7 @@ try {
     await password(gate).evaluate(input => input.form.requestSubmit())
     expect(counts.VERIFY_EMAIL).toBe(4)
     await finishVerification(); holdVerification = false
-    await expect(gate.getByRole('status')).toContainText('Twongeye')
+    await expect(gate.getByRole('status')).toContainText('Twasabye indi email')
     await expect(gate.locator('input')).toHaveCount(0); await expect(resendButton()).toBeDisabled()
     expect(counts.VERIFY_EMAIL).toBe(4); expect(counts.sessions).toBe(0)
   })
@@ -212,9 +264,60 @@ try {
     await expect(gate.getByRole('button', { name: 'Injira muri konti', exact: true })).toBeVisible()
     await expect(password(gate)).toHaveValue('')
   })
-  await check('Verified email login stores account identity and a separate hashed local PIN, never password or refresh token', async () => {
-    await signInFields()
+  await check('Incorrect account passwords never show the PIN screen or persist authentication', async () => {
+    const before = counts.sessions
+    await password(gate).fill('Wrong-password-48')
+    await expect(gate.getByLabel('Hitamo umubare', { exact: true })).toHaveCount(0)
     await gate.getByRole('button', { name: 'Injira muri konti', exact: true }).click()
+    await expect(gate.getByRole('alert')).toContainText('si byo')
+    await expect(gate.locator('.email-pin-stage')).toHaveCount(0)
+    expect(counts.sessions).toBe(before); await noPendingCredentials()
+  })
+  await check('Closing during password authentication discards a late successful response', async () => {
+    holdLogin = true; finishLogin = null
+    await password(gate).fill(secret)
+    await gate.getByRole('button', { name: 'Injira muri konti', exact: true }).click()
+    await expect.poll(() => typeof finishLogin).toBe('function')
+    await back(); await finishLogin(); holdLogin = false
+    await enter(); await gate.getByRole('button', { name: 'Mfite konti', exact: true }).click()
+    await expect(password(gate)).toHaveValue(''); await expect(gate.locator('.email-pin-stage')).toHaveCount(0)
+    await noPendingCredentials()
+  })
+  await check('Returning from PIN setup discards the pending login and clears its credentials', async () => {
+    await beginLogin(); await noPendingCredentials()
+    await gate.getByLabel('Hitamo umubare', { exact: true }).fill('4826')
+    await gate.getByRole('button', { name: 'Subira kwinjira', exact: true }).click()
+    await expect(password(gate)).toHaveValue(''); await expect(gate.locator('.email-pin-stage')).toHaveCount(0)
+    await noPendingCredentials()
+    await beginLogin(); await noPendingCredentials(); await back(); await enter()
+    await gate.getByRole('button', { name: 'Mfite konti', exact: true }).click()
+    await expect(password(gate)).toHaveValue(''); await expect(gate.locator('.email-pin-stage')).toHaveCount(0)
+    await noPendingCredentials()
+  })
+  await check('Reloading before PIN confirmation cannot restore a pending account session', async () => {
+    await beginLogin(); await noPendingCredentials()
+    await page.reload(); await expect(board).toBeVisible(); await enter()
+    await gate.getByRole('button', { name: 'Mfite konti', exact: true }).click()
+    await expect(password(gate)).toHaveValue(''); await expect(gate.locator('.email-pin-stage')).toHaveCount(0)
+    await noPendingCredentials()
+  })
+  await check('A valid account password opens a separate PIN screen; invalid and mismatched PINs cannot finish login', async () => {
+    await beginLogin(); await noPendingCredentials(); await responsiveScreenshots('pin-setup')
+    const before = counts.signInWithPassword
+    await gate.getByLabel('Hitamo umubare', { exact: true }).fill('12')
+    await gate.getByLabel('Ongera uwandike', { exact: true }).fill('12')
+    await gate.getByRole('button', { name: 'Bika kandi ukomeze', exact: true }).click()
+    await expect(gate.locator('.email-pin-stage')).toBeVisible(); await noPendingCredentials()
+    await gate.getByLabel('Hitamo umubare', { exact: true }).fill('4826')
+    await gate.getByLabel('Ongera uwandike', { exact: true }).fill('4827')
+    await gate.getByRole('button', { name: 'Bika kandi ukomeze', exact: true }).click()
+    await expect(gate.getByRole('alert')).toContainText('ntihuye')
+    await expect(gate.locator('.email-pin-stage')).toBeVisible(); await noPendingCredentials()
+    expect(counts.signInWithPassword).toBe(before)
+  })
+  await check('Confirming the PIN stores account identity and a hashed local PIN, never password or refresh token', async () => {
+    await gate.getByLabel('Ongera uwandike', { exact: true }).fill('4826')
+    await gate.getByRole('button', { name: 'Bika kandi ukomeze', exact: true }).click()
     await expect(gate).toHaveAttribute('data-mode', 'recovery-code')
     const state = await data(); initialPin = setting(state, 'parent-access:v1')
     expect(setting(state, 'account')).toMatchObject({ email: identity.email, user_id: user.user_id, auth_provider: 'firebase' })
@@ -244,18 +347,25 @@ try {
     const state = await data(); expect(setting(state, 'account')).toBeUndefined(); expect(setting(state, 'token')).toBeUndefined()
     expect(setting(state, 'parent-access:v1').digest).toBe(initialPin.digest); expect(state.profiles).toHaveLength(1); expect(counts.delete).toBe(0)
   })
-  await check('Relinking checks existing local PIN before any cloud login and preserves that PIN', async () => {
+  await check('Relinking authenticates the account first, then verifies the existing PIN without replacing it', async () => {
     const form = page.locator('.parent-settings')
     await form.getByRole('button', { name: 'Mfite konti', exact: true }).click()
-    await form.getByLabel('Email', { exact: true }).fill(identity.email); await password(form).fill(secret)
-    await form.getByLabel('Umubare usanzwe', { exact: true }).fill('1111')
     const before = counts.signInWithPassword
-    await form.getByRole('button', { name: 'Injira muri konti', exact: true }).click()
-    await expect(form.getByRole('alert')).toContainText('si wo'); expect(counts.signInWithPassword).toBe(before)
+    const beforePin = setting(await data(), 'parent-access:v1')
+    await beginLogin(form); await noPendingCredentials({ newDevice: false })
+    expect(counts.signInWithPassword).toBe(before + 1)
+    await expect(form.getByLabel('Hitamo umubare', { exact: true })).toHaveCount(0)
+    await form.getByLabel('Umubare usanzwe', { exact: true }).fill('1111')
+    await form.getByRole('button', { name: 'Komeza', exact: true }).click()
+    await expect(form.getByRole('alert')).toContainText('si wo')
+    await expect(form.locator('.email-pin-stage')).toBeVisible(); await noPendingCredentials({ newDevice: false })
+    expect(setting(await data(), 'parent-access:v1')).toEqual({ ...beforePin, failures: beforePin.failures + 1, lockedUntil: 0 })
     await form.getByLabel('Umubare usanzwe', { exact: true }).fill('4826')
-    await form.getByRole('button', { name: 'Injira muri konti', exact: true }).click()
+    await form.getByRole('button', { name: 'Komeza', exact: true }).click()
     await expect(form).toContainText('Umubare w’ibanga w’iki gikoresho ntiwahindutse')
-    expect(setting(await data(), 'parent-access:v1').digest).toBe(initialPin.digest)
+    expect(setting(await data(), 'parent-access:v1')).toEqual({ ...beforePin, failures: 0, lockedUntil: 0 })
+    expect(counts.signInWithPassword).toBe(before + 1)
+    expect(setting(await data(), 'account')).toMatchObject({ user_id: user.user_id, email: identity.email })
   })
   await check('Email recovery refuses a different Vuga identity and leaves linked identity and PIN intact', async () => {
     await back(); await enter(); await gate.getByRole('button', { name: 'Nibagiwe umubare w’ibanga', exact: true }).click()
