@@ -13,6 +13,9 @@
 .parent-pin-field input:disabled { background: var(--soft); }
 .parent-pin-field small, .parent-field-hint { font-weight: 400; font-size: .8rem; color: var(--muted); line-height: 1.45; }
 .parent-field-hint { margin: 0; }
+.parent-field-error { margin: -8px 0 16px; color: var(--delete); font-size: .82rem; line-height: 1.45; }
+.password-requirements { margin: 2px 0 0; padding: 0; list-style: none; display: grid; gap: 4px; color: var(--muted); font-size: .78rem; line-height: 1.4; font-weight: 400; }
+.password-requirements li[data-met="true"] { color: var(--teal); }
 .parent-phone-field input { letter-spacing: .04em; font-size: 1.2rem; }
 .parent-submit { width: 100%; min-height: 52px; justify-content: center; margin-top: 4px; }
 .parent-form-error { background: var(--danger-soft); color: var(--delete); border-radius: 10px; padding: 12px 14px; }

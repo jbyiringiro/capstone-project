@@ -1,4 +1,5 @@
 import { localizedError } from '../shared/errors-rw.js'
+import { PASSWORD_REQUIREMENT_TEXT, normalizeEmailAddress, validNewPassword } from '../shared/account-validation.js'
 
 // The Vuga API carries the Neon session in an encrypted bearer envelope. Browsers
 // never contact Neon or rely on cross-site cookies (including Safari on iPhone).
@@ -10,9 +11,10 @@ const MESSAGES = {
   'invalid-email': 'Andika aderesi ya email ikora, nka izina@example.com.',
   'invalid-name': 'Andika izina ryawe nk’umurezi, inyuguti zitarenze 120.',
   'invalid-password': 'Andika ijambo ry’ibanga rya konti yawe.',
-  'weak-password': 'Koresha ijambo ry’ibanga rifite inyuguti 8 kugeza kuri 128.',
+  'weak-password': PASSWORD_REQUIREMENT_TEXT,
   'invalid-credentials': 'Email cyangwa ijambo ry’ibanga si byo. Ongera ugerageze.',
   'email-unverified': 'Banza wemeze email ukoresheje kode woherejwe.',
+  'verification-send-failed': 'Ntibyashobotse kwemeza ko kode yasabwe. Reba email na spam; niba itaragera, wongere usabe kode nyuma gato.',
   'email-exists': 'Iyi email isanzwe ifite konti. Injira cyangwa uhindure ijambo ry’ibanga.',
   'invalid-code': 'Kode si yo cyangwa yararangiye. Reba email cyangwa usabe indi kode.',
   'too-many-requests': 'Wagerageje kenshi. Tegereza gato, wongere ugerageze.',
@@ -31,17 +33,17 @@ const CODES = {
   TOO_MANY_ATTEMPTS: 'too-many-requests', TOO_MANY_REQUESTS: 'too-many-requests',
   PASSWORD_TOO_SHORT: 'weak-password', PASSWORD_TOO_LONG: 'weak-password',
   USER_DISABLED: 'user-disabled', INVALID_TOKEN: 'invalid-token', NOT_CONFIGURED: 'not-configured',
-  VERIFICATION_CONFIGURATION_REQUIRED: 'not-configured', PASSWORD_RESET_COMPLETED: 'password-reset-completed'
+  VERIFICATION_CONFIGURATION_REQUIRED: 'not-configured', VERIFICATION_SEND_FAILED: 'verification-send-failed', PASSWORD_RESET_COMPLETED: 'password-reset-completed'
 }
 const failure = (code, extra = {}) => Object.assign(localizedError(MESSAGES[code] || MESSAGES.unknown), { code }, extra)
 function emailAddress(value) {
-  const email = typeof value === 'string' ? value.trim().toLowerCase() : ''
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw failure('invalid-email')
+  const email = normalizeEmailAddress(value)
+  if (!email) throw failure('invalid-email')
   return email
 }
 function passwordValue(value, creating = false) {
   if (typeof value !== 'string' || !value.length) throw failure('invalid-password')
-  if (value.length > 128 || (creating && value.length < 8)) throw failure('weak-password')
+  if ([...value].length > 128 || (creating && !validNewPassword(value))) throw failure('weak-password')
   return value // Passwords, including intentional leading/trailing spaces, are never changed.
 }
 function codeValue(value) {
@@ -71,7 +73,7 @@ export function createNeonEmailAuth({ apiBase = '', fetchImpl = (...args) => glo
       if (!response.ok) {
         const detail = reply?.detail && typeof reply.detail === 'object' ? reply.detail : reply
         const code = response.status === 429 ? 'too-many-requests' : CODES[detail?.code] || (response.status >= 500 ? 'unavailable' : 'unknown')
-        throw failure(code, { status: response.status, ...(detail?.accountCreated === true ? { accountCreated: true } : {}),
+        throw failure(code, { status: response.status, ...(detail?.verificationRequired === true ? { verificationRequired: true } : {}),
           ...(code === 'password-reset-completed' ? { passwordReset: true } : {}) })
       }
       if (!reply || typeof reply !== 'object' || Array.isArray(reply)) throw failure('invalid-response')
@@ -86,7 +88,7 @@ export function createNeonEmailAuth({ apiBase = '', fetchImpl = (...args) => glo
     const reply = await request('login', { email: address, password: passwordValue(password) })
     const expiresIn = Number(reply.expiresIn)
     if (typeof reply.idToken !== 'string' || !reply.idToken.startsWith('neon.') || reply.idToken.length < 6
-      || typeof reply.uid !== 'string' || !reply.uid || typeof reply.email !== 'string' || reply.email.toLowerCase() !== address
+      || typeof reply.uid !== 'string' || !reply.uid || normalizeEmailAddress(reply.email) !== address
       || !Number.isFinite(expiresIn) || expiresIn <= 0) throw failure('invalid-response')
     return { idToken: reply.idToken, uid: reply.uid, email: reply.email, displayName: typeof reply.displayName === 'string' ? reply.displayName : '', expiresIn }
   }
@@ -98,7 +100,9 @@ export function createNeonEmailAuth({ apiBase = '', fetchImpl = (...args) => glo
       if (!displayName || displayName.length > 120 || /\p{Cc}/u.test(displayName)) throw failure('invalid-name')
       const address = emailAddress(email)
       const reply = await request('register', { name: displayName, email: address, password: passwordValue(password, true) })
-      if (reply.verificationSent !== true) throw failure('invalid-response', { accountCreated: true })
+      // A successful HTTP status alone does not establish account creation or code delivery.
+      // Offer verification recovery without claiming whether this email already had an account.
+      if (reply.verificationSent !== true) throw failure('invalid-response', { verificationRequired: true })
       return { email: address, verificationSent: true }
     },
     async verifyEmail(email, otp) {

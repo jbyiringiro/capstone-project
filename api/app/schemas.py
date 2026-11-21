@@ -5,6 +5,7 @@ import unicodedata
 from itertools import pairwise
 from typing import Annotated, Any, Literal
 
+import idna
 from pydantic import (
     AfterValidator,
     AwareDatetime,
@@ -148,15 +149,43 @@ class EmailDelete(BaseModel):
 
 
 def _email_address(value: str) -> str:
-    email = value.strip().casefold()
-    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+    email = value.strip()
+    parts = email.split("@")
+    if len(parts) != 2:
         raise ValueError("a valid email address is required")
-    return email
+    local, domain = parts
+    if (not 1 <= len(local) <= 64 or local.startswith(".") or local.endswith(".") or ".." in local
+            or not re.fullmatch(r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~.\-]+", local)):
+        raise ValueError("a valid email address is required")
+    try:
+        ascii_domain = idna.encode(domain, uts46=True, std3_rules=True,
+                                   transitional=False).decode("ascii").lower()
+    except (UnicodeError, idna.IDNAError):
+        raise ValueError("a valid email address is required") from None
+    labels = ascii_domain.split(".")
+    if (len(labels) < 2 or len(local) + len(ascii_domain) + 1 > 254
+            or any(not re.fullmatch(r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?", label) for label in labels)):
+        raise ValueError("a valid email address is required")
+    # Casefolding a Unicode domain can select a different mailbox (faß.de != fass.de).
+    # Use the same non-transitional UTS46 ASCII domain that browsers use instead.
+    return local.lower() + "@" + ascii_domain
 
 
 EmailAddress = Annotated[str, Field(min_length=3, max_length=254), AfterValidator(_email_address)]
 EmailPassword = Annotated[str, Field(min_length=8, max_length=128,
                                     json_schema_extra={"format": "password", "writeOnly": True})]
+
+
+def _new_email_password(value: str) -> str:
+    """Creation/reset policy; existing passwords remain valid for sign-in."""
+    if (not any(unicodedata.category(character) == "Lu" for character in value)
+            or not any("0" <= character <= "9" for character in value)
+            or not any(unicodedata.category(character)[0] in {"P", "S"} for character in value)):
+        raise ValueError("use an uppercase letter, a number and a symbol in the password")
+    return value  # Intentional spaces are preserved; whitespace does not count as a symbol.
+
+
+NewEmailPassword = Annotated[EmailPassword, AfterValidator(_new_email_password)]
 
 
 class NeonEmailIn(BaseModel):
@@ -170,6 +199,7 @@ class NeonLoginIn(NeonEmailIn):
 
 class NeonRegisterIn(NeonLoginIn):
     name: CaregiverName
+    password: NewEmailPassword
 
 
 class NeonVerifyIn(NeonEmailIn):
@@ -177,7 +207,7 @@ class NeonVerifyIn(NeonEmailIn):
 
 
 class NeonResetIn(NeonVerifyIn):
-    password: EmailPassword
+    password: NewEmailPassword
 
 
 class NeonSignoutIn(BaseModel):

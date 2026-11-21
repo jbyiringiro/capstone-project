@@ -55,11 +55,13 @@ class NeonAuth:
     def __init__(self, auth_url: str | None, origin: str | None, secret: str,
                  *, delete_enabled: bool = False, session_seconds: int = 43200,
                  delete_mode: str = "self_service", management_api_key: str | None = None,
-                 project_id: str | None = None, branch_id: str | None = None):
+                 project_id: str | None = None, branch_id: str | None = None,
+                 signup_delivery_mode: str = "provider"):
         self.auth_url = (auth_url or "").rstrip("/")
         self.origin = (origin or "").rstrip("/")
         self.delete_enabled = delete_enabled
         self.delete_mode = delete_mode
+        self.signup_delivery_mode = signup_delivery_mode
         self._management = NeonManagementDeletion(self.auth_url, project_id, branch_id, management_api_key)
         self.session_seconds = session_seconds
         # Domain separation prevents reuse of the JWT key as a raw encryption key.
@@ -211,15 +213,37 @@ class NeonAuth:
         return EmailIdentity(self.auth_url, claims["uid"], claims["email"], claims["auth_time"], claims["exp"])
 
     def register(self, name: str, email: str, password: str) -> dict:
+        if self.signup_delivery_mode not in {"provider", "explicit"}:
+            raise EmailProviderError("New account registration is temporarily unavailable; try again later.",
+                                     "SIGNUP_TEMPORARILY_UNAVAILABLE", 503)
         result, _ = self._request("/sign-up/email", {"name": name, "email": email, "password": password})
         if not isinstance(result, dict) or not isinstance(result.get("user"), dict):
             raise EmailAuthUnavailable("email provider did not confirm account creation")
-        # Neon must have Verify at Sign-up enabled. It sends the OTP as part of signup;
-        # immediately sending another can invalidate the first code or hit its cooldown.
-        # Refuse a branch that auto-signs-in before verification instead of silently trusting it.
+        # Refuse a branch that auto-signs-in before verification. A provider can return a
+        # synthetic unverified user for duplicate signup, so this reply alone cannot prove
+        # either that a new account was created or that an email was actually requested.
         if result.get("token") is not None or result["user"].get("emailVerified") is not False:
-            raise EmailProviderError("Account created, but email verification is not configured correctly.",
-                                     "VERIFICATION_CONFIGURATION_REQUIRED", 503, account_created=True)
+            detail = ("Account created, but email verification is not configured correctly."
+                      if self.signup_delivery_mode == "provider"
+                      else "Email verification is not configured correctly; registration could not be confirmed.")
+            raise EmailProviderError(detail, "VERIFICATION_CONFIGURATION_REQUIRED", 503,
+                                     account_created=self.signup_delivery_mode == "provider")
+        if self.signup_delivery_mode == "explicit":
+            # The provider's auto-send must be off in this mode. Exactly one explicit OTP
+            # request handles both new and synthetic duplicate-signup replies consistently.
+            try:
+                return self.resend(email)
+            except EmailProviderError as error:
+                if error.status == 429:
+                    raise EmailProviderError(error.detail, error.code, 429,
+                                             verification_required=True) from None
+            except EmailAuthUnavailable:
+                pass
+            # Preserve the verification form after an uncertain delivery, without asserting
+            # account creation or issuing a session. The caregiver can request another code.
+            raise EmailProviderError("The verification email could not be confirmed; request another code.",
+                                     "VERIFICATION_SEND_FAILED", 503, verification_required=True) from None
+        # Compatibility mode: the provider owns sending. Do not send a second OTP here.
         return {"email": email, "verificationSent": True}
 
     def resend(self, email: str) -> dict:
@@ -312,4 +336,5 @@ neon_auth = NeonAuth(settings.neon_auth_url, settings.neon_auth_origin, settings
                      delete_mode=settings.neon_delete_mode,
                      management_api_key=(settings.neon_management_api_key.get_secret_value()
                                          if settings.neon_management_api_key else None),
-                     project_id=settings.neon_project_id, branch_id=settings.neon_branch_id)
+                     project_id=settings.neon_project_id, branch_id=settings.neon_branch_id,
+                     signup_delivery_mode=settings.neon_signup_delivery_mode)

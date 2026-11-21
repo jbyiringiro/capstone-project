@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     email_auth_provider: Literal["firebase", "neon"] = "firebase"
     neon_auth_url: str | None = None
     neon_auth_origin: str | None = None
+    # Explicit delivery is enabled only after disabling the provider's automatic signup
+    # email. Pause new signups during that transition; sign-in and manual resend still work.
+    neon_signup_delivery_mode: Literal["provider", "explicit", "paused"] = "provider"
     # Enable only after deletion has been confirmed on this Neon branch. Managed Neon may
     # not expose Better Auth's /delete-user route; the server can use a dedicated project
     # API key with an explicitly bound branch instead. Never expose that key to Vite.

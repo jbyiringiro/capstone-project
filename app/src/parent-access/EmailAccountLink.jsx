@@ -5,10 +5,12 @@ import { localizedError } from '../shared/errors-rw.js'
 import { ParentAccessError, unlockParentAccess, validParentPin } from './parent-access.js'
 import { EmailCodeField, EmailField, NameField, PasswordField, PinField, WRONG_PIN, caregiverName, errorText } from './forms.jsx'
 import EmailPasswordReset from './EmailPasswordReset.jsx'
+import { normalizeEmailAddress, validNewPassword } from '../shared/account-validation.js'
 
 const RESET_NOTE = 'Niba iyi email ifite konti, izakira ihuza ryo guhindura ijambo ry’ibanga. Reba no muri spam.'
 // A short UI cooldown discourages duplicate requests; the server enforces its own limits.
 const RESEND_WAIT_MS = 60_000
+const UNCERTAIN_CODE_REQUEST = new Set(['too-many-requests', 'verification-send-failed', 'network', 'timeout', 'unavailable', 'invalid-response'])
 
 export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, onLegacy }) {
   const [step, setStep] = useState('register') // register | verify | login | reset
@@ -22,7 +24,7 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
   const submitting = useRef(false), heading = useRef(null), firstRender = useRef(true)
   const configured = emailAuth.configured()
   const usesCode = emailAuth.verificationMethod === 'code'
-  const address = email.trim().toLowerCase()
+  const address = normalizeEmailAddress(email) || email.trim()
   const remaining = cooldown.address === address ? Math.max(0, Math.ceil((cooldown.until - now) / 1000)) : 0
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
 
   function startCooldown(destination = address) {
     const time = Date.now()
-    setNow(time); setCooldown({ address: destination.toLowerCase(), until: time + RESEND_WAIT_MS })
+    setNow(time); setCooldown({ address: normalizeEmailAddress(destination) || destination.trim(), until: time + RESEND_WAIT_MS })
   }
   function clearCredentials() {
     setPassword(''); setRepeatPassword(''); setPin(''); setConfirmation(''); setCode('')
@@ -50,10 +52,13 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
     if (submitting.current) return
     submitting.current = true; setBusy(true); setError(''); setNote('')
     try { await task() } catch (failure) {
-      if (failure?.code === 'email-unverified' || failure?.accountCreated) {
+      if (failure?.code === 'email-unverified' || failure?.accountCreated || failure?.verificationRequired) {
         setStep('verify'); setResendOpen(false); clearCredentials()
       }
-      if (failure?.accountCreated) {
+      if (failure?.verificationRequired) {
+        setNote('Kwemeza email ntibirarangira. Niba kode itaragera, tegereza gato uyisabe hano.')
+        if (UNCERTAIN_CODE_REQUEST.has(failure.code)) startCooldown()
+      } else if (failure?.accountCreated && emailAuth.provider !== 'neon') {
         setNote('Konti yakozwe. Saba indi email yo kwemeza hano.')
         if (failure.code === 'too-many-requests') startCooldown()
       }
@@ -67,12 +72,12 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
   const register = event => run(event, async () => {
     const caregiver = caregiverName(name)
     if (!caregiver) throw new ParentAccessError('name')
-    if (password.length < 8) throw new ParentAccessError('password')
+    if (!validNewPassword(password)) throw new ParentAccessError('password')
     if (password !== repeatPassword) throw new ParentAccessError('passwordmismatch')
     const result = await api.registerEmail(address, password, caregiver)
     const destination = result.email || address
     setEmail(destination); clearCredentials(); setStep('verify'); startCooldown(destination)
-    setNote('Email yo kwemeza yoherejwe.')
+    setNote(usesCode ? 'Twasabye kode yo kwemeza. Reba email yawe na spam.' : 'Twasabye email yo kwemeza. Reba email yawe na spam.')
   })
   const signIn = event => run(event, async () => {
     if (!validParentPin(pin)) throw new ParentAccessError('format')
@@ -98,9 +103,9 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
       const result = await api.resendEmailVerification(address, password)
       setPassword(''); setResendOpen(false)
       if (result.alreadyVerified) { navigate('login'); setNote('Email yawe yemejwe. Injira muri konti.'); return }
-      startCooldown(); setNote('Twongeye kohereza email yo kwemeza.')
+      startCooldown(); setNote(usesCode ? 'Twasabye indi kode yo kwemeza. Reba email yawe na spam.' : 'Twasabye indi email yo kwemeza. Reba email yawe na spam.')
     } catch (failure) {
-      if (failure?.code === 'too-many-requests') startCooldown()
+      if (UNCERTAIN_CODE_REQUEST.has(failure?.code)) startCooldown()
       throw failure
     }
   })
@@ -124,7 +129,7 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
             <rect x="3" y="5" width="18" height="14" rx="3" /><path d="m3 7 9 6 9-6" />
           </svg></span>
           <p className="email-address">{address}</p>
-          <p>{usesCode ? 'Andika kode y’imibare 6 iri muri email ya Vuga.' : 'Fungura email ya Vuga, ukande ihuza ryo kwemeza.'}</p>
+          <p>{usesCode ? 'Niba wakiriye kode y’imibare 6 ya Vuga, yandike hano.' : 'Fungura email ya Vuga, ukande ihuza ryo kwemeza.'}</p>
         </div>
         {feedback}
         {usesCode ? <form onSubmit={verify}>
@@ -141,6 +146,7 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
           onClick={() => { setResendOpen(true); setError(''); setNote('') }}>
           {remaining ? `Ongera wohereze email (${remaining}s)` : 'Ongera wohereze email'}
         </button>}
+        {usesCode && <button type="button" className="parent-text-button" onClick={() => navigate('login')} disabled={busy}>Mfite konti, injira</button>}
         <button type="button" className="parent-text-button" onClick={() => navigate('register')} disabled={busy}>Hindura email</button>
       </> : step === 'reset' && usesCode ? <EmailPasswordReset initialEmail={email} onBusyChange={setBusy}
         onBack={() => navigate('login')} onDone={destination => { navigate('login'); setEmail(destination); setNote('Ijambo ry’ibanga ryahinduwe. Injira muri konti.') }} /> : <>
@@ -148,9 +154,9 @@ export default function EmailAccountLink({ devicePin = false, onLinked, onSkip, 
         <form onSubmit={step === 'register' ? register : step === 'reset' ? reset : signIn}>
           {(step === 'register' || (step === 'login' && needsName)) && <NameField value={name} setValue={setName} disabled={busy} hint={false} />}
           <EmailField value={email} setValue={setEmail} disabled={busy} />
-          {step !== 'reset' && <PasswordField key={step} value={password} setValue={setPassword} creating={step === 'register'} disabled={busy}
-            hint={step === 'register' ? 'Nibura inyuguti 8.' : undefined} />}
-          {step === 'register' && <PasswordField label="Ongera wandike ijambo ry’ibanga rya konti" value={repeatPassword} setValue={setRepeatPassword} creating disabled={busy} />}
+          {step === 'register' && normalizeEmailAddress(email) && <button type="button" className="parent-text-button" disabled={busy} onClick={() => navigate('login')}>Mfite konti, injira</button>}
+          {step !== 'reset' && <PasswordField key={step} value={password} setValue={setPassword} creating={step === 'register'} disabled={busy} />}
+          {step === 'register' && <PasswordField label="Ongera wandike ijambo ry’ibanga rya konti" value={repeatPassword} setValue={setRepeatPassword} creating showRequirements={false} disabled={busy} />}
           {step === 'login' && <>
             <button type="button" className="parent-text-button email-forgot" disabled={busy} onClick={() => navigate('reset')}>Nibagiwe ijambo ry’ibanga</button>
             <fieldset className="email-pin-group">

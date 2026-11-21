@@ -33,12 +33,13 @@ class EmailProviderError(ServiceError):
     """Allowlisted provider error information, never a raw provider response."""
 
     def __init__(self, detail: str, code: str, status: int, *, account_created: bool = False,
-                 password_reset: bool = False):
+                 password_reset: bool = False, verification_required: bool = False):
         super().__init__(detail)
         self.code = code
         self.status = status
         self.account_created = account_created
         self.password_reset = password_reset
+        self.verification_required = verification_required
 
 
 class NotOwned(ServiceError):

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../server/api-client.js'
 import { ParentAccessError } from './parent-access.js'
 import { EmailCodeField, EmailField, PasswordField, errorText } from './forms.jsx'
+import { normalizeEmailAddress, validNewPassword } from '../shared/account-validation.js'
 
 // Neon uses a six-digit code, including for recovery. Share the complete flow
 // between sign-in, forgotten device PIN, and caregiver account settings.
@@ -31,13 +32,13 @@ export default function EmailPasswordReset({ initialEmail = '', readOnly = false
   }
   const send = event => run(event, async () => {
     if (until > Date.now()) return
-    const address = (sentTo || email).trim().toLowerCase()
+    const address = normalizeEmailAddress(sentTo || email) || (sentTo || email).trim()
     await api.requestEmailPasswordReset(address)
     setSentTo(address); setCode(''); setNow(Date.now()); setUntil(Date.now() + 60_000)
   })
   const confirm = event => run(event, async () => {
     if (!completing && !/^\d{6}$/.test(code)) throw new ParentAccessError('emailcode')
-    if (password.length < 8) throw new ParentAccessError('password')
+    if (!completing && !validNewPassword(password)) throw new ParentAccessError('password')
     if (password !== repeat) throw new ParentAccessError('passwordmismatch')
     if (completing) await api.finishEmailPasswordReset(sentTo, password)
     else await api.confirmEmailPasswordReset(sentTo, code, password)
@@ -50,8 +51,8 @@ export default function EmailPasswordReset({ initialEmail = '', readOnly = false
     <form onSubmit={sentTo ? confirm : send}>
       {sentTo ? <>
         {!completing && <EmailCodeField value={code} setValue={setCode} disabled={busy} inputRef={codeInput} />}
-        <PasswordField label="Ijambo ry’ibanga rishya" value={password} setValue={setPassword} disabled={busy} creating hint="Nibura inyuguti 8." />
-        <PasswordField label="Ongera wandike ijambo ry’ibanga rishya" value={repeat} setValue={setRepeat} disabled={busy} creating />
+        <PasswordField label="Ijambo ry’ibanga rishya" value={password} setValue={setPassword} disabled={busy} creating={!completing} />
+        <PasswordField label="Ongera wandike ijambo ry’ibanga rishya" value={repeat} setValue={setRepeat} disabled={busy} creating={!completing} showRequirements={false} />
       </> : <EmailField value={email} setValue={setEmail} disabled={busy} readOnly={readOnly} />}
       {error && <p role="alert" className="parent-form-error">{error}</p>}
       <button className="button-primary parent-submit" disabled={busy || (!sentTo && !!remaining)}>{busy ? 'Birimo gukorwa…' : completing ? 'Rangiza guhindura ijambo ry’ibanga' : sentTo ? 'Bika ijambo ry’ibanga rishya' : remaining ? `Ohereza kode (${remaining}s)` : 'Ohereza kode'}</button>
